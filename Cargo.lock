@@ -225,6 +225,7 @@ dependencies = [
  "cirru_parser",
  "ggez",
  "glam",
+ "im",
  "notify",
  "winit",
 ]

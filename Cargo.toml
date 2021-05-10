@@ -14,3 +14,4 @@ cirru_parser = "0.1.1"
 winit = "0.24"
 notify = "4.0.16"
 glam = { version = "0.12", features = ["mint"]}
+im = "15.0.0"

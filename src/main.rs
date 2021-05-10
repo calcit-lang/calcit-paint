@@ -1,12 +1,19 @@
 use ggez;
-use glam;
+
+mod color;
+mod extracter;
+mod primes;
+mod renderer;
 
 use std::sync::mpsc::TryRecvError;
 
+use ggez::conf::{WindowMode, WindowSetup};
 use ggez::event;
 use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent};
-use ggez::graphics::{self, Color, DrawMode};
-use ggez::{Context, GameError, GameResult};
+use ggez::graphics::{self};
+use ggez::GameResult;
+
+use renderer::to_game_err;
 use std::fs;
 use std::path::Path;
 use std::sync::mpsc::channel;
@@ -17,10 +24,6 @@ use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 
 use calcit_runner;
 use calcit_runner::{builtins, call_stack, cli_args, program, snapshot};
-
-fn to_game_err(e: String) -> GameError {
-  GameError::CustomError(e)
-}
 
 pub fn main() -> GameResult {
   builtins::effects::init_effects_states();
@@ -83,8 +86,14 @@ pub fn main() -> GameResult {
     return Err(to_game_err(format!("path {:?} not existed", &inc_path)));
   }
 
-  let cb = ggez::ContextBuilder::new("eventloop", "ggez");
-  let (ref mut ctx, mut events_loop) = cb.build()?;
+  let (ref mut ctx, mut events_loop) = ggez::ContextBuilder::new("eventloop", "ggez")
+    .window_setup(WindowSetup::default().title("Painter driven by Calcit"))
+    .window_mode(
+      WindowMode::default()
+        .dimensions(1000.0, 600.0)
+        .resizable(true),
+    )
+    .build()?;
 
   let mut first_paint = true;
 
@@ -95,7 +104,7 @@ pub fn main() -> GameResult {
       // println!("Event: {:?}", event);
       ctx.process_event(&event);
       if first_paint {
-        if let Err(e) = draw(ctx) {
+        if let Err(e) = renderer::draw_page(ctx) {
           println!("failed first paint: {:?}", e);
         }
         first_paint = false
@@ -107,6 +116,16 @@ pub fn main() -> GameResult {
         }
         Event::WindowEvent { event, .. } => match event {
           WindowEvent::CloseRequested => event::quit(ctx),
+          WindowEvent::Resized(logical_size) => {
+            let new_rect = graphics::Rect::new(
+              0.0,
+              0.0,
+              logical_size.width as f32,
+              logical_size.height as f32,
+            );
+            graphics::set_screen_coordinates(ctx, new_rect).unwrap();
+            // TODO call rerender
+          }
           WindowEvent::KeyboardInput {
             input:
               KeyboardInput {
@@ -122,11 +141,11 @@ pub fn main() -> GameResult {
           x => println!("Other window event fired: {:?}", x),
         },
 
-        x => {
+        _x => {
           // println!("Device event fired: {:?}", x);
           match rx.try_recv() {
             Err(TryRecvError::Empty) => {
-              thread::sleep(time::Duration::from_millis(240));
+              thread::sleep(time::Duration::from_millis(140));
             } // most of the time
             Ok(event) => {
               println!("event: {:?}", event);
@@ -144,8 +163,6 @@ pub fn main() -> GameResult {
                   } else {
                     let data = cirru_edn::parse(&content).unwrap();
                     let changes = snapshot::load_changes_info(data.clone()).unwrap();
-                    // println!("\ndata: {}", &data);
-                    // println!("\nchanges: {:?}", changes);
                     let new_code = program::apply_code_changes(&program_code, &changes).unwrap();
                     // println!("\nprogram code: {:?}", new_code);
                     // clear data in evaled states
@@ -158,7 +175,7 @@ pub fn main() -> GameResult {
                     // overwrite previous state
                     program_code = new_code;
                   }
-                  if let Err(e) = draw(ctx) {
+                  if let Err(e) = renderer::draw_page(ctx) {
                     println!("Failed drawing: {:?}", e);
                   }
                 }
@@ -174,23 +191,4 @@ pub fn main() -> GameResult {
     // ggez::timer::yield_now();
   }
   Ok(())
-}
-
-fn draw(ctx: &mut Context) -> GameResult {
-  let mut position: f32 = 1.0;
-  // Update
-  position += 1.0;
-
-  // Draw
-  graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
-  let circle = graphics::Mesh::new_circle(
-    ctx,
-    DrawMode::fill(),
-    glam::Vec2::new(0.0, 0.0),
-    100.0,
-    2.0,
-    Color::WHITE,
-  )?;
-  graphics::draw(ctx, &circle, (glam::Vec2::new(position, 380.0),))?;
-  graphics::present(ctx)
 }
