@@ -225,6 +225,7 @@ dependencies = [
  "cirru_parser",
  "ggez",
  "glam",
+ "im",
  "notify",
  "winit",
 ]
@@ -942,8 +943,6 @@ dependencies = [
 [[package]]
 name = "ggez"
 version = "0.6.0-rc1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74b418a47a9e1ee8dbd8f7a9378851e7af13dbc1b88132c3eaec39bd73e614b3"
 dependencies = [
  "approx",
  "bitflags",
