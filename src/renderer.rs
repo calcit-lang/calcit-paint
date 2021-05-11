@@ -3,6 +3,7 @@ use glam::Vec2;
 
 use ggez::graphics;
 use ggez::graphics::{Color, DrawMode, DrawParam};
+use ggez::graphics::{FillOptions, LineCap, LineJoin, StrokeOptions};
 use ggez::{Context, GameError, GameResult};
 
 use calcit_runner::program;
@@ -11,8 +12,8 @@ use calcit_runner::Calcit;
 use crate::{
   color::extract_color,
   extracter::{
-    extract_style, extract_touch_area_shape, read_bool, read_color, read_f32, read_line_join,
-    read_points, read_position, read_string, read_text_align,
+    extract_style, extract_touch_area_shape, read_bool, read_color, read_f32, read_line_cap,
+    read_line_join, read_points, read_position, read_string, read_text_align,
   },
   primes::{PaintOp, Shape, ShapeStyle},
 };
@@ -47,7 +48,6 @@ pub fn draw_page(ctx: &mut Context) -> GameResult {
       _ => println!("Unknown op: {}", call_op),
     }
   }
-  println!("present");
   graphics::present(ctx)
 }
 
@@ -88,6 +88,56 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: Vec2) -> GameResult {
       for child in children {
         draw_shape(ctx, child, position.to_owned())?;
       }
+    }
+    Shape::Text {
+      text,
+      position,
+      size,
+      color,
+      // weight: _w,
+      // align: _a,
+    } => {
+      let mono_font = graphics::Font::new(ctx, "/SourceCodePro-Medium.ttf")?;
+      let text_mesh = graphics::Text::new((text.as_str(), mono_font, *size));
+      graphics::draw(
+        ctx,
+        &text_mesh,
+        graphics::DrawParam::new()
+          .dest(position.to_owned())
+          .color(color.to_owned()),
+      )?;
+    }
+    Shape::Polyline {
+      position,
+      stops,
+      size,
+      color,
+      line_join,
+      line_cap,
+      skip_first,
+    } => {
+      let mut points = stops.to_owned();
+      if *skip_first && points.len() >= 1 {
+        points.remove(0);
+      }
+      let points_mesh = graphics::Mesh::new_polyline(
+        ctx,
+        DrawMode::Stroke(
+          StrokeOptions::default()
+            .with_line_join(*line_join)
+            .with_line_cap(*line_cap)
+            .with_line_width(*size),
+        ),
+        stops,
+        *color,
+      )?;
+      graphics::draw(
+        ctx,
+        &points_mesh,
+        graphics::DrawParam::new()
+          .dest(position.to_owned())
+          .color(color.to_owned()),
+      )?;
     }
     _ => println!("TODO {:?}", tree),
   }
@@ -145,18 +195,20 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
           Ok(Shape::Text {
             text: read_string(m, "text")?,
             position: read_position(m, "position")?,
-            font_size: read_f32(m, "font-size")?,
-            font_weight: String::from("TODO"), // TODO
+            size: read_f32(m, "size")?,
             color: read_color(m, "color")?,
-            align: read_text_align(m, "align")?,
+            // weight: read_string(m, "weight")?, // TODO
+            // align: read_text_align(m, "align")?,
           })
         }
         "polyline" => Ok(Shape::Polyline {
           position: read_position(m, "position")?,
           line_join: read_line_join(m, "line-join")?,
+          line_cap: read_line_cap(m, "line-cap")?,
           skip_first: read_bool(m, "skip-first?")?,
-          stops: read_points(m, "points")?,
-          style: extract_style(m)?,
+          stops: read_points(m, "stops")?,
+          color: read_color(m, "color")?,
+          size: read_f32(m, "size")?,
         }),
         "touch-area" => Ok(Shape::TouchArea {
           path: m

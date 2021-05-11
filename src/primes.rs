@@ -2,6 +2,8 @@ use calcit_runner::primes::Calcit;
 use ggez::graphics::Color;
 use glam::Vec2;
 
+pub use ggez::graphics::{LineCap, LineJoin};
+
 #[derive(Debug, PartialEq)]
 pub enum TextAlign {
   Left,
@@ -25,13 +27,6 @@ pub enum PaintOp {
   Arc(Vec2, f64, f64, f64, bool),
   NewPath,
   ClosePath,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum LineJoin {
-  Round,
-  Milter,
-  Bevel,
 }
 
 #[derive(Debug, PartialEq)]
@@ -61,10 +56,10 @@ pub enum Shape {
   Text {
     text: String,
     position: Vec2,
-    font_size: f32,
-    font_weight: String, // TODO
+    size: f32,
+    // weight: String, // TODO
     color: Color,
-    align: TextAlign,
+    // align: TextAlign,
   },
   Arc {
     position: Vec2,
@@ -82,8 +77,10 @@ pub enum Shape {
     position: Vec2,
     stops: Vec<Vec2>,
     skip_first: bool,
-    style: ShapeStyle,
+    color: Color,
+    size: f32,
     line_join: LineJoin,
+    line_cap: LineCap,
   },
   TouchArea {
     path: Calcit,

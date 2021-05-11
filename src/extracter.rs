@@ -5,14 +5,14 @@ use calcit_runner::Calcit;
 
 use crate::{
   color::extract_color,
-  primes::{LineJoin, Shape, ShapeStyle, TextAlign, TouchAreaShape},
+  primes::{LineCap, LineJoin, Shape, ShapeStyle, TextAlign, TouchAreaShape},
 };
 
 pub fn read_f32(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<f32, String> {
   match tree.get(&Calcit::Keyword(String::from(key))) {
     Some(Calcit::Number(n)) => Ok(*n as f32),
     Some(a) => Err(format!("cannot be used as f32: {}", a)),
-    None => Err(format!("cannot read f32 from empty")),
+    None => Err(format!("cannot read f32 from empty from: {}", key)),
   }
 }
 
@@ -20,7 +20,7 @@ pub fn read_bool(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<bool, 
   match tree.get(&Calcit::Keyword(String::from(key))) {
     Some(Calcit::Bool(b)) => Ok(*b),
     Some(a) => Err(format!("cannot be used as bool: {}", a)),
-    None => Err(format!("cannot read bool from empty")),
+    None => Err(format!("cannot read bool from empty from: {}", key)),
   }
 }
 
@@ -29,7 +29,7 @@ pub fn read_string(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Stri
     Some(Calcit::Str(s)) => Ok(s.to_string()),
     Some(Calcit::Keyword(s)) => Ok(s.to_string()),
     Some(a) => Err(format!("cannot be used as string: {}", a)),
-    None => Err(format!("cannot read string from empty")),
+    None => Err(format!("cannot read string from empty from: {}", key)),
   }
 }
 
@@ -41,7 +41,7 @@ pub fn read_position(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Ve
     },
     Some(Calcit::List(xs)) => Err(format!("invalid position length: {:?}", xs)),
     Some(a) => Err(format!("cannot be used as position: {}", a)),
-    None => Err(format!("cannot read position from empty")),
+    None => Err(format!("cannot read position from empty from: {}", key)),
   }
 }
 
@@ -65,7 +65,7 @@ pub fn extract_style(m: &im::HashMap<Calcit, Calcit>) -> Result<ShapeStyle, Stri
 pub fn read_color(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Color, String> {
   match tree.get(&Calcit::Keyword(String::from(key))) {
     Some(a) => extract_color(a),
-    None => Err(format!("cannot read color from empty")),
+    None => Err(format!("cannot read color from empty from: {}", key)),
   }
 }
 
@@ -78,7 +78,7 @@ pub fn read_text_align(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<
       _ => Err(format!("unknown align value: {}", k)),
     },
     Some(a) => Err(format!("invalid text align: {}", a)),
-    None => Err(format!("cannot read text align from empty")),
+    None => Err(format!("cannot read text align from empty from: {}", key)),
   }
 }
 
@@ -86,12 +86,26 @@ pub fn read_line_join(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<L
   match tree.get(&Calcit::Keyword(String::from(key))) {
     Some(Calcit::Keyword(k)) => match k.as_str() {
       "round" => Ok(LineJoin::Round),
-      "milter" => Ok(LineJoin::Milter),
+      "miter" => Ok(LineJoin::Miter),
+      "miter-clip" => Ok(LineJoin::MiterClip),
       "bevel" => Ok(LineJoin::Bevel),
       _ => Err(format!("unknown align value: {}", k)),
     },
     Some(a) => Err(format!("invalid text align: {}", a)),
-    None => Err(format!("cannot read line join from empty")),
+    None => Err(format!("cannot read line join from empty from: {}", key)),
+  }
+}
+
+pub fn read_line_cap(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<LineCap, String> {
+  match tree.get(&Calcit::Keyword(String::from(key))) {
+    Some(Calcit::Keyword(k)) => match k.as_str() {
+      "round" => Ok(LineCap::Round),
+      "butt" => Ok(LineCap::Butt),
+      "square" => Ok(LineCap::Square),
+      _ => Err(format!("unknown align value: {}", k)),
+    },
+    Some(a) => Err(format!("invalid text align: {}", a)),
+    None => Err(format!("cannot read line join from empty from: {}", key)),
   }
 }
 
@@ -112,7 +126,7 @@ pub fn read_points(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Vec<
       Ok(ys)
     }
     Some(a) => Err(format!("cannot be used as position: {}", a)),
-    None => Err(format!("cannot read position from empty")),
+    None => Err(format!("cannot read position from empty from: {}", key)),
   }
 }
 

@@ -1,4 +1,6 @@
 use ggez;
+use std::env;
+use std::path;
 
 mod color;
 mod extracter;
@@ -86,7 +88,16 @@ pub fn main() -> GameResult {
     return Err(to_game_err(format!("path {:?} not existed", &inc_path)));
   }
 
+  let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
+    let mut path = path::PathBuf::from(manifest_dir);
+    path.push("resources");
+    path
+  } else {
+    path::PathBuf::from("./resources")
+  };
+
   let (ref mut ctx, mut events_loop) = ggez::ContextBuilder::new("eventloop", "ggez")
+    .add_resource_path(resource_dir)
     .window_setup(WindowSetup::default().title("Painter driven by Calcit"))
     .window_mode(
       WindowMode::default()
