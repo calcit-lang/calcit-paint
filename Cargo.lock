@@ -226,6 +226,7 @@ dependencies = [
  "ggez",
  "glam",
  "im",
+ "lazy_static",
  "notify",
  "winit",
 ]

@@ -6,16 +6,17 @@ use ggez::graphics::{Color, DrawMode, DrawParam};
 use ggez::graphics::{FillOptions, LineCap, LineJoin, StrokeOptions};
 use ggez::{Context, GameError, GameResult};
 
+use crate::touches;
 use calcit_runner::program;
 use calcit_runner::Calcit;
 
 use crate::{
   color::extract_color,
   extracter::{
-    extract_style, extract_touch_area_shape, read_bool, read_color, read_f32, read_line_cap,
-    read_line_join, read_points, read_position, read_string, read_text_align,
+    extract_style, extract_touch_area_shape, read_bool, read_color, read_f32, read_line_cap, read_line_join,
+    read_points, read_position, read_string, read_text_align,
   },
-  primes::{PaintOp, Shape, ShapeStyle},
+  primes::{PaintOp, Shape, ShapeStyle, TouchAreaShape},
 };
 
 // TODO Stack
@@ -139,6 +140,46 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: Vec2) -> GameResult {
           .color(color.to_owned()),
       )?;
     }
+    Shape::TouchArea {
+      position,
+      action,
+      data,
+      path,
+      style,
+      area,
+    } => {
+      match area {
+        TouchAreaShape::Circle(r) => {
+          let (mode, color) = match style {
+            ShapeStyle::Line { color, width } => (DrawMode::stroke(*width), *color),
+            ShapeStyle::Fill { color } => (DrawMode::fill(), *color),
+          };
+
+          let circle = graphics::Mesh::new_circle(ctx, mode, Vec2::new(0.0, 0.0), *r, 2.0, color)?;
+          graphics::draw(ctx, &circle, (*position,))?;
+        }
+        TouchAreaShape::Rect(dx, dy) => {
+          let rect = graphics::Rect::new(base.x + position.x - dx, base.y + position.y - dy, 2.0 * dx, 2.0 * dy);
+          match style {
+            ShapeStyle::Line { color, width: _w } => {
+              let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, *color)?;
+              graphics::draw(ctx, &r1, DrawParam::default())?;
+            }
+            ShapeStyle::Fill { color } => {
+              let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, *color)?;
+              graphics::draw(ctx, &r1, DrawParam::default())?;
+            }
+          }
+        }
+      }
+      touches::add_touch_area(
+        position.to_owned(),
+        area.to_owned(),
+        action.to_owned(),
+        path.to_owned(),
+        data.to_owned(),
+      );
+    }
     _ => println!("TODO {:?}", tree),
   }
   Ok(())
@@ -186,10 +227,7 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
         }),
         "ops" => Ok(Shape::PaintOps {
           position: read_position(m, "position")?,
-          ops: extract_ops(
-            m.get(&Calcit::Keyword(String::from("ops")))
-              .unwrap_or(&Calcit::Nil),
-          )?,
+          ops: extract_ops(m.get(&Calcit::Keyword(String::from("ops"))).unwrap_or(&Calcit::Nil))?,
         }),
         "text" => {
           Ok(Shape::Text {
@@ -225,7 +263,6 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
             .to_owned(),
           position: read_position(m, "position")?,
           style: extract_style(m)?,
-          radius: read_f32(m, "radius")?,
           area: extract_touch_area_shape(m)?,
         }),
         "key-listener" => Ok(Shape::KeyListener {

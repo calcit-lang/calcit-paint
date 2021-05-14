@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate lazy_static;
+
 use ggez;
 use std::env;
 use std::path;
@@ -6,6 +9,7 @@ mod color;
 mod extracter;
 mod primes;
 mod renderer;
+mod touches;
 
 use std::sync::mpsc::TryRecvError;
 

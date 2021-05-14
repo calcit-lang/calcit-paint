@@ -42,5 +42,8 @@
                         * 80 $ sin (* 1.9 i)
                   :line-join :round
                   :line-cap :round
+                {} (:kind :touch-area) (:radius 10) (:action nil) (:path nil) (:data nil)
+                  :position $ [] 200 200
+                  :fill-color $ [] 200 80 80
       :proc $ quote ()
       :configs $ {}
