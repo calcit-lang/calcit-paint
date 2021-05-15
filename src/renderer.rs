@@ -6,7 +6,7 @@ use ggez::graphics::{Color, DrawMode, DrawParam};
 use ggez::graphics::{FillOptions, LineCap, LineJoin, StrokeOptions};
 use ggez::{Context, GameError, GameResult};
 
-use crate::touches;
+use crate::{primes::path_add, touches};
 use calcit_runner::program;
 use calcit_runner::Calcit;
 
@@ -28,6 +28,8 @@ pub fn to_game_err(e: String) -> GameError {
 
 pub fn reset_page(ctx: &mut Context, color: Color) -> GameResult {
   println!("reset with color: {:?}", color);
+  touches::reset_touches_stack();
+  key_listener::reset_listeners_stack();
   graphics::clear(ctx, color);
   Ok(())
 }
@@ -39,9 +41,9 @@ pub fn draw_page(ctx: &mut Context) -> GameResult {
   for (call_op, args) in messages {
     match (call_op.as_str(), args.get(0)) {
       ("render-canvas!", Some(tree)) => match extract_shape(&tree) {
-        Ok(shape) => draw_shape(ctx, &shape, Vec2::new(0.0, 0.0))?,
+        Ok(shape) => draw_shape(ctx, &shape, &Vec2::new(0.0, 0.0))?,
         Err(failure) => {
-          println!("Failed to extract shape {}, {}", tree, failure)
+          println!("Failed to extract shape {}", failure)
         }
       },
       ("reset-canvas!", Some(tree)) => {
@@ -53,7 +55,7 @@ pub fn draw_page(ctx: &mut Context) -> GameResult {
   graphics::present(ctx)
 }
 
-fn draw_shape(ctx: &mut Context, tree: &Shape, base: Vec2) -> GameResult {
+fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
   match tree {
     Shape::Rectangle {
       position,
@@ -84,11 +86,11 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: Vec2) -> GameResult {
       };
 
       let circle = graphics::Mesh::new_circle(ctx, mode, Vec2::new(0.0, 0.0), *radius, 2.0, color)?;
-      graphics::draw(ctx, &circle, (*position,))?;
+      graphics::draw(ctx, &circle, (path_add(position, base),))?;
     }
     Shape::Group { position, children } => {
       for child in children {
-        draw_shape(ctx, child, position.to_owned())?;
+        draw_shape(ctx, child, &path_add(position, base))?;
       }
     }
     Shape::Text {
@@ -105,7 +107,7 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: Vec2) -> GameResult {
         ctx,
         &text_mesh,
         graphics::DrawParam::new()
-          .dest(position.to_owned())
+          .dest(path_add(position, base))
           .color(color.to_owned()),
       )?;
     }
@@ -137,7 +139,7 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: Vec2) -> GameResult {
         ctx,
         &points_mesh,
         graphics::DrawParam::new()
-          .dest(position.to_owned())
+          .dest(path_add(position, base))
           .color(color.to_owned()),
       )?;
     }
@@ -157,7 +159,7 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: Vec2) -> GameResult {
           };
 
           let circle = graphics::Mesh::new_circle(ctx, mode, Vec2::new(0.0, 0.0), *r, 2.0, color)?;
-          graphics::draw(ctx, &circle, (*position,))?;
+          graphics::draw(ctx, &circle, (path_add(position, base),))?;
         }
         TouchAreaShape::Rect(dx, dy) => {
           let rect = graphics::Rect::new(base.x + position.x - dx, base.y + position.y - dy, 2.0 * dx, 2.0 * dy);
@@ -174,7 +176,7 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: Vec2) -> GameResult {
         }
       }
       touches::add_touch_area(
-        position.to_owned(),
+        path_add(position, base),
         area.to_owned(),
         action.to_owned(),
         path.to_owned(),
@@ -198,7 +200,7 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: Vec2) -> GameResult {
 
 fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
   match tree {
-    Calcit::Map(m) => match m.get(&Calcit::Keyword(String::from("kind"))) {
+    Calcit::Map(m) => match m.get(&Calcit::Keyword(String::from("type"))) {
       Some(Calcit::Keyword(name)) => match name.as_str() {
         "rectangle" => Ok(Shape::Rectangle {
           position: read_position(m, "position")?,
@@ -216,7 +218,10 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
             Some(Calcit::List(xs)) => {
               let mut ys = vec![];
               for x in xs {
-                ys.push(extract_shape(&x)?)
+                match extract_shape(&x) {
+                  Ok(v) => ys.push(v),
+                  Err(failure) => return Err(format!("{}\n  in {}", failure, x)),
+                }
               }
               ys
             }
@@ -224,7 +229,7 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
             None => vec![],
           };
           Ok(Shape::Group {
-            position: Vec2::new(10.0, 10.0),
+            position: read_position(m, "position")?,
             children,
           })
         }
@@ -294,9 +299,13 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
         _ => Err(format!("unknown kind: {}", name)),
       },
       Some(a) => Err(format!("unknown kind value, {}", a)),
-      None => Err(String::from("nil kind")),
+      None => Err(String::from("nil type")),
     },
-    _ => Err(String::from("expected a map")),
+    Calcit::Nil => Ok(Shape::Group {
+      position: Vec2::new(0.0, 0.0),
+      children: vec![],
+    }),
+    _ => Err(format!("expected a map, got {}", tree)),
   }
 }
 

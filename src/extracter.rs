@@ -12,7 +12,11 @@ pub fn read_f32(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<f32, St
   match tree.get(&Calcit::Keyword(String::from(key))) {
     Some(Calcit::Number(n)) => Ok(*n as f32),
     Some(a) => Err(format!("cannot be used as f32: {}", a)),
-    None => Err(format!("cannot read f32 from empty from: {}", key)),
+    None => Err(format!(
+      "cannot read f32 {} from empty from: {}",
+      key,
+      Calcit::Map(tree.to_owned())
+    )),
   }
 }
 
@@ -28,7 +32,11 @@ pub fn read_string(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Stri
   match tree.get(&Calcit::Keyword(String::from(key))) {
     Some(Calcit::Str(s)) => Ok(s.to_string()),
     Some(Calcit::Keyword(s)) => Ok(s.to_string()),
-    Some(a) => Err(format!("cannot be used as string: {}", a)),
+    Some(a) => Err(format!(
+      "cannot be used as string {} in {}",
+      a,
+      Calcit::Map(tree.to_owned())
+    )),
     None => Err(format!("cannot read string from empty from: {}", key)),
   }
 }
@@ -40,8 +48,13 @@ pub fn read_position(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Ve
       (a, b) => Err(format!("invalid positon values: {} {}", a, b)),
     },
     Some(Calcit::List(xs)) => Err(format!("invalid position length: {:?}", xs)),
-    Some(a) => Err(format!("cannot be used as position: {}", a)),
-    None => Err(format!("cannot read position from empty from: {}", key)),
+    Some(Calcit::Nil) => Ok(Vec2::new(0.0, 0.0)),
+    Some(a) => Err(format!(
+      "cannot be used as position: {} in {}",
+      a,
+      Calcit::Map(tree.to_owned())
+    )),
+    None => Ok(Vec2::new(0.0, 0.0)),
   }
 }
 
@@ -125,7 +138,7 @@ pub fn read_points(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Vec<
       }
       Ok(ys)
     }
-    Some(a) => Err(format!("cannot be used as position: {}", a)),
+    Some(a) => Err(format!("cannot be used as points positions: {}", a)),
     None => Err(format!("cannot read position from empty from: {}", key)),
   }
 }
@@ -138,9 +151,7 @@ pub fn extract_touch_area_shape(m: &im::HashMap<Calcit, Calcit>) -> Result<Touch
       m.get(&Calcit::Keyword(String::from("dx"))),
       m.get(&Calcit::Keyword(String::from("dy"))),
     ) {
-      (Some(Calcit::Number(dx)), Some(Calcit::Number(dy))) => {
-        Ok(TouchAreaShape::Rect(*dx as f32, *dy as f32))
-      }
+      (Some(Calcit::Number(dx)), Some(Calcit::Number(dy))) => Ok(TouchAreaShape::Rect(*dx as f32, *dy as f32)),
       (a, b) => Err(format!("invalid touch area shape: {:?} {:?}", a, b)),
     }
   }

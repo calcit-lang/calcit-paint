@@ -105,3 +105,7 @@ pub enum TouchAreaShape {
   Circle(f32),
   Rect(f32, f32),
 }
+
+pub fn path_add(a: &Vec2, b: &Vec2) -> Vec2 {
+  Vec2::new(a.x + b.x, a.y + b.y)
+}

@@ -120,11 +120,17 @@ pub fn main() -> GameResult {
         first_paint = false
       }
 
-      let handle_calcit_event =
-        |params: CalcitItems| match calcit_runner::run_program("app.main/on-window-event", params, &program_code) {
+      let event_entry = cli_matches.value_of("event-entry").unwrap();
+      let mut handle_calcit_event = |params: CalcitItems| {
+        call_stack::clear_stack();
+        match calcit_runner::run_program(event_entry, params, &program_code) {
           Ok(..) => (),
           Err(e) => println!("failed falling on-window-event: {}", e),
-        };
+        }
+        if let Err(e) = renderer::draw_page(ctx) {
+          println!("Failed drawing: {:?}", e);
+        }
+      };
 
       match event {
         Event::MainEventsCleared => {
@@ -179,7 +185,7 @@ pub fn main() -> GameResult {
           // println!("Device event fired: {:?}", x);
           match rx.try_recv() {
             Err(TryRecvError::Empty) => {
-              thread::sleep(time::Duration::from_millis(140));
+              thread::sleep(time::Duration::from_millis(70));
             } // most of the time
             Ok(event) => {
               println!("event: {:?}", event);
@@ -190,8 +196,6 @@ pub fn main() -> GameResult {
                 notify::DebouncedEvent::Write(_) => {
                   println!("\n-------- file change --------\n");
                   call_stack::clear_stack();
-                  touches::reset_touches_stack();
-                  key_listener::reset_listeners_stack();
                   // load new program code
                   let content = fs::read_to_string(&inc_path).unwrap();
                   if content.trim() == "" {
