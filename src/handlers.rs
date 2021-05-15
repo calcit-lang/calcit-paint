@@ -2,8 +2,9 @@ use glam::Vec2;
 use std::cell::RefCell;
 
 use calcit_runner::Calcit;
+use ggez::event::KeyCode;
 
-use crate::touches;
+use crate::{key_listener, touches};
 
 // TODO track position
 
@@ -53,6 +54,8 @@ pub fn handle_mouse_up(mouse: &RefCell<Vec2>) -> Calcit {
       info.insert(kwd("data"), tracked_state.data);
       info.insert(kwd("dx"), Calcit::Number((position.x - p0.x) as f64));
       info.insert(kwd("dy"), Calcit::Number((position.y - p0.y) as f64));
+
+      touches::release_mouse_drag();
     }
     None => (),
   }
@@ -88,8 +91,46 @@ pub fn handle_mouse_move(position: Vec2, mouse: &RefCell<Vec2>) -> Option<Calcit
   }
 }
 
-pub fn handle_key_down() {}
+pub fn handle_keyboard(keycode: KeyCode, key_state: winit::event::ElementState) -> Vec<Calcit> {
+  let targets = key_listener::find_key_listeners(&name_key(keycode));
+  if targets.is_empty() {
+    let mut info: im::HashMap<Calcit, Calcit> = im::HashMap::new();
+    info.insert(
+      kwd("type"),
+      match key_state {
+        winit::event::ElementState::Pressed => kwd("key-down"),
+        winit::event::ElementState::Released => kwd("key-up"),
+      },
+    );
+    info.insert(kwd("key-code"), Calcit::Number(keycode as usize as f64));
+    info.insert(kwd("name"), Calcit::Str(name_key(keycode)));
+    vec![Calcit::Map(info)]
+  } else {
+    let mut hits: Vec<Calcit> = vec![];
+    for target in targets {
+      let mut info: im::HashMap<Calcit, Calcit> = im::HashMap::new();
+      info.insert(
+        kwd("type"),
+        match key_state {
+          winit::event::ElementState::Pressed => kwd("key-down"),
+          winit::event::ElementState::Released => kwd("key-up"),
+        },
+      );
+      info.insert(kwd("key-code"), Calcit::Number(keycode as usize as f64));
+      info.insert(kwd("name"), Calcit::Str(name_key(keycode)));
+      info.insert(kwd("action"), target.action);
+      info.insert(kwd("path"), target.path);
+      info.insert(kwd("data"), target.data);
+      hits.push(Calcit::Map(info));
+    }
+    hits
+  }
+}
 
 fn kwd(s: &str) -> Calcit {
   Calcit::Keyword(s.to_string())
+}
+
+pub fn name_key(keycode: KeyCode) -> String {
+  format!("{:?}", keycode) // TODO
 }

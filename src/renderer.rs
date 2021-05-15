@@ -16,6 +16,7 @@ use crate::{
     extract_style, extract_touch_area_shape, read_bool, read_color, read_f32, read_line_cap, read_line_join,
     read_points, read_position, read_string, read_text_align,
   },
+  key_listener,
   primes::{PaintOp, Shape, ShapeStyle, TouchAreaShape},
 };
 
@@ -180,7 +181,17 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: Vec2) -> GameResult {
         data.to_owned(),
       );
     }
-    _ => println!("TODO {:?}", tree),
+    Shape::KeyListener {
+      key,
+      action,
+      path,
+      data,
+    } => {
+      key_listener::add_key_listener(key.to_owned(), action.to_owned(), path.to_owned(), data.to_owned());
+    }
+    Shape::PaintOps { .. } => {
+      println!("TODO ops {:?}", tree)
+    }
   }
   Ok(())
 }
@@ -217,14 +228,14 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
             children,
           })
         }
-        "arc" => Ok(Shape::Arc {
-          position: read_position(m, "position")?,
-          radius: read_f32(m, "radius")?,
-          from_angle: read_f32(m, "from-angle")?,
-          to_angle: read_f32(m, "to-angle")?,
-          negative: read_bool(m, "negative")?,
-          style: extract_style(m)?,
-        }),
+        // "arc" => Ok(Shape::Arc {
+        //   position: read_position(m, "position")?,
+        //   radius: read_f32(m, "radius")?,
+        //   from_angle: read_f32(m, "from-angle")?,
+        //   to_angle: read_f32(m, "to-angle")?,
+        //   negative: read_bool(m, "negative")?,
+        //   style: extract_style(m)?,
+        // }),
         "ops" => Ok(Shape::PaintOps {
           position: read_position(m, "position")?,
           ops: extract_ops(m.get(&Calcit::Keyword(String::from("ops"))).unwrap_or(&Calcit::Nil))?,

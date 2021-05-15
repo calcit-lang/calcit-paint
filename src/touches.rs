@@ -65,16 +65,6 @@ pub fn release_mouse_drag() {
   *state = None;
 }
 
-pub fn calc_mouse_move_delta(p: Vec2) -> Result<Vec2, String> {
-  let state = MOUSE_DRAG_TRACKED.lock().unwrap();
-  if state.is_some() {
-    let v = state.to_owned().unwrap();
-    Ok(Vec2::new(p.x - v.position.x, p.y - v.position.y))
-  } else {
-    Err(format!("found no tracked mouse point"))
-  }
-}
-
 pub fn find_touch_area(p: Vec2) -> Option<TouchArea> {
   let stack = TOUCH_ITEMS_STACK.lock().unwrap();
   let mut reversed = stack.clone();

@@ -11,6 +11,7 @@ use std::path;
 mod color;
 mod extracter;
 mod handlers;
+mod key_listener;
 mod primes;
 mod renderer;
 mod touches;
@@ -152,14 +153,23 @@ pub fn main() -> GameResult {
             handle_calcit_event(im::vector![event_info]);
           }
           WindowEvent::KeyboardInput {
-            input: KeyboardInput {
-              virtual_keycode: Some(keycode),
-              ..
-            },
+            input:
+              KeyboardInput {
+                state: key_state,
+                scancode: _c, // unknown order
+                virtual_keycode: Some(keycode),
+                ..
+              },
             ..
           } => match keycode {
             event::KeyCode::Escape => *control_flow = winit::event_loop::ControlFlow::Exit,
-            _ => (),
+            _ => {
+              // println!("keyboard event: {:?} {:?}", keycode, scancode);
+              let event_infos = handlers::handle_keyboard(keycode, key_state);
+              for event_info in event_infos {
+                handle_calcit_event(im::vector![event_info]);
+              }
+            }
           },
           // `CloseRequested` and `KeyboardInput` events won't appear here.
           x => println!("Other window event fired: {:?}", x),
@@ -181,6 +191,7 @@ pub fn main() -> GameResult {
                   println!("\n-------- file change --------\n");
                   call_stack::clear_stack();
                   touches::reset_touches_stack();
+                  key_listener::reset_listeners_stack();
                   // load new program code
                   let content = fs::read_to_string(&inc_path).unwrap();
                   if content.trim() == "" {

@@ -61,14 +61,14 @@ pub enum Shape {
     color: Color,
     // align: TextAlign,
   },
-  Arc {
-    position: Vec2,
-    radius: f32,
-    from_angle: f32,
-    to_angle: f32,
-    negative: bool,
-    style: ShapeStyle,
-  },
+  // Arc {
+  //   position: Vec2,
+  //   radius: f32,
+  //   from_angle: f32,
+  //   to_angle: f32,
+  //   negative: bool,
+  //   style: ShapeStyle,
+  // },
   PaintOps {
     position: Vec2,
     ops: Vec<PaintOp>,
@@ -93,8 +93,8 @@ pub enum Shape {
   },
   KeyListener {
     key: String, // TODO modifier
-    path: Calcit,
     action: Calcit,
+    path: Calcit,
     data: Calcit,
     // children: Vec<Shape>, // TODO
   },
