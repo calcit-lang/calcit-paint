@@ -292,6 +292,18 @@
                       |j $ {} (:type :leaf) (:by |u0) (:at 1620640299215) (:text |200)
                       |r $ {} (:type :leaf) (:by |u0) (:at 1620640294561) (:text |50)
                       |v $ {} (:type :leaf) (:by |u0) (:at 1620750630728) (:text |30)
+          |on-window-event $ {} (:type :expr) (:by |u0) (:at 1621053094438)
+            :data $ {}
+              |T $ {} (:type :leaf) (:by |u0) (:at 1621053094438) (:text |defn)
+              |j $ {} (:type :leaf) (:by |u0) (:at 1621053094438) (:text |on-window-event)
+              |r $ {} (:type :expr) (:by |u0) (:at 1621053094438)
+                :data $ {}
+                  |T $ {} (:type :leaf) (:by |u0) (:at 1621054474236) (:text |event)
+              |v $ {} (:type :expr) (:by |u0) (:at 1621053099227)
+                :data $ {}
+                  |T $ {} (:type :leaf) (:by |u0) (:at 1621053100077) (:text |println)
+                  |j $ {} (:type :leaf) (:by |u0) (:at 1621054333696) (:text "|\"event:")
+                  |r $ {} (:type :leaf) (:by |u0) (:at 1621054334609) (:text |event)
         :proc $ {} (:type :expr) (:by |u0) (:at 1620576367501)
           :data $ {}
         :configs $ {}

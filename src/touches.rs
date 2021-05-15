@@ -12,19 +12,19 @@ lazy_static! {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TouchArea {
-  path: Calcit,
-  action: Calcit,
-  data: Calcit,
-  position: Vec2,
-  area: TouchAreaShape,
+  pub path: Calcit,
+  pub action: Calcit,
+  pub data: Calcit,
+  pub position: Vec2,
+  pub area: TouchAreaShape,
 }
 
 #[derive(Debug, PartialEq, Clone)]
-struct MouseDragState {
-  position: Vec2,
-  action: Calcit,
-  path: Calcit,
-  data: Calcit,
+pub struct MouseDragState {
+  pub position: Vec2,
+  pub action: Calcit,
+  pub path: Calcit,
+  pub data: Calcit,
 }
 
 pub fn reset_touches_stack() {
@@ -45,7 +45,11 @@ pub fn add_touch_area(position: Vec2, area: TouchAreaShape, action: Calcit, path
   stack.push(item);
 }
 
-pub fn track_mouse_drag(down_position: Vec2, action: Calcit, path: Calcit, data: Calcit) -> Result<(), String> {
+pub fn read_mouse_tracked_state() -> Option<MouseDragState> {
+  MOUSE_DRAG_TRACKED.lock().unwrap().to_owned()
+}
+
+pub fn track_mouse_drag(down_position: Vec2, action: Calcit, path: Calcit, data: Calcit) {
   let item = MouseDragState {
     data: data,
     action: action,
@@ -54,7 +58,6 @@ pub fn track_mouse_drag(down_position: Vec2, action: Calcit, path: Calcit, data:
   };
   let mut state = MOUSE_DRAG_TRACKED.lock().unwrap();
   *state = Some(item);
-  Ok(())
 }
 
 pub fn release_mouse_drag() {
@@ -74,9 +77,11 @@ pub fn calc_mouse_move_delta(p: Vec2) -> Result<Vec2, String> {
 
 pub fn find_touch_area(p: Vec2) -> Option<TouchArea> {
   let stack = TOUCH_ITEMS_STACK.lock().unwrap();
-  let last_idx = stack.len() - 1;
-  for idx in 0..last_idx {
-    let item = &stack[last_idx - idx];
+  let mut reversed = stack.clone();
+  reversed.reverse(); // mutable...
+                      // println!("Touch Stack: {:?} {:?}", reversed, stack);
+  for item in reversed {
+    println!("CHECK touch position: {:?} {}", item, p);
     match item.area {
       TouchAreaShape::Rect(w, h) => {
         // half of width height

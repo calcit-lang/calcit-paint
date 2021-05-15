@@ -45,5 +45,7 @@
                 {} (:kind :touch-area) (:radius 10) (:action nil) (:path nil) (:data nil)
                   :position $ [] 200 200
                   :fill-color $ [] 200 80 80
+        |on-window-event $ quote
+          defn on-window-event (event) (println "\"event:" event)
       :proc $ quote ()
       :configs $ {}
