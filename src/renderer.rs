@@ -13,11 +13,11 @@ use calcit_runner::Calcit;
 use crate::{
   color::extract_color,
   extracter::{
-    extract_style, extract_touch_area_shape, read_bool, read_color, read_f32, read_line_cap, read_line_join,
-    read_points, read_position, read_string, read_text_align,
+    extract_line_style, extract_touch_area_shape, read_bool, read_color, read_f32, read_line_cap, read_line_join,
+    read_points, read_position, read_some_color, read_string, read_text_align,
   },
   key_listener,
-  primes::{PaintOp, Shape, ShapeStyle, TouchAreaShape},
+  primes::{PaintOp, Shape, TouchAreaShape},
 };
 
 // TODO Stack
@@ -74,32 +74,47 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
       position,
       width,
       height,
-      style,
+      line_style,
+      fill_style,
     } => {
       let rect = graphics::Rect::new(base.x + position.x, base.y + position.y, *width, *height);
-      match style {
-        ShapeStyle::Line { color, width: _w } => {
-          let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, *color)?;
-          graphics::draw(ctx, &r1, DrawParam::default())?;
-        }
-        ShapeStyle::Fill { color } => {
-          let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, *color)?;
-          graphics::draw(ctx, &r1, DrawParam::default())?;
-        }
+      if let Some((color, width)) = line_style {
+        let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::stroke(*width), rect, *color)?;
+        graphics::draw(ctx, &r1, DrawParam::default())?;
+      }
+      if let Some(color) = fill_style {
+        let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, *color)?;
+        graphics::draw(ctx, &r1, DrawParam::default())?;
       }
     }
     Shape::Circle {
       position,
       radius,
-      style,
+      line_style,
+      fill_style,
     } => {
-      let (mode, color) = match style {
-        ShapeStyle::Line { color, width } => (DrawMode::stroke(*width), *color),
-        ShapeStyle::Fill { color } => (DrawMode::fill(), *color),
-      };
-
-      let circle = graphics::Mesh::new_circle(ctx, mode, Vec2::new(0.0, 0.0), *radius, 2.0, color)?;
-      graphics::draw(ctx, &circle, (path_add(position, base),))?;
+      if let Some((color, width)) = line_style {
+        let circle = graphics::Mesh::new_circle(
+          ctx,
+          DrawMode::stroke(*width),
+          Vec2::new(0.0, 0.0),
+          *radius,
+          2.0,
+          color.to_owned(),
+        )?;
+        graphics::draw(ctx, &circle, (path_add(position, base),))?;
+      }
+      if let Some(color) = fill_style {
+        let circle = graphics::Mesh::new_circle(
+          ctx,
+          DrawMode::fill(),
+          Vec2::new(0.0, 0.0),
+          *radius,
+          2.0,
+          color.to_owned(),
+        )?;
+        graphics::draw(ctx, &circle, (path_add(position, base),))?;
+      }
     }
     Shape::Group { position, children } => {
       for child in children {
@@ -161,30 +176,38 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
       action,
       data,
       path,
-      style,
+      line_style,
+      fill_style,
       area,
     } => {
       match area {
         TouchAreaShape::Circle(r) => {
-          let (mode, color) = match style {
-            ShapeStyle::Line { color, width } => (DrawMode::stroke(*width), *color),
-            ShapeStyle::Fill { color } => (DrawMode::fill(), *color),
-          };
-
-          let circle = graphics::Mesh::new_circle(ctx, mode, Vec2::new(0.0, 0.0), *r, 2.0, color)?;
-          graphics::draw(ctx, &circle, (path_add(position, base),))?;
+          if let Some((color, width)) = line_style {
+            let circle = graphics::Mesh::new_circle(
+              ctx,
+              DrawMode::stroke(*width),
+              Vec2::new(0.0, 0.0),
+              *r,
+              2.0,
+              color.to_owned(),
+            )?;
+            graphics::draw(ctx, &circle, (path_add(position, base),))?;
+          }
+          if let Some(color) = fill_style {
+            let circle =
+              graphics::Mesh::new_circle(ctx, DrawMode::fill(), Vec2::new(0.0, 0.0), *r, 2.0, color.to_owned())?;
+            graphics::draw(ctx, &circle, (path_add(position, base),))?;
+          }
         }
         TouchAreaShape::Rect(dx, dy) => {
           let rect = graphics::Rect::new(base.x + position.x - dx, base.y + position.y - dy, 2.0 * dx, 2.0 * dy);
-          match style {
-            ShapeStyle::Line { color, width: _w } => {
-              let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, *color)?;
-              graphics::draw(ctx, &r1, DrawParam::default())?;
-            }
-            ShapeStyle::Fill { color } => {
-              let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, *color)?;
-              graphics::draw(ctx, &r1, DrawParam::default())?;
-            }
+          if let Some((color, width)) = line_style {
+            let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::stroke(*width), rect, *color)?;
+            graphics::draw(ctx, &r1, DrawParam::default())?;
+          }
+          if let Some(color) = fill_style {
+            let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, *color)?;
+            graphics::draw(ctx, &r1, DrawParam::default())?;
           }
         }
       }
@@ -215,16 +238,18 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
   match tree {
     Calcit::Map(m) => match m.get(&Calcit::Keyword(String::from("type"))) {
       Some(Calcit::Keyword(name)) => match name.as_str() {
-        "rectangle" => Ok(Shape::Rectangle {
+        "rectangle" | "rect" => Ok(Shape::Rectangle {
           position: read_position(m, "position")?,
           width: read_f32(m, "width")?,
           height: read_f32(m, "height")?,
-          style: extract_style(m)?,
+          fill_style: read_some_color(m, "fill-color")?,
+          line_style: extract_line_style(m)?,
         }),
         "circle" => Ok(Shape::Circle {
           position: read_position(m, "position")?,
           radius: read_f32(m, "radius")?,
-          style: extract_style(m)?,
+          fill_style: read_some_color(m, "fill-color")?,
+          line_style: extract_line_style(m)?,
         }),
         "group" => {
           let children = match m.get(&Calcit::Keyword(String::from("children"))) {
@@ -263,6 +288,8 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
         "ops" => Ok(Shape::PaintOps {
           position: read_position(m, "position")?,
           ops: extract_ops(m.get(&Calcit::Keyword(String::from("ops"))).unwrap_or(&Calcit::Nil))?,
+          fill_style: read_some_color(m, "fill-color")?,
+          line_style: extract_line_style(m)?,
         }),
         "text" => {
           Ok(Shape::Text {
@@ -297,8 +324,9 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
             .unwrap_or(&Calcit::Nil)
             .to_owned(),
           position: read_position(m, "position")?,
-          style: extract_style(m)?,
           area: extract_touch_area_shape(m)?,
+          fill_style: read_some_color(m, "fill-color")?,
+          line_style: extract_line_style(m)?,
         }),
         "key-listener" => Ok(Shape::KeyListener {
           key: read_string(m, "key")?,

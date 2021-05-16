@@ -30,18 +30,13 @@ pub enum PaintOp {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum ShapeStyle {
-  Line { color: Color, width: f32 },
-  Fill { color: Color },
-}
-
-#[derive(Debug, PartialEq, Clone)]
 pub enum Shape {
   Rectangle {
     position: Vec2,
     width: f32,
     height: f32,
-    style: ShapeStyle,
+    line_style: Option<(Color, f32)>,
+    fill_style: Option<Color>,
   },
   Group {
     position: Vec2,
@@ -50,8 +45,8 @@ pub enum Shape {
   Circle {
     position: Vec2,
     radius: f32,
-    // children: Vec<Shape>,
-    style: ShapeStyle,
+    line_style: Option<(Color, f32)>,
+    fill_style: Option<Color>,
   },
   Text {
     text: String,
@@ -72,6 +67,8 @@ pub enum Shape {
   PaintOps {
     position: Vec2,
     ops: Vec<PaintOp>,
+    line_style: Option<(Color, f32)>,
+    fill_style: Option<Color>,
   },
   Polyline {
     position: Vec2,
@@ -87,9 +84,10 @@ pub enum Shape {
     action: Calcit,
     data: Calcit,
     position: Vec2,
-    style: ShapeStyle,
     // children: Vec<Shape>, // TODO
     area: TouchAreaShape,
+    line_style: Option<(Color, f32)>,
+    fill_style: Option<Color>,
   },
   KeyListener {
     key: String, // TODO modifier
@@ -108,4 +106,8 @@ pub enum TouchAreaShape {
 
 pub fn path_add(a: &Vec2, b: &Vec2) -> Vec2 {
   Vec2::new(a.x + b.x, a.y + b.y)
+}
+
+pub fn kwd(s: &str) -> Calcit {
+  Calcit::Keyword(s.to_string())
 }
