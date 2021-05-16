@@ -4,14 +4,14 @@ use glam::Vec2;
 
 pub use ggez::graphics::{LineCap, LineJoin};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TextAlign {
   Left,
   Center,
   Right,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum PaintOp {
   Stroke,
   Fill,
@@ -29,13 +29,13 @@ pub enum PaintOp {
   ClosePath,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ShapeStyle {
   Line { color: Color, width: f32 },
   Fill { color: Color },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Shape {
   Rectangle {
     position: Vec2,
@@ -61,14 +61,14 @@ pub enum Shape {
     color: Color,
     // align: TextAlign,
   },
-  Arc {
-    position: Vec2,
-    radius: f32,
-    from_angle: f32,
-    to_angle: f32,
-    negative: bool,
-    style: ShapeStyle,
-  },
+  // Arc {
+  //   position: Vec2,
+  //   radius: f32,
+  //   from_angle: f32,
+  //   to_angle: f32,
+  //   negative: bool,
+  //   style: ShapeStyle,
+  // },
   PaintOps {
     position: Vec2,
     ops: Vec<PaintOp>,
@@ -87,22 +87,25 @@ pub enum Shape {
     action: Calcit,
     data: Calcit,
     position: Vec2,
-    radius: f32,
     style: ShapeStyle,
     // children: Vec<Shape>, // TODO
     area: TouchAreaShape,
   },
   KeyListener {
     key: String, // TODO modifier
-    path: Calcit,
     action: Calcit,
+    path: Calcit,
     data: Calcit,
     // children: Vec<Shape>, // TODO
   },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TouchAreaShape {
   Circle(f32),
   Rect(f32, f32),
+}
+
+pub fn path_add(a: &Vec2, b: &Vec2) -> Vec2 {
+  Vec2::new(a.x + b.x, a.y + b.y)
 }

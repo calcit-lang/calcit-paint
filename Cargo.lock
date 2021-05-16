@@ -226,15 +226,14 @@ dependencies = [
  "ggez",
  "glam",
  "im",
+ "lazy_static",
  "notify",
  "winit",
 ]
 
 [[package]]
 name = "calcit_runner"
-version = "0.3.13-a1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86360d1c56225d5d9ccf0cf8822699cdfcd00009349e4cd4173e9b587cc3fe8f"
+version = "0.3.15"
 dependencies = [
  "chrono",
  "cirru_edn",
