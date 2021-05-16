@@ -58,6 +58,17 @@ pub fn read_position(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Ve
   }
 }
 
+// get position from a value
+pub fn extract_position(x: &Calcit) -> Result<Vec2, String> {
+  match x {
+    Calcit::List(xs) if xs.len() == 2 => match (xs[0], xs[1]) {
+      (Calcit::Number(x), Calcit::Number(y)) => Ok(Vec2::new(x as f32, y as f32)),
+      (a, b) => Err(format!("invalid positon values: {} {}", a, b)),
+    },
+    a => Err(format!("cannot be used as position: {} in {}", a, x)),
+  }
+}
+
 pub fn read_color(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Color, String> {
   match tree.get(&Calcit::Keyword(String::from(key))) {
     Some(a) => extract_color(a),
@@ -83,7 +94,7 @@ pub fn extract_line_style(tree: &im::HashMap<Calcit, Calcit>) -> Result<Option<(
       (Err(e), _) => Err(format!("failed line-color, {}", e)),
     },
     (Some(color_field), None) => match extract_color(color_field) {
-      Ok(color) => Ok(Some((color, 1.0))),
+      Ok(color) => Ok(Some((color, *n as f32))),
       Err(e) => Err(format!("failed line-color, {}", e)),
     },
     (None, None) => Ok(None),

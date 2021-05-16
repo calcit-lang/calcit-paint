@@ -13,11 +13,11 @@ use calcit_runner::Calcit;
 use crate::{
   color::extract_color,
   extracter::{
-    extract_line_style, extract_touch_area_shape, read_bool, read_color, read_f32, read_line_cap, read_line_join,
-    read_points, read_position, read_some_color, read_string, read_text_align,
+    extract_line_style, extract_position, extract_touch_area_shape, read_bool, read_color, read_f32, read_line_cap,
+    read_line_join, read_points, read_position, read_some_color, read_string, read_text_align,
   },
   key_listener,
-  primes::{PaintOp, Shape, TouchAreaShape},
+  primes::{PaintPath, Shape, TouchAreaShape},
 };
 
 // TODO Stack
@@ -227,8 +227,16 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
     } => {
       key_listener::add_key_listener(key.to_owned(), action.to_owned(), path.to_owned(), data.to_owned());
     }
-    Shape::PaintOps { .. } => {
-      println!("TODO ops {:?}", tree)
+    Shape::PaintOps {
+      path,
+      line_style,
+      fill_style,
+      position,
+    } => {
+      let mut mb = graphics::MeshBuilder::new();
+      // TODO lower level path operations
+      let mesh = mb.build(ctx)?;
+      graphics::draw(ctx, &mesh, (position.to_owned(),))?;
     }
   }
   Ok(())
@@ -287,7 +295,7 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
         // }),
         "ops" => Ok(Shape::PaintOps {
           position: read_position(m, "position")?,
-          ops: extract_ops(m.get(&Calcit::Keyword(String::from("ops"))).unwrap_or(&Calcit::Nil))?,
+          path: extract_paint_path(m.get(&Calcit::Keyword(String::from("path"))).unwrap_or(&Calcit::Nil))?,
           fill_style: read_some_color(m, "fill-color")?,
           line_style: extract_line_style(m)?,
         }),
@@ -356,7 +364,7 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
   }
 }
 
-fn extract_ops(data: &Calcit) -> Result<Vec<PaintOp>, String> {
+fn extract_paint_path(data: &Calcit) -> Result<Vec<PaintPath>, String> {
   if let Calcit::List(xs) = data {
     let mut ys = vec![];
     for x in xs {
@@ -371,21 +379,34 @@ fn extract_ops(data: &Calcit) -> Result<Vec<PaintOp>, String> {
   }
 }
 
-fn extract_paint_op(xs: &im::Vector<Calcit>) -> Result<PaintOp, String> {
+fn extract_paint_op(xs: &im::Vector<Calcit>) -> Result<PaintPath, String> {
   if xs.len() >= 1 {
     match &xs[0] {
       Calcit::Keyword(s) | Calcit::Str(s) => match s.as_str() {
-        // TODO refactor to fit ggez
-        // "stroke" => ,
-        // "fill" => ,
-        // "stroke-preserve" => ,
-        // "fill-preserve" => ,
-        // "line-width" => ,
-        // "hsl" => ,
-        // "move-to" => ,
-        // "line-to" => ,
-        // "relative-line-to" => ,
-        _ => Err(format!("TODO paint op: {}", s)),
+        "line-to" => match xs.get(1) {
+          Some(v) => match extract_position(&v) {
+            Ok(p) => Ok(PaintPath::LineTo(p)),
+            Err(e) => Err(format!("failed position, {}", e)),
+          },
+          None => Err(format!("missing line-to position")),
+        },
+        "quadratic-bezier-to" => match (xs.get(1), xs.get(2)) {
+          (Some(v1), Some(v2)) => match (extract_position(&v1), extract_position(&v2)) {
+            (Ok(p1), Ok(p2)) => Ok(PaintPath::QuadraticBezierTo(p1, p2)),
+            (a, b) => Err(format!("failed quadratic points, {:?} {:?}", a, b)),
+          },
+          (a, b) => Err(format!("missing quadratic points {:?} {:?}", a, b)),
+        },
+        "cubic-bezier-to" => match (xs.get(1), xs.get(2), xs.get(3)) {
+          (Some(v1), Some(v2), Some(v3)) => match (extract_position(&v1), extract_position(&v2), extract_position(&v3))
+          {
+            (Ok(p1), Ok(p2), Ok(p3)) => Ok(PaintPath::CubicBezierTo(p1, p2, p3)),
+            (a, b, c) => Err(format!("failed quadratic points, {:?} {:?} {:?}", a, b, c)),
+          },
+          (a, b, c) => Err(format!("missing quadratic points {:?} {:?} {:?}", a, b, c)),
+        },
+        "close-path" => Ok(PaintPath::ClosePath),
+        _ => Err(format!("unknown paint op: {}", s)),
       },
       _ => Err(format!("unknown paint op value: {}", xs[0])),
     }

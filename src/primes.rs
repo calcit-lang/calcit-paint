@@ -12,20 +12,10 @@ pub enum TextAlign {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum PaintOp {
-  Stroke,
-  Fill,
-  StrokePreserve,
-  FillPreserve,
-  LineWidth(f64),
-  Rgb(Color), // translate HSL
-  MoveTo(Vec2),
+pub enum PaintPath {
   LineTo(Vec2),
-  RelativeLineTo(Vec2),
-  CurveTo(Vec<Vec2>),
-  RelativeCurveTo(Vec<Vec2>),
-  Arc(Vec2, f64, f64, f64, bool),
-  NewPath,
+  QuadraticBezierTo(Vec2, Vec2),
+  CubicBezierTo(Vec2, Vec2, Vec2),
   ClosePath,
 }
 
@@ -66,7 +56,7 @@ pub enum Shape {
   // },
   PaintOps {
     position: Vec2,
-    ops: Vec<PaintOp>,
+    path: Vec<PaintPath>,
     line_style: Option<(Color, f32)>,
     fill_style: Option<Color>,
   },
