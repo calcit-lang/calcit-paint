@@ -78,9 +78,9 @@ pub enum Shape {
     stops: Vec<Vec2>,
     skip_first: bool,
     color: Color,
-    size: f32,
-    line_join: LineJoin,
-    line_cap: LineCap,
+    width: f32,
+    join: LineJoin,
+    cap: LineCap,
   },
   TouchArea {
     path: Calcit,

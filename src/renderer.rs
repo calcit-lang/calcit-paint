@@ -37,22 +37,35 @@ pub fn reset_page(ctx: &mut Context, color: Color) -> GameResult {
 pub fn draw_page(ctx: &mut Context) -> GameResult {
   let messages = program::take_ffi_messages().unwrap();
   // clear scene and start drawing
-
-  for (call_op, args) in messages {
-    match (call_op.as_str(), args.get(0)) {
-      ("render-canvas!", Some(tree)) => match extract_shape(&tree) {
-        Ok(shape) => draw_shape(ctx, &shape, &Vec2::new(0.0, 0.0))?,
-        Err(failure) => {
-          println!("Failed to extract shape {}", failure)
+  if !messages.is_empty() {
+    println!("Calling draw_page");
+    let mut shown_shape = false;
+    for (call_op, args) in messages {
+      println!("op: {}", call_op);
+      match (call_op.as_str(), args.get(0)) {
+        ("render-canvas!", Some(tree)) => {
+          shown_shape = true;
+          match extract_shape(&tree) {
+            Ok(shape) => draw_shape(ctx, &shape, &Vec2::new(0.0, 0.0))?,
+            Err(failure) => {
+              println!("Failed to extract shape {}", failure)
+            }
+          }
         }
-      },
-      ("reset-canvas!", Some(tree)) => {
-        reset_page(ctx, extract_color(tree).map_err(to_game_err)?)?;
+        ("reset-canvas!", Some(tree)) => {
+          reset_page(ctx, extract_color(tree).map_err(to_game_err)?)?;
+        }
+        _ => println!("Unknown op: {}", call_op),
       }
-      _ => println!("Unknown op: {}", call_op),
     }
+    if shown_shape {
+      graphics::present(ctx)
+    } else {
+      Ok(())
+    }
+  } else {
+    Ok(())
   }
-  graphics::present(ctx)
 }
 
 fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
@@ -114,10 +127,10 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
     Shape::Polyline {
       position,
       stops,
-      size,
+      width,
       color,
-      line_join,
-      line_cap,
+      join,
+      cap,
       skip_first,
     } => {
       let mut points = stops.to_owned();
@@ -128,9 +141,9 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
         ctx,
         DrawMode::Stroke(
           StrokeOptions::default()
-            .with_line_join(*line_join)
-            .with_line_cap(*line_cap)
-            .with_line_width(*size),
+            .with_line_join(*join)
+            .with_line_cap(*cap)
+            .with_line_width(*width),
         ),
         stops,
         *color,
@@ -220,7 +233,13 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
               for x in xs {
                 match extract_shape(&x) {
                   Ok(v) => ys.push(v),
-                  Err(failure) => return Err(format!("{}\n  in {}", failure, x)),
+                  Err(failure) => {
+                    println!("Failed extracting: {}\n  in {}", failure, x);
+                    ys.push(Shape::Group {
+                      position: read_position(m, "position")?,
+                      children: vec![],
+                    })
+                  }
                 }
               }
               ys
@@ -257,12 +276,12 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
         }
         "polyline" => Ok(Shape::Polyline {
           position: read_position(m, "position")?,
-          line_join: read_line_join(m, "line-join")?,
-          line_cap: read_line_cap(m, "line-cap")?,
+          join: read_line_join(m, "join")?,
+          cap: read_line_cap(m, "cap")?,
           skip_first: read_bool(m, "skip-first?")?,
           stops: read_points(m, "stops")?,
           color: read_color(m, "color")?,
-          size: read_f32(m, "size")?,
+          width: read_f32(m, "width")?,
         }),
         "touch-area" => Ok(Shape::TouchArea {
           path: m

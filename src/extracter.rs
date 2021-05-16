@@ -24,7 +24,7 @@ pub fn read_bool(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<bool, 
   match tree.get(&Calcit::Keyword(String::from(key))) {
     Some(Calcit::Bool(b)) => Ok(*b),
     Some(a) => Err(format!("cannot be used as bool: {}", a)),
-    None => Err(format!("cannot read bool from empty from: {}", key)),
+    None => Ok(false),
   }
 }
 
