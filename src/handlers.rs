@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use calcit_runner::Calcit;
 use ggez::event::KeyCode;
 
-use crate::{key_listener, touches};
+use crate::{key_listener, primes::kwd, touches};
 
 // TODO track position
 
@@ -125,10 +125,6 @@ pub fn handle_keyboard(keycode: KeyCode, key_state: winit::event::ElementState) 
     }
     hits
   }
-}
-
-fn kwd(s: &str) -> Calcit {
-  Calcit::Keyword(s.to_string())
 }
 
 pub fn name_key(keycode: KeyCode) -> String {

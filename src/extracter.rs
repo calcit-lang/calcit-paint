@@ -5,7 +5,7 @@ use calcit_runner::Calcit;
 
 use crate::{
   color::extract_color,
-  primes::{LineCap, LineJoin, Shape, ShapeStyle, TextAlign, TouchAreaShape},
+  primes::{kwd, LineCap, LineJoin, Shape, TextAlign, TouchAreaShape},
 };
 
 pub fn read_f32(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<f32, String> {
@@ -58,20 +58,14 @@ pub fn read_position(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Ve
   }
 }
 
-pub fn extract_style(m: &im::HashMap<Calcit, Calcit>) -> Result<ShapeStyle, String> {
-  if let Some(raw_color) = m.get(&Calcit::Keyword(String::from("fill-color"))) {
-    let color = extract_color(raw_color)?;
-    Ok(ShapeStyle::Fill { color })
-  } else if let Some(raw_color) = m.get(&Calcit::Keyword(String::from("line-color"))) {
-    let color = extract_color(raw_color)?;
-    let width = match m.get(&Calcit::Keyword(String::from("line-width"))) {
-      Some(Calcit::Number(w)) => *w as f32,
-      Some(a) => return Err(format!("invalid line-width value: {}", a)),
-      None => 1.0,
-    };
-    Ok(ShapeStyle::Line { color, width })
-  } else {
-    Err(format!("expected fill-color or line-color"))
+// get position from a value
+pub fn extract_position(x: &Calcit) -> Result<Vec2, String> {
+  match x {
+    Calcit::List(xs) if xs.len() == 2 => match (xs[0], xs[1]) {
+      (Calcit::Number(x), Calcit::Number(y)) => Ok(Vec2::new(x as f32, y as f32)),
+      (a, b) => Err(format!("invalid positon values: {} {}", a, b)),
+    },
+    a => Err(format!("cannot be used as position: {} in {}", a, x)),
   }
 }
 
@@ -79,6 +73,32 @@ pub fn read_color(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Color
   match tree.get(&Calcit::Keyword(String::from(key))) {
     Some(a) => extract_color(a),
     None => Err(format!("cannot read color from empty from: {}", key)),
+  }
+}
+
+pub fn read_some_color(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Option<Color>, String> {
+  match tree.get(&Calcit::Keyword(String::from(key))) {
+    Some(a) => match extract_color(a) {
+      Ok(c) => Ok(Some(c)),
+      Err(e) => Err(e),
+    },
+    None => Ok(None),
+  }
+}
+
+pub fn extract_line_style(tree: &im::HashMap<Calcit, Calcit>) -> Result<Option<(Color, f32)>, String> {
+  match (tree.get(&kwd("line-color")), tree.get(&kwd("line-width"))) {
+    (Some(color_field), Some(width_field)) => match (extract_color(color_field), width_field) {
+      (Ok(color), Calcit::Number(n)) => Ok(Some((color, *n as f32))),
+      (Ok(_), _) => Err(format!("failed to extract line-width from: {}", width_field)),
+      (Err(e), _) => Err(format!("failed line-color, {}", e)),
+    },
+    (Some(color_field), None) => match extract_color(color_field) {
+      Ok(color) => Ok(Some((color, *n as f32))),
+      Err(e) => Err(format!("failed line-color, {}", e)),
+    },
+    (None, None) => Ok(None),
+    (a, b) => Err(format!("invalid line-style combination: {:?} {:?}", a, b)),
   }
 }
 

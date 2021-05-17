@@ -71,7 +71,7 @@ pub fn find_touch_area(p: Vec2) -> Option<TouchArea> {
   reversed.reverse(); // mutable...
                       // println!("Touch Stack: {:?} {:?}", reversed, stack);
   for item in reversed {
-    println!("CHECK touch position: {:?} {}", item, p);
+    // println!("CHECK touch position: {:?} {}", item, p);
     match item.area {
       TouchAreaShape::Rect(w, h) => {
         // half of width height

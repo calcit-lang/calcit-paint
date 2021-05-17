@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate lazy_static;
 
-use ggez;
 use glam::Vec2;
 
 use std::cell::RefCell;
@@ -112,7 +111,7 @@ pub fn main() -> GameResult {
     use winit::platform::run_return::EventLoopExtRunReturn;
     events_loop.run_return(|event, _window_target, control_flow| {
       // println!("Event: {:?}", event);
-      ctx.process_event(&event);
+      ggez::event::process_event(ctx, &event);
       if first_paint {
         if let Err(e) = renderer::draw_page(ctx) {
           println!("failed first paint: {:?}", e);
