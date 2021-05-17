@@ -16,7 +16,7 @@ pub enum PaintPath {
   LineTo(Vec2),
   QuadraticBezierTo(Vec2, Vec2),
   CubicBezierTo(Vec2, Vec2, Vec2),
-  ClosePath,
+  // ClosePath,
 }
 
 #[derive(Debug, PartialEq, Clone)]

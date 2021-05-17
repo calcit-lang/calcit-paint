@@ -8,8 +8,8 @@ exclude = ["resources", "!SourceCodePro-Medium.ttf"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# calcit_runner = "0.3.13-a1"
-calcit_runner = { path = "../calcit_runner.rs" }
+calcit_runner = "0.3.16"
+# calcit_runner = { path = "../calcit_runner.rs" }
 ggez = { path = "./ggez" }
 cirru_edn = "0.1.4"
 cirru_parser = "0.1.1"
@@ -18,3 +18,4 @@ notify = "4.0.16"
 glam = { version = "0.12", features = ["mint"]}
 im = "15.0.0"
 lazy_static = "1.4.0"
+lyon = "0.17.5"
