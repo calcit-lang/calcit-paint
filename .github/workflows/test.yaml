@@ -1,0 +1,24 @@
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request: {}
+
+name: Test
+
+jobs:
+  build_and_test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - run: git clone https://github.com/dchiquito/ggez.git --branch bump-lyon
+
+      # - run: cargo build
+
+      - run: echo TODO

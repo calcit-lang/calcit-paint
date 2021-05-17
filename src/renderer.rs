@@ -9,6 +9,9 @@ use ggez::{Context, GameError, GameResult};
 use crate::{primes::path_add, touches};
 use calcit_runner::program;
 use calcit_runner::Calcit;
+use lyon::tessellation;
+use lyon::tessellation::math::{point, Point};
+use lyon::tessellation::VertexBuffers;
 
 use crate::{
   color::extract_color,
@@ -233,13 +236,95 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
       fill_style,
       position,
     } => {
-      let mut mb = graphics::MeshBuilder::new();
-      // TODO lower level path operations
-      let mesh = mb.build(ctx)?;
-      graphics::draw(ctx, &mesh, (position.to_owned(),))?;
+      let mut buffers: VertexBuffers<Point, u16> = VertexBuffers::new();
+      let mut path_builder = lyon::path::Path::builder();
+      let from = path_add(&base, &position);
+      path_builder.begin(as_point(&from));
+      for p in path {
+        match p {
+          PaintPath::LineTo(a) => {
+            path_builder.line_to(add_to_point(&from, a));
+          }
+          PaintPath::QuadraticBezierTo(a, b) => {
+            path_builder.quadratic_bezier_to(add_to_point(&from, a), add_to_point(&from, b));
+          }
+          PaintPath::CubicBezierTo(a, b, c) => {
+            path_builder.cubic_bezier_to(add_to_point(&from, a), add_to_point(&from, b), add_to_point(&from, c));
+          }
+        }
+      }
+      path_builder.end(fill_style.is_some());
+
+      let g_path = path_builder.build();
+      // save another copy, may be used in filling
+      let mut cloned_buffers = buffers.clone();
+
+      if let Some((color, width)) = line_style {
+        // https://docs.rs/lyon_tessellation/0.17.6/lyon_tessellation/struct.StrokeTessellator.html
+        let mut vertex_builder = tessellation::geometry_builder::simple_builder(&mut buffers);
+        let mut tessellator = tessellation::StrokeTessellator::new();
+        let _ = tessellator.tessellate(
+          &g_path,
+          &StrokeOptions::default().with_line_width(*width),
+          &mut vertex_builder,
+        );
+        let mut g_vertices: Vec<graphics::Vertex> = vec![];
+        for v in buffers.vertices {
+          g_vertices.push(point_to_vertex(v, color.to_owned()))
+        }
+        let mut g_indices: Vec<u32> = vec![];
+        for i in buffers.indices {
+          g_indices.push(i as u32);
+        }
+        if g_vertices.len() < 3 {
+          println!("[Warn] ops needs at least 3 vertices");
+        } else {
+          let mesh = graphics::Mesh::from_raw(ctx, &g_vertices, &g_indices, None)?;
+          graphics::draw(ctx, &mesh, (position.to_owned(),))?;
+        }
+      }
+
+      if let Some(color) = fill_style {
+        // https://docs.rs/lyon_tessellation/0.17.6/lyon_tessellation/struct.StrokeTessellator.html
+        let mut vertex_builder = tessellation::geometry_builder::simple_builder(&mut cloned_buffers);
+        let mut tessellator = tessellation::FillTessellator::new();
+        let _ = tessellator.tessellate(&g_path, &FillOptions::default(), &mut vertex_builder);
+        let mut g_vertices: Vec<graphics::Vertex> = vec![];
+        for v in cloned_buffers.vertices {
+          g_vertices.push(point_to_vertex(v, color.to_owned()))
+        }
+        let mut g_indices: Vec<u32> = vec![];
+        for i in cloned_buffers.indices {
+          g_indices.push(i as u32);
+        }
+
+        if g_vertices.len() < 3 {
+          println!("[Warn] ops needs at least 3 vertices");
+        } else {
+          let mesh = graphics::Mesh::from_raw(ctx, &g_vertices, &g_indices, None)?;
+          graphics::draw(ctx, &mesh, (position.to_owned(),))?;
+        }
+      }
     }
   }
   Ok(())
+}
+
+// dirty but decoupled functions...
+fn point_to_vertex(v: Point, color: Color) -> graphics::Vertex {
+  graphics::Vertex {
+    pos: [v.x, v.y],
+    uv: [v.x, v.y],
+    color: [color.r, color.g, color.b, color.a],
+  }
+}
+
+fn as_point(a: &Vec2) -> Point {
+  point(a.x, a.y)
+}
+
+fn add_to_point(a: &Vec2, b: &Vec2) -> Point {
+  point(a.x + b.x, a.y + b.y)
 }
 
 fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
@@ -405,7 +490,7 @@ fn extract_paint_op(xs: &im::Vector<Calcit>) -> Result<PaintPath, String> {
           },
           (a, b, c) => Err(format!("missing quadratic points {:?} {:?} {:?}", a, b, c)),
         },
-        "close-path" => Ok(PaintPath::ClosePath),
+        // "close-path" => Ok(PaintPath::ClosePath),
         _ => Err(format!("unknown paint op: {}", s)),
       },
       _ => Err(format!("unknown paint op value: {}", xs[0])),
