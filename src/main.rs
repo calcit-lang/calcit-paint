@@ -83,11 +83,10 @@ pub fn main() -> GameResult {
   let mut watcher: RecommendedWatcher = Watcher::new(tx, Duration::from_millis(200)).unwrap();
 
   let inc_path = entry_path.parent().unwrap().join(".compact-inc.cirru").to_owned();
-  if inc_path.exists() {
-    watcher.watch(&inc_path, RecursiveMode::NonRecursive).unwrap();
-  } else {
-    return Err(to_game_err(format!("path {:?} not existed", &inc_path)));
+  if !inc_path.exists() {
+    fs::write(&inc_path, "").map_err(|e| -> ggez::GameError { to_game_err(e.to_string()) })?;
   }
+  watcher.watch(&inc_path, RecursiveMode::NonRecursive).unwrap();
 
   let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
     let mut path = path::PathBuf::from(manifest_dir);
