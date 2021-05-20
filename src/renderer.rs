@@ -265,7 +265,7 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
         let mut tessellator = tessellation::StrokeTessellator::new();
         let _ = tessellator.tessellate(
           &g_path,
-          &StrokeOptions::default().with_line_width(*width),
+          &lyon::tessellation::StrokeOptions::default().with_line_width(*width),
           &mut vertex_builder,
         );
         let mut g_vertices: Vec<graphics::Vertex> = vec![];
@@ -288,7 +288,11 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
         // https://docs.rs/lyon_tessellation/0.17.6/lyon_tessellation/struct.StrokeTessellator.html
         let mut vertex_builder = tessellation::geometry_builder::simple_builder(&mut cloned_buffers);
         let mut tessellator = tessellation::FillTessellator::new();
-        let _ = tessellator.tessellate(&g_path, &FillOptions::default(), &mut vertex_builder);
+        let _ = tessellator.tessellate(
+          &g_path,
+          &lyon::tessellation::FillOptions::default(),
+          &mut vertex_builder,
+        );
         let mut g_vertices: Vec<graphics::Vertex> = vec![];
         for v in cloned_buffers.vertices {
           g_vertices.push(point_to_vertex(v, color.to_owned()))

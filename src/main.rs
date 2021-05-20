@@ -110,7 +110,7 @@ pub fn main() -> GameResult {
     use winit::platform::run_return::EventLoopExtRunReturn;
     events_loop.run_return(|event, _window_target, control_flow| {
       // println!("Event: {:?}", event);
-      ggez::event::process_event(ctx, &event);
+      ctx.process_event(&event);
       if first_paint {
         if let Err(e) = renderer::draw_page(ctx) {
           println!("failed first paint: {:?}", e);

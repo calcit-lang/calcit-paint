@@ -10,7 +10,8 @@ exclude = ["resources", "!SourceCodePro-Medium.ttf"]
 [dependencies]
 calcit_runner = "0.3.16"
 # calcit_runner = { path = "../calcit_runner.rs" }
-ggez = { path = "./ggez" }
+# ggez = { path = "./ggez" }
+ggez = { git = "https://github.com/ggez/ggez" }
 cirru_edn = "0.1.4"
 cirru_parser = "0.1.1"
 winit = "0.24"

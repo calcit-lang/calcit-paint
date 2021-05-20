@@ -17,8 +17,6 @@ jobs:
         with:
           toolchain: stable
 
-      - run: git clone https://github.com/dchiquito/ggez.git --branch bump-lyon
-
       # - run: cargo build
 
       - run: echo TODO
