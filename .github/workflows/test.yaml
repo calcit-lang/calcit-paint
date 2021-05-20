@@ -1,0 +1,30 @@
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request: {}
+
+name: Test
+
+jobs:
+  build_and_test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install alsa
+        if: ${{ runner.os == 'Linux' }}
+        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev
+
+      - name: Install udev
+        if: ${{ runner.os == 'Linux' }}
+        run: sudo apt-get update; sudo apt-get install --no-install-recommends libudev-dev
+
+      - run: cargo build
+
+      - run: echo TODO
