@@ -30,21 +30,21 @@ pub fn to_game_err(e: String) -> GameError {
 }
 
 pub fn reset_page(ctx: &mut Context, color: Color) -> GameResult {
-  println!("reset with color: {:?}", color);
+  // println!("reset with color: {:?}", color);
   touches::reset_touches_stack();
   key_listener::reset_listeners_stack();
   graphics::clear(ctx, color);
   Ok(())
 }
 
-pub fn draw_page(ctx: &mut Context) -> GameResult {
+pub fn draw_page(ctx: &mut Context, cost: f64) -> GameResult {
   let messages = program::take_ffi_messages().unwrap();
   // clear scene and start drawing
   if !messages.is_empty() {
-    println!("Calling draw_page");
+    // println!("Calling draw_page");
     let mut shown_shape = false;
     for (call_op, args) in messages {
-      println!("op: {}", call_op);
+      // println!("op: {}", call_op);
       match (call_op.as_str(), args.get(0)) {
         ("render-canvas!", Some(tree)) => {
           shown_shape = true;
@@ -62,6 +62,7 @@ pub fn draw_page(ctx: &mut Context) -> GameResult {
       }
     }
     if shown_shape {
+      draw_cost(ctx, cost)?;
       graphics::present(ctx)
     } else {
       Ok(())
@@ -69,6 +70,18 @@ pub fn draw_page(ctx: &mut Context) -> GameResult {
   } else {
     Ok(())
   }
+}
+
+fn draw_cost(ctx: &mut Context, cost: f64) -> GameResult {
+  let mono_font = graphics::Font::new(ctx, "/SourceCodePro-Medium.ttf")?;
+  let text_mesh = graphics::Text::new((format!("{}ms", cost), mono_font, 14.0));
+  graphics::draw(
+    ctx,
+    &text_mesh,
+    graphics::DrawParam::new()
+      .dest(Vec2::new(10.0, 190.0))
+      .color(Color::new(1.0, 1.0, 1.0, 0.3)),
+  )
 }
 
 fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
@@ -102,7 +115,7 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
           DrawMode::stroke(*width),
           Vec2::new(0.0, 0.0),
           *radius,
-          2.0,
+          0.1,
           color.to_owned(),
         )?;
         graphics::draw(ctx, &circle, (path_add(position, base),))?;
@@ -113,7 +126,7 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
           DrawMode::fill(),
           Vec2::new(0.0, 0.0),
           *radius,
-          2.0,
+          0.1,
           color.to_owned(),
         )?;
         graphics::draw(ctx, &circle, (path_add(position, base),))?;
@@ -191,14 +204,14 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
               DrawMode::stroke(*width),
               Vec2::new(0.0, 0.0),
               *r,
-              2.0,
+              0.1,
               color.to_owned(),
             )?;
             graphics::draw(ctx, &circle, (path_add(position, base),))?;
           }
           if let Some(color) = fill_style {
             let circle =
-              graphics::Mesh::new_circle(ctx, DrawMode::fill(), Vec2::new(0.0, 0.0), *r, 2.0, color.to_owned())?;
+              graphics::Mesh::new_circle(ctx, DrawMode::fill(), Vec2::new(0.0, 0.0), *r, 0.1, color.to_owned())?;
             graphics::draw(ctx, &circle, (path_add(position, base),))?;
           }
         }

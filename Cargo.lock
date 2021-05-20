@@ -234,9 +234,9 @@ dependencies = [
 
 [[package]]
 name = "calcit_runner"
-version = "0.3.16"
+version = "0.3.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1863a18eb317913f3003a5ab096bd13cfa22feddbc7ea87c4c1ca929cfb25581"
+checksum = "1e093649c93bbf62cb1c1c42637f28d14eed3230ddf363dff89ac19979236f10"
 dependencies = [
  "chrono",
  "cirru_edn",
