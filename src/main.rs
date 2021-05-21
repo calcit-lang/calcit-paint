@@ -6,6 +6,7 @@ use glam::Vec2;
 use std::cell::RefCell;
 use std::env;
 use std::path;
+use std::time::Instant;
 
 mod color;
 mod extracter;
@@ -75,7 +76,10 @@ pub fn main() -> GameResult {
   }
   let mut program_code = program::extract_program_data(&snapshot).map_err(to_game_err)?;
 
-  calcit_runner::run_program(&init_fn, im::vector![], &program_code).map_err(to_game_err)?;
+  let started_time = Instant::now();
+  let _v = calcit_runner::run_program(&init_fn, im::vector![], &program_code).map_err(to_game_err)?;
+  let duration = Instant::now().duration_since(started_time);
+  let initial_cost: f64 = duration.as_micros() as f64 / 1000.0; // in ms
 
   println!("\nRunner: in watch mode...\n");
   let (tx, rx) = channel();
@@ -110,22 +114,27 @@ pub fn main() -> GameResult {
     use winit::platform::run_return::EventLoopExtRunReturn;
     events_loop.run_return(|event, _window_target, control_flow| {
       // println!("Event: {:?}", event);
-      ggez::event::process_event(ctx, &event);
+      ctx.process_event(&event);
       if first_paint {
-        if let Err(e) = renderer::draw_page(ctx) {
+        if let Err(e) = renderer::draw_page(ctx, initial_cost) {
           println!("failed first paint: {:?}", e);
         }
         first_paint = false
       }
 
       let event_entry = cli_matches.value_of("event-entry").unwrap();
+      let started_time = Instant::now();
+      let mut cost: f64 = 0.0; // in ms
       let mut handle_calcit_event = |params: CalcitItems| {
         call_stack::clear_stack();
         match calcit_runner::run_program(event_entry, params, &program_code) {
-          Ok(..) => (),
+          Ok(_v) => {
+            let duration = Instant::now().duration_since(started_time);
+            cost = duration.as_micros() as f64 / 1000.0;
+          }
           Err(e) => println!("failed falling on-window-event: {}", e),
         }
-        if let Err(e) = renderer::draw_page(ctx) {
+        if let Err(e) = renderer::draw_page(ctx, cost) {
           println!("Failed drawing: {:?}", e);
         }
       };
@@ -196,6 +205,7 @@ pub fn main() -> GameResult {
                   call_stack::clear_stack();
                   // load new program code
                   let content = fs::read_to_string(&inc_path).unwrap();
+                  let started_time = Instant::now();
                   if content.trim() == "" {
                     println!("failed re-compiling, got empty inc file");
                   } else {
@@ -212,7 +222,9 @@ pub fn main() -> GameResult {
                     // overwrite previous state
                     program_code = new_code;
                   }
-                  if let Err(e) = renderer::draw_page(ctx) {
+                  let duration = Instant::now().duration_since(started_time);
+                  let cost: f64 = duration.as_micros() as f64 / 1000.0;
+                  if let Err(e) = renderer::draw_page(ctx, cost) {
                     println!("Failed drawing: {:?}", e);
                   }
                 }

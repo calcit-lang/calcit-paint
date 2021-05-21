@@ -227,16 +227,16 @@ dependencies = [
  "glam",
  "im",
  "lazy_static",
- "lyon",
+ "lyon 0.17.5",
  "notify",
  "winit",
 ]
 
 [[package]]
 name = "calcit_runner"
-version = "0.3.16"
+version = "0.3.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1863a18eb317913f3003a5ab096bd13cfa22feddbc7ea87c4c1ca929cfb25581"
+checksum = "1e093649c93bbf62cb1c1c42637f28d14eed3230ddf363dff89ac19979236f10"
 dependencies = [
  "chrono",
  "cirru_edn",
@@ -945,6 +945,7 @@ dependencies = [
 [[package]]
 name = "ggez"
 version = "0.6.0-rc1"
+source = "git+https://github.com/ggez/ggez#1528085eda5d5812f3d11e61df4cd5a07b83620e"
 dependencies = [
  "approx",
  "bitflags",
@@ -958,7 +959,7 @@ dependencies = [
  "glyph_brush",
  "image",
  "log",
- "lyon",
+ "lyon 0.16.2",
  "mint",
  "old_school_gfx_glutin_ext",
  "rodio",
@@ -1402,12 +1403,32 @@ dependencies = [
 
 [[package]]
 name = "lyon"
+version = "0.16.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28d083e12e9e22298eec27751ec4a0975abac5873a3b0dcdbbecc608d333f0e9"
+dependencies = [
+ "lyon_algorithms 0.16.0",
+ "lyon_tessellation 0.16.2",
+]
+
+[[package]]
+name = "lyon"
 version = "0.17.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a146a460c58fb5361fc7faf8d7a68b274f11969ee1f6856875c162d679d0306"
 dependencies = [
- "lyon_algorithms",
- "lyon_tessellation",
+ "lyon_algorithms 0.17.4",
+ "lyon_tessellation 0.17.6",
+]
+
+[[package]]
+name = "lyon_algorithms"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11033936a5e9d7bf35b7ba71a19f8b6bc838f3206304175dc5b3524ca16672a8"
+dependencies = [
+ "lyon_path 0.16.2",
+ "sid",
 ]
 
 [[package]]
@@ -1416,8 +1437,19 @@ version = "0.17.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6931fa85f0e649e8d781a31ffc9fa42aee5074b965a0bad7d05f84aaef2e8933"
 dependencies = [
- "lyon_path",
+ "lyon_path 0.17.2",
  "sid",
+]
+
+[[package]]
+name = "lyon_geom"
+version = "0.16.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ce4e12203c428a58200b8cf1c0a3aad1cda907008ea11310bb3729593e5f933"
+dependencies = [
+ "arrayvec",
+ "euclid",
+ "num-traits",
 ]
 
 [[package]]
@@ -1433,11 +1465,31 @@ dependencies = [
 
 [[package]]
 name = "lyon_path"
+version = "0.16.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "243c71fff16677ecde2d38794a0253a8f0417cebaacc6390677c30733831d8cb"
+dependencies = [
+ "lyon_geom 0.16.2",
+]
+
+[[package]]
+name = "lyon_path"
 version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2eb9f73b9f7cbf1f4470b1d774f5670e0640af649e827ca84c4e556efd5c7af5"
 dependencies = [
- "lyon_geom",
+ "lyon_geom 0.17.1",
+]
+
+[[package]]
+name = "lyon_tessellation"
+version = "0.16.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ecf3d769bec66396957d7c5cb91f998c4182e53fdc96cc435b6ebcd46a63cd9"
+dependencies = [
+ "arrayvec",
+ "lyon_path 0.16.2",
+ "sid",
 ]
 
 [[package]]
@@ -1447,7 +1499,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8315610899d2d62f9ddd5722a3d41ba29349e8b63c0cfe803ba2e80230e3d5ea"
 dependencies = [
  "arrayvec",
- "lyon_path",
+ "lyon_path 0.17.2",
  "sid",
 ]
 
