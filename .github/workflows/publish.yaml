@@ -24,8 +24,6 @@ jobs:
 
       - run: cargo build
 
-      # - uses: katyo/publish-crates@v1
-      #   with:
-      #     registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-
-      - run: echo TODO
+      - uses: katyo/publish-crates@v1
+        with:
+          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
