@@ -11,7 +11,7 @@ exclude = ["resources", "!SourceCodePro-Medium.ttf"]
 calcit_runner = "0.3.18"
 # calcit_runner = { path = "../calcit_runner.rs" }
 # ggez = { path = "./ggez" }
-ggez = { git = "https://github.com/ggez/ggez" }
+ggez = { git = "https://github.com/ggez/ggez", branch = "devel" }
 cirru_edn = "0.1.4"
 cirru_parser = "0.1.1"
 winit = "0.24"
