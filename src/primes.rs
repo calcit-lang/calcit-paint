@@ -13,6 +13,7 @@ pub enum TextAlign {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum PaintPath {
+  MoveTo(Vec2),
   LineTo(Vec2),
   QuadraticBezierTo(Vec2, Vec2),
   CubicBezierTo(Vec2, Vec2, Vec2),

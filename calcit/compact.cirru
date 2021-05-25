@@ -48,6 +48,13 @@
                 {} (:type :key-listener) (:key "\"D") (:action :keyboard)
                   :path $ [] :k
                   :data :data
+                {} (:type :ops)
+                  :path $ [][]
+                    :move-to $ [] 200 300
+                    :line-to $ [] 240 300
+                    :bezier3-to ([] 400 200) ([] 200 400) ([] 300 400)
+                  :line-color $ [] 200 80 80
+                  :line-width 4
         |on-window-event $ quote
           defn on-window-event (event) (println "\"event:" event)
       :proc $ quote ()
