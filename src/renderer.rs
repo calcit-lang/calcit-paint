@@ -250,11 +250,14 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
       position,
     } => {
       let mut buffers: VertexBuffers<Point, u16> = VertexBuffers::new();
-      let mut path_builder = lyon::path::Path::builder();
+      let mut path_builder = lyon::path::Path::builder().with_svg();
       let from = path_add(&base, &position);
-      path_builder.begin(as_point(&from));
+      path_builder.move_to(as_point(&from));
       for p in path {
         match p {
+          PaintPath::MoveTo(a) => {
+            path_builder.move_to(add_to_point(&from, a));
+          }
           PaintPath::LineTo(a) => {
             path_builder.line_to(add_to_point(&from, a));
           }
@@ -266,7 +269,9 @@ fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
           }
         }
       }
-      path_builder.end(fill_style.is_some());
+      if fill_style.is_some() {
+        path_builder.close();
+      }
 
       let g_path = path_builder.build();
       // save another copy, may be used in filling
@@ -485,21 +490,28 @@ fn extract_paint_op(xs: &im::Vector<Calcit>) -> Result<PaintPath, String> {
   if xs.len() >= 1 {
     match &xs[0] {
       Calcit::Keyword(s) | Calcit::Str(s) => match s.as_str() {
-        "line-to" => match xs.get(1) {
+        "move-to" => match xs.get(1) {
           Some(v) => match extract_position(&v) {
-            Ok(p) => Ok(PaintPath::LineTo(p)),
-            Err(e) => Err(format!("failed position, {}", e)),
+            Ok(p) => Ok(PaintPath::MoveTo(p)),
+            Err(e) => Err(format!("failed move-to position, {}", e)),
           },
           None => Err(format!("missing line-to position")),
         },
-        "quadratic-bezier-to" => match (xs.get(1), xs.get(2)) {
+        "line-to" => match xs.get(1) {
+          Some(v) => match extract_position(&v) {
+            Ok(p) => Ok(PaintPath::LineTo(p)),
+            Err(e) => Err(format!("failed line-to position, {}", e)),
+          },
+          None => Err(format!("missing line-to position")),
+        },
+        "quadratic-bezier-to" | "bezier2-to" => match (xs.get(1), xs.get(2)) {
           (Some(v1), Some(v2)) => match (extract_position(&v1), extract_position(&v2)) {
             (Ok(p1), Ok(p2)) => Ok(PaintPath::QuadraticBezierTo(p1, p2)),
             (a, b) => Err(format!("failed quadratic points, {:?} {:?}", a, b)),
           },
           (a, b) => Err(format!("missing quadratic points {:?} {:?}", a, b)),
         },
-        "cubic-bezier-to" => match (xs.get(1), xs.get(2), xs.get(3)) {
+        "cubic-bezier-to" | "bezier3-to" => match (xs.get(1), xs.get(2), xs.get(3)) {
           (Some(v1), Some(v2), Some(v3)) => match (extract_position(&v1), extract_position(&v2), extract_position(&v3))
           {
             (Ok(p1), Ok(p2), Ok(p3)) => Ok(PaintPath::CubicBezierTo(p1, p2, p3)),
