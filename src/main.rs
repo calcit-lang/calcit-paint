@@ -22,11 +22,12 @@ use ggez::conf::{WindowMode, WindowSetup};
 use ggez::event;
 use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent};
 use ggez::graphics::{self};
-use ggez::GameResult;
+use ggez::{Context, GameResult};
+use winit::event_loop::ControlFlow;
 
 use renderer::to_game_err;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 use std::time::Duration;
 use std::{thread, time};
@@ -35,7 +36,7 @@ use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 
 use calcit_runner;
 use calcit_runner::CalcitItems;
-use calcit_runner::{builtins, call_stack, cli_args, program, snapshot};
+use calcit_runner::{builtins, call_stack, cli_args, program, program::ProgramCodeData, snapshot};
 
 pub fn main() -> GameResult {
   builtins::effects::init_effects_states();
@@ -100,7 +101,7 @@ pub fn main() -> GameResult {
     path::PathBuf::from("./resources")
   };
 
-  let (ref mut ctx, mut events_loop) = ggez::ContextBuilder::new("eventloop", "ggez")
+  let (mut ctx, events_loop) = ggez::ContextBuilder::new("eventloop", "ggez")
     .add_resource_path(resource_dir)
     .window_setup(WindowSetup::default().title("Painter driven by Calcit"))
     .window_mode(WindowMode::default().dimensions(1000.0, 600.0).resizable(true))
@@ -109,135 +110,167 @@ pub fn main() -> GameResult {
   let mut first_paint = true;
   let track_mouse = RefCell::new(Vec2::new(0.0, 0.0));
 
-  while ctx.continuing {
-    // Handle events. Refer to `winit` docs for more information.
-    use winit::platform::run_return::EventLoopExtRunReturn;
-    events_loop.run_return(|event, _window_target, control_flow| {
-      // println!("Event: {:?}", event);
-      ctx.process_event(&event);
-      if first_paint {
-        if let Err(e) = renderer::draw_page(ctx, initial_cost) {
-          println!("failed first paint: {:?}", e);
-        }
-        first_paint = false
+  // Handle events. Refer to `winit` docs for more information.
+  events_loop.run(move |event, _window_target, control_flow| {
+    // println!("Event: {:?}", event);
+    if !ctx.continuing {
+      *control_flow = ControlFlow::Exit;
+      return;
+    }
+
+    *control_flow = ControlFlow::Poll;
+    let ctx = &mut ctx;
+    event::process_event(ctx, &event);
+    if first_paint {
+      ctx.timer_context.tick();
+
+      if let Err(e) = renderer::draw_page(ctx, initial_cost) {
+        println!("failed first paint: {:?}", e);
       }
+      first_paint = false
+    }
 
-      let event_entry = cli_matches.value_of("event-entry").unwrap();
-      let started_time = Instant::now();
-      let mut cost: f64 = 0.0; // in ms
-      let mut handle_calcit_event = |params: CalcitItems| {
-        call_stack::clear_stack();
-        match calcit_runner::run_program(event_entry, params, &program_code) {
-          Ok(_v) => {
-            let duration = Instant::now().duration_since(started_time);
-            cost = duration.as_micros() as f64 / 1000.0;
+    let event_entry = cli_matches.value_of("event-entry").unwrap();
+    match event {
+      Event::WindowEvent { event, .. } => match event {
+        WindowEvent::CloseRequested => event::quit(ctx),
+        WindowEvent::Resized(logical_size) => {
+          let new_rect = graphics::Rect::new(0.0, 0.0, logical_size.width as f32, logical_size.height as f32);
+          graphics::set_screen_coordinates(ctx, new_rect).unwrap();
+          // TODO call rerender
+        }
+        WindowEvent::CursorMoved { position, .. } => {
+          let event_info = handlers::handle_mouse_move(Vec2::new(position.x as f32, position.y as f32), &track_mouse);
+          match event_info {
+            Some(e) => handle_calcit_event(ctx, &mut program_code, &event_entry, im::vector![e]),
+            None => (),
           }
-          Err(e) => println!("failed falling on-window-event: {}", e),
         }
-        if let Err(e) = renderer::draw_page(ctx, cost) {
-          println!("Failed drawing: {:?}", e);
+        WindowEvent::MouseInput { state, button, .. } => {
+          println!("mouse button: {:?}", button);
+          let event_info = match state {
+            winit::event::ElementState::Pressed => handlers::handle_mouse_down(&track_mouse),
+            winit::event::ElementState::Released => handlers::handle_mouse_up(&track_mouse),
+          };
+          handle_calcit_event(ctx, &mut program_code, &event_entry, im::vector![event_info]);
         }
-      };
-
-      match event {
-        Event::MainEventsCleared => {
-          ctx.timer_context.tick();
-        }
-        Event::WindowEvent { event, .. } => match event {
-          WindowEvent::CloseRequested => event::quit(ctx),
-          WindowEvent::Resized(logical_size) => {
-            let new_rect = graphics::Rect::new(0.0, 0.0, logical_size.width as f32, logical_size.height as f32);
-            graphics::set_screen_coordinates(ctx, new_rect).unwrap();
-            // TODO call rerender
-          }
-          WindowEvent::CursorMoved { position, .. } => {
-            let event_info = handlers::handle_mouse_move(Vec2::new(position.x as f32, position.y as f32), &track_mouse);
-            match event_info {
-              Some(e) => handle_calcit_event(im::vector![e]),
-              None => (),
+        WindowEvent::KeyboardInput {
+          input:
+            KeyboardInput {
+              state: key_state,
+              scancode: _c, // unknown order
+              virtual_keycode: Some(keycode),
+              ..
+            },
+          ..
+        } => match keycode {
+          event::KeyCode::Escape => *control_flow = ControlFlow::Exit,
+          _ => {
+            // println!("keyboard event: {:?} {:?}", keycode, scancode);
+            let event_infos = handlers::handle_keyboard(keycode, key_state);
+            for event_info in event_infos {
+              handle_calcit_event(ctx, &mut program_code, &event_entry, im::vector![event_info]);
             }
           }
-          WindowEvent::MouseInput { state, button, .. } => {
-            println!("mouse button: {:?}", button);
-            let event_info = match state {
-              winit::event::ElementState::Pressed => handlers::handle_mouse_down(&track_mouse),
-              winit::event::ElementState::Released => handlers::handle_mouse_up(&track_mouse),
-            };
-            handle_calcit_event(im::vector![event_info]);
-          }
-          WindowEvent::KeyboardInput {
-            input:
-              KeyboardInput {
-                state: key_state,
-                scancode: _c, // unknown order
-                virtual_keycode: Some(keycode),
-                ..
-              },
-            ..
-          } => match keycode {
-            event::KeyCode::Escape => *control_flow = winit::event_loop::ControlFlow::Exit,
-            _ => {
-              // println!("keyboard event: {:?} {:?}", keycode, scancode);
-              let event_infos = handlers::handle_keyboard(keycode, key_state);
-              for event_info in event_infos {
-                handle_calcit_event(im::vector![event_info]);
-              }
-            }
-          },
-          // `CloseRequested` and `KeyboardInput` events won't appear here.
-          x => println!("Other window event fired: {:?}", x),
         },
+        // `CloseRequested` and `KeyboardInput` events won't appear here.
+        x => println!("Other window event fired: {:?}", x),
+      },
 
-        _x => {
-          // println!("Device event fired: {:?}", x);
-          match rx.try_recv() {
-            Err(TryRecvError::Empty) => {
-              thread::sleep(time::Duration::from_millis(70));
-            } // most of the time
-            Ok(event) => {
-              println!("event: {:?}", event);
-              match event {
-                notify::DebouncedEvent::NoticeWrite(..) => {
-                  // idle, sleep for a while
-                }
-                notify::DebouncedEvent::Write(_) => {
-                  println!("\n-------- file change --------\n");
-                  call_stack::clear_stack();
-                  // load new program code
-                  let content = fs::read_to_string(&inc_path).unwrap();
-                  let started_time = Instant::now();
-                  if content.trim() == "" {
-                    println!("failed re-compiling, got empty inc file");
-                  } else {
-                    let data = cirru_edn::parse(&content).unwrap();
-                    let changes = snapshot::load_changes_info(data.clone()).unwrap();
-                    let new_code = program::apply_code_changes(&program_code, &changes).unwrap();
-                    // println!("\nprogram code: {:?}", new_code);
-                    // clear data in evaled states
-                    let reload_libs = cli_matches.is_present("reload-libs");
-                    program::clear_all_program_evaled_defs(&init_fn, &reload_fn, reload_libs).unwrap();
-                    builtins::meta::force_reset_gensym_index().unwrap();
-                    // run from `reload_fn` after reload
-                    calcit_runner::run_program(&reload_fn, im::vector![], &new_code).unwrap();
-                    // overwrite previous state
-                    program_code = new_code;
-                  }
-                  let duration = Instant::now().duration_since(started_time);
-                  let cost: f64 = duration.as_micros() as f64 / 1000.0;
-                  if let Err(e) = renderer::draw_page(ctx, cost) {
-                    println!("Failed drawing: {:?}", e);
-                  }
-                }
-                _ => println!("other file event: {:?}, ignored", event),
+      Event::MainEventsCleared => {
+        // println!("main events cleared");
+        match rx.try_recv() {
+          Err(TryRecvError::Empty) => {
+            ggez::timer::yield_now();
+            thread::sleep(time::Duration::from_millis(50));
+          } // most of the time
+          Ok(event) => {
+            // println!("event: {:?}", event);
+            match event {
+              notify::DebouncedEvent::NoticeWrite(..) => {
+                // response later
+                ggez::timer::yield_now();
               }
+              notify::DebouncedEvent::Write(_) => {
+                let reload_libs = cli_matches.is_present("reload-libs");
+                handle_code_change(ctx, &mut program_code, &init_fn, &reload_fn, &inc_path, reload_libs);
+              }
+              _ => println!("other file event: {:?}, ignored", event),
             }
-            Err(e) => println!("watch error: {:?}", e),
           }
+          Err(e) => println!("watch error: {:?}", e),
         }
-      }
-    });
 
-    // ggez::timer::yield_now();
+        ggez::timer::yield_now();
+      }
+      Event::RedrawEventsCleared => {
+        // println!("redraw events cleared");
+        // nothing
+      }
+      Event::NewEvents(e) if e == winit::event::StartCause::Poll => {
+        // nothing
+      }
+      Event::DeviceEvent { event: _event, .. } => {
+        // println!("Device event fired: {:?}", event);
+      }
+      e => {
+        println!("unkwnon event: {:?}", e)
+      }
+    }
+  });
+}
+
+fn handle_code_change(
+  ctx: &mut Context,
+  program_code: &mut ProgramCodeData,
+  init_fn: &str,
+  reload_fn: &str,
+  inc_path: &PathBuf,
+  reload_libs: bool,
+) {
+  println!("\n-------- file change --------\n");
+  call_stack::clear_stack();
+  // load new program code
+  let content = fs::read_to_string(inc_path).unwrap();
+  if content.trim() == "" {
+    println!("failed re-compiling, got empty inc file");
+  } else {
+    let started_time = Instant::now();
+    let data = cirru_edn::parse(&content).unwrap();
+    let changes = snapshot::load_changes_info(data.clone()).unwrap();
+    let new_code = program::apply_code_changes(&program_code, &changes).unwrap();
+    // println!("\nprogram code: {:?}", new_code);
+    // clear data in evaled states
+    program::clear_all_program_evaled_defs(init_fn, reload_fn, reload_libs).unwrap();
+    builtins::meta::force_reset_gensym_index().unwrap();
+    // run from `reload_fn` after reload
+    calcit_runner::run_program(reload_fn, im::vector![], &new_code).unwrap();
+    // overwrite previous state
+    let duration = Instant::now().duration_since(started_time);
+    let cost: f64 = duration.as_micros() as f64 / 1000.0;
+    if let Err(e) = renderer::draw_page(ctx, cost) {
+      println!("Failed drawing: {:?}", e);
+    }
+    *program_code = new_code;
+    ctx.timer_context.tick();
   }
-  Ok(())
+}
+
+fn handle_calcit_event(ctx: &mut Context, program_code: &mut ProgramCodeData, event_entry: &str, params: CalcitItems) {
+  let started_time = Instant::now();
+  let mut cost: f64 = 0.0; // in ms
+
+  call_stack::clear_stack();
+  match calcit_runner::run_program(event_entry, params, &program_code) {
+    Ok(_v) => {
+      let duration = Instant::now().duration_since(started_time);
+      cost = duration.as_micros() as f64 / 1000.0;
+    }
+    Err(e) => println!("failed falling on-window-event: {}", e),
+  }
+  ctx.timer_context.tick();
+
+  if let Err(e) = renderer::draw_page(ctx, cost) {
+    println!("Failed drawing: {:?}", e);
+  }
 }
