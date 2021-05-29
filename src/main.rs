@@ -76,6 +76,15 @@ pub fn main() -> GameResult {
     snapshot.files.insert(k.clone(), v.clone());
   }
   let mut program_code = program::extract_program_data(&snapshot).map_err(to_game_err)?;
+  // make sure builtin classes are touched
+  calcit_runner::runner::preprocess::preprocess_ns_def(
+    &calcit_runner::primes::CORE_NS,
+    &calcit_runner::primes::BUILTIN_CLASSES_ENTRY,
+    &program_code,
+    &calcit_runner::primes::BUILTIN_CLASSES_ENTRY,
+    None,
+  )
+  .map_err(to_game_err)?;
 
   let started_time = Instant::now();
   let _v = calcit_runner::run_program(&init_fn, im::vector![], &program_code).map_err(to_game_err)?;
@@ -147,7 +156,7 @@ pub fn main() -> GameResult {
           }
         }
         WindowEvent::MouseInput { state, button, .. } => {
-          println!("mouse button: {:?}", button);
+          // println!("mouse button: {:?}", button);
           let event_info = match state {
             winit::event::ElementState::Pressed => handlers::handle_mouse_down(&track_mouse),
             winit::event::ElementState::Released => handlers::handle_mouse_up(&track_mouse),
