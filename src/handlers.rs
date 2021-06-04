@@ -130,3 +130,9 @@ pub fn handle_keyboard(keycode: KeyCode, key_state: winit::event::ElementState) 
 pub fn name_key(keycode: KeyCode) -> String {
   format!("{:?}", keycode) // TODO
 }
+
+pub fn handle_redraw() -> Calcit {
+  let mut info: im::HashMap<Calcit, Calcit> = im::HashMap::new();
+  info.insert(kwd("type"), kwd("redraw"));
+  Calcit::Map(info)
+}

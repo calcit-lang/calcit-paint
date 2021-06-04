@@ -385,11 +385,24 @@
               |r $ {} (:type :expr) (:by |u0) (:at 1621053094438)
                 :data $ {}
                   |T $ {} (:type :leaf) (:by |u0) (:at 1621054474236) (:text |event)
-              |v $ {} (:type :expr) (:by |u0) (:at 1621053099227)
+              |x $ {} (:type :expr) (:by |u0) (:at 1622822270965)
                 :data $ {}
-                  |T $ {} (:type :leaf) (:by |u0) (:at 1621053100077) (:text |println)
-                  |j $ {} (:type :leaf) (:by |u0) (:at 1621054333696) (:text "|\"event:")
-                  |r $ {} (:type :leaf) (:by |u0) (:at 1621054334609) (:text |event)
+                  |T $ {} (:type :leaf) (:by |u0) (:at 1622822277097) (:text |case-default)
+                  |j $ {} (:type :expr) (:by |u0) (:at 1622822278383)
+                    :data $ {}
+                      |T $ {} (:type :leaf) (:by |u0) (:at 1622822279163) (:text |:type)
+                      |j $ {} (:type :leaf) (:by |u0) (:at 1622822279837) (:text |event)
+                  |v $ {} (:type :expr) (:by |u0) (:at 1622822283898)
+                    :data $ {}
+                      |T $ {} (:type :leaf) (:by |u0) (:at 1622825215924) (:text |:redraw)
+                      |j $ {} (:type :expr) (:by |u0) (:at 1622822288433)
+                        :data $ {}
+                          |T $ {} (:type :leaf) (:by |u0) (:at 1622822288433) (:text |render!)
+                  |n $ {} (:type :expr) (:by |u0) (:at 1622822296628)
+                    :data $ {}
+                      |T $ {} (:type :leaf) (:by |u0) (:at 1622822296628) (:text |println)
+                      |j $ {} (:type :leaf) (:by |u0) (:at 1622822296628) (:text "|\"event:")
+                      |r $ {} (:type :leaf) (:by |u0) (:at 1622822296628) (:text |event)
         :proc $ {} (:type :expr) (:by |u0) (:at 1620576367501)
           :data $ {}
         :configs $ {}

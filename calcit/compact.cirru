@@ -56,6 +56,8 @@
                   :line-color $ [] 200 80 80
                   :line-width 4
         |on-window-event $ quote
-          defn on-window-event (event) (println "\"event:" event)
+          defn on-window-event (event)
+            case-default (:type event) (println "\"event:" event)
+              :redraw $ render!
       :proc $ quote ()
       :configs $ {}

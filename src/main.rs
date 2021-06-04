@@ -94,6 +94,8 @@ pub fn main() -> GameResult {
   println!("\nRunner: in watch mode...\n");
   let (tx, rx) = channel();
   let entry_path = Path::new(cli_matches.value_of("input").unwrap());
+  let event_entry = cli_matches.value_of("event-entry").unwrap().to_owned();
+
   let mut watcher: RecommendedWatcher = Watcher::new(tx, Duration::from_millis(200)).unwrap();
 
   let inc_path = entry_path.parent().unwrap().join(".compact-inc.cirru").to_owned();
@@ -118,7 +120,6 @@ pub fn main() -> GameResult {
 
   let mut first_paint = true;
   let track_mouse = RefCell::new(Vec2::new(0.0, 0.0));
-
   // Handle events. Refer to `winit` docs for more information.
   events_loop.run(move |event, _window_target, control_flow| {
     // println!("Event: {:?}", event);
@@ -139,14 +140,17 @@ pub fn main() -> GameResult {
       first_paint = false
     }
 
-    let event_entry = cli_matches.value_of("event-entry").unwrap();
     match event {
       Event::WindowEvent { event, .. } => match event {
         WindowEvent::CloseRequested => event::quit(ctx),
-        WindowEvent::Resized(logical_size) => {
-          let new_rect = graphics::Rect::new(0.0, 0.0, logical_size.width as f32, logical_size.height as f32);
-          graphics::set_screen_coordinates(ctx, new_rect).unwrap();
-          // TODO call rerender
+        WindowEvent::Resized(_logical_size) => {
+          // goto request_redraw
+        }
+        WindowEvent::ScaleFactorChanged {
+          scale_factor: _f,
+          new_inner_size: _size,
+        } => {
+          // goto request_redraw
         }
         WindowEvent::CursorMoved { position, .. } => {
           let event_info = handlers::handle_mouse_move(Vec2::new(position.x as f32, position.y as f32), &track_mouse);
@@ -212,9 +216,15 @@ pub fn main() -> GameResult {
 
         ggez::timer::yield_now();
       }
+      Event::RedrawRequested(_wid) => {
+        let size = graphics::window(ctx).inner_size();
+        let new_rect = graphics::Rect::new(0.0, 0.0, size.width as f32, size.height as f32);
+        graphics::set_screen_coordinates(ctx, new_rect).unwrap();
+        let event_info = handlers::handle_redraw();
+        handle_calcit_event(ctx, &mut program_code, &event_entry, im::vector![event_info]);
+      }
       Event::RedrawEventsCleared => {
         // println!("redraw events cleared");
-        // nothing
       }
       Event::NewEvents(e) if e == winit::event::StartCause::Poll => {
         // nothing
