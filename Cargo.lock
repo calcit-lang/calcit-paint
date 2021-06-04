@@ -97,6 +97,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "approx"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "072df7202e63b127ab55acfe16ce97013d5b97bf160489336d3f1840fd78e99e"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "arrayvec"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -224,7 +233,7 @@ dependencies = [
  "cirru_edn",
  "cirru_parser",
  "ggez",
- "glam",
+ "glam 0.12.0",
  "im",
  "lazy_static",
  "lyon",
@@ -635,9 +644,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-epoch"
-version = "0.9.4"
+version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52fb27eab85b17fbb9f6fd667089e07d6a2eb8743d02639ee7f6a7a7729c9c94"
+checksum = "4ec02e091aa634e2c3ada4a392989e7c3116673ef0ac5b72232439094d73b7fd"
 dependencies = [
  "cfg-if 1.0.0",
  "crossbeam-utils",
@@ -648,11 +657,10 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-utils"
-version = "0.8.4"
+version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4feb231f0d4d6af81aed15928e58ecf5816aa62a2393e2c82f46973e92a9a278"
+checksum = "d82cfc11ce7f2c3faef78d8a684447b40d503d9681acebed6cb728d45940c4db"
 dependencies = [
- "autocfg",
  "cfg-if 1.0.0",
  "lazy_static",
 ]
@@ -946,16 +954,17 @@ dependencies = [
 [[package]]
 name = "ggez"
 version = "0.6.0-rc1"
-source = "git+https://github.com/ggez/ggez?branch=devel#968dd8c09eb9c57ab18662d32532fe129189ac4b"
+source = "git+https://github.com/ggez/ggez?branch=devel#e542c9fbc111d729b4220f9df31ee1a52a69d9b3"
 dependencies = [
- "approx",
+ "approx 0.5.0",
  "bitflags",
+ "bytemuck",
  "directories",
  "gfx",
  "gfx_core",
  "gfx_device_gl",
  "gilrs",
- "glam",
+ "glam 0.15.2",
  "glutin",
  "glyph_brush",
  "image",
@@ -1034,6 +1043,15 @@ checksum = "2ad8819b352632f676098176a51e11e324e8cee4c2518dd67e58c36b848438e6"
 dependencies = [
  "mint",
  "version_check",
+]
+
+[[package]]
+name = "glam"
+version = "0.15.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3abb554f8ee44336b72d522e0a7fe86a29e09f839a36022fa869a7dfe941a54b"
+dependencies = [
+ "mint",
 ]
 
 [[package]]
@@ -1149,7 +1167,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10bc06d530bf20c1902f1b02799ab7372ff43f6119770c49b0bc3f21bd148820"
 dependencies = [
  "ab_glyph",
- "approx",
+ "approx 0.4.0",
  "xi-unicode",
 ]
 
@@ -2230,9 +2248,9 @@ dependencies = [
 
 [[package]]
 name = "rodio"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b65c2eda643191f6d1bb12ea323a9db8d9ba95374e9be3780b5a9fb5cfb8520f"
+checksum = "4d98f5e557b61525057e2bc142c8cd7f0e70d75dc32852309bec440e6e046bf9"
 dependencies = [
  "claxon",
  "cpal",
