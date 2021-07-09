@@ -121,7 +121,7 @@ pub fn main() -> GameResult {
   let mut first_paint = true;
   let track_mouse = RefCell::new(Vec2::new(0.0, 0.0));
   // Handle events. Refer to `winit` docs for more information.
-  events_loop.run(move |event, _window_target, control_flow| {
+  events_loop.run(move |mut event, _window_target, control_flow| {
     // println!("Event: {:?}", event);
     if !ctx.continuing {
       *control_flow = ControlFlow::Exit;
@@ -130,7 +130,7 @@ pub fn main() -> GameResult {
 
     *control_flow = ControlFlow::Poll;
     let ctx = &mut ctx;
-    event::process_event(ctx, &event);
+    event::process_event(ctx, &mut event);
     if first_paint {
       ctx.timer_context.tick();
 
