@@ -243,9 +243,9 @@ dependencies = [
 
 [[package]]
 name = "calcit_runner"
-version = "0.3.26"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d5ad3b747c4ee65ddc5409995d40e942d770aa67a5846ec2fd3cd3d2319e75e"
+checksum = "d0b241d710996d22e8f2e12a76220ca82b13bdf499bb31a02d3a722cdaddb8b3"
 dependencies = [
  "chrono",
  "cirru_edn",
@@ -953,8 +953,9 @@ dependencies = [
 
 [[package]]
 name = "ggez"
-version = "0.6.0-rc1"
-source = "git+https://github.com/ggez/ggez?branch=devel#e542c9fbc111d729b4220f9df31ee1a52a69d9b3"
+version = "0.6.0-rc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d533b0143e1691b0ba0e1cc6d27bfa3879c4aedd01426bfd7369c6e6e122c5e3"
 dependencies = [
  "approx 0.5.0",
  "bitflags",
