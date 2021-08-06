@@ -243,9 +243,9 @@ dependencies = [
 
 [[package]]
 name = "calcit_runner"
-version = "0.4.6"
+version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0b241d710996d22e8f2e12a76220ca82b13bdf499bb31a02d3a722cdaddb8b3"
+checksum = "98ec0a02f0ad0cadc1c0d9287a06c380b524d2e8dd4c6005d460be73079d40cc"
 dependencies = [
  "chrono",
  "cirru_edn",
@@ -355,9 +355,9 @@ dependencies = [
 
 [[package]]
 name = "cirru_edn"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23e28d309ae1ccce319b3aad067a4412bef48d167f4be13da94bab2ff94317c3"
+checksum = "6d5fa4f3f50ae1a3940b0dfc8674f9e4767c895d1356a1177c40e83a8a3ca7dd"
 dependencies = [
  "cirru_parser",
  "lazy_static",
@@ -953,9 +953,9 @@ dependencies = [
 
 [[package]]
 name = "ggez"
-version = "0.6.0-rc2"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d533b0143e1691b0ba0e1cc6d27bfa3879c4aedd01426bfd7369c6e6e122c5e3"
+checksum = "18df9699a5244b0287c497de988393d381e49cf48996f8fcd10b80c9086cee65"
 dependencies = [
  "approx 0.5.0",
  "bitflags",

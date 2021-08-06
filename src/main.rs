@@ -76,6 +76,8 @@ pub fn main() -> GameResult {
     snapshot.files.insert(k.clone(), v.clone());
   }
   let mut program_code = program::extract_program_data(&snapshot).map_err(to_game_err)?;
+  let check_warnings: &RefCell<Vec<String>> = &RefCell::new(vec![]);
+
   // make sure builtin classes are touched
   calcit_runner::runner::preprocess::preprocess_ns_def(
     &calcit_runner::primes::CORE_NS,
@@ -83,8 +85,21 @@ pub fn main() -> GameResult {
     &program_code,
     &calcit_runner::primes::BUILTIN_CLASSES_ENTRY,
     None,
+    check_warnings,
   )
   .map_err(to_game_err)?;
+
+  let warnings = check_warnings.to_owned().into_inner();
+  if warnings.len() > 0 {
+    for message in &warnings {
+      println!("{}", message);
+    }
+
+    return Err(to_game_err(format!(
+      "Found {} warnings, runner blocked",
+      warnings.len()
+    )));
+  }
 
   let started_time = Instant::now();
   let _v = calcit_runner::run_program(&init_fn, im::vector![], &program_code).map_err(to_game_err)?;

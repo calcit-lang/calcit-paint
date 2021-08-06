@@ -8,12 +8,12 @@ exclude = ["resources", "!SourceCodePro-Medium.ttf"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-calcit_runner = "0.4.6"
+calcit_runner = "0.4.14"
 # calcit_runner = { path = "../calcit_runner.rs" }
 # ggez = { path = "/Users/chen/repo/others/ggez" }
 # ggez = { git = "https://github.com/ggez/ggez", branch = "devel" }
-ggez = "0.6.0-rc2"
-cirru_edn = "0.1.4"
+ggez = "0.6.0"
+cirru_edn = "0.1.5"
 cirru_parser = "0.1.1"
 winit = "0.24"
 notify = "4.0.16"
