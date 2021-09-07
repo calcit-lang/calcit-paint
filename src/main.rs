@@ -131,7 +131,7 @@ pub fn main() -> Result<(), String> {
       .unwrap()
   };
 
-  let pixels = {
+  let mut pixels = {
     let window_size = window.inner_size();
     let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
     Pixels::new(WIDTH, HEIGHT, surface_texture).unwrap() // TODO handle error
@@ -142,7 +142,7 @@ pub fn main() -> Result<(), String> {
   let mut first_paint = true;
   let track_mouse = RefCell::new(Vec2::new(0.0, 0.0));
   // Handle events. Refer to `winit` docs for more information.
-  event_loop.run(move |mut event, _window_target, control_flow| {
+  event_loop.run(move |event, _window_target, control_flow| {
     // println!("Event: {:?}", event);
 
     *control_flow = ControlFlow::Poll;
@@ -217,6 +217,10 @@ pub fn main() -> Result<(), String> {
             window.request_redraw();
           }
         },
+        WindowEvent::CloseRequested => {
+          println!("User Close.");
+          std::process::exit(0)
+        }
         // `CloseRequested` and `KeyboardInput` events won't appear here.
         x => println!("Other window event fired: {:?}", x),
       },
@@ -266,6 +270,7 @@ pub fn main() -> Result<(), String> {
         // handle on redraw request
         for (dst, &src) in pixels
           .get_frame()
+          .to_owned()
           .chunks_exact_mut(4)
           .zip(draw_target.get_data().iter())
         {
@@ -318,7 +323,7 @@ fn handle_code_change(
     let started_time = Instant::now();
     let data = cirru_edn::parse(&content).unwrap();
     let changes = snapshot::load_changes_info(data.clone()).unwrap();
-    let new_code = program::apply_code_changes(&program_code, &changes).unwrap();
+    let new_code = program::apply_code_changes(program_code, &changes).unwrap();
     // println!("\nprogram code: {:?}", new_code);
     // clear data in evaled states
     program::clear_all_program_evaled_defs(init_fn, reload_fn, reload_libs).unwrap();
@@ -328,7 +333,7 @@ fn handle_code_change(
     // overwrite previous state
     let duration = Instant::now().duration_since(started_time);
     let cost: f64 = duration.as_micros() as f64 / 1000.0;
-    if let Err(e) = renderer::draw_page(&mut draw_target, cost) {
+    if let Err(e) = renderer::draw_page(draw_target, cost) {
       println!("Failed drawing: {:?}", e);
     }
 
@@ -355,7 +360,7 @@ fn handle_calcit_event(
     Err(e) => println!("failed falling on-window-event: {}", e),
   }
 
-  if let Err(e) = renderer::draw_page(&mut draw_target, cost) {
+  if let Err(e) = renderer::draw_page(draw_target, cost) {
     println!("Failed drawing: {:?}", e);
   }
 }

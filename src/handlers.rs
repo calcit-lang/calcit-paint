@@ -2,7 +2,6 @@ use glam::Vec2;
 use std::cell::RefCell;
 
 use calcit_runner::Calcit;
-use ggez::event::KeyCode;
 
 use crate::{key_listener, primes::kwd, touches};
 
@@ -91,7 +90,7 @@ pub fn handle_mouse_move(position: Vec2, mouse: &RefCell<Vec2>) -> Option<Calcit
   }
 }
 
-pub fn handle_keyboard(keycode: KeyCode, key_state: winit::event::ElementState) -> Vec<Calcit> {
+pub fn handle_keyboard(keycode: winit::event::VirtualKeyCode, key_state: winit::event::ElementState) -> Vec<Calcit> {
   let targets = key_listener::find_key_listeners(&name_key(keycode));
   if targets.is_empty() {
     let mut info: im::HashMap<Calcit, Calcit> = im::HashMap::new();
@@ -127,7 +126,7 @@ pub fn handle_keyboard(keycode: KeyCode, key_state: winit::event::ElementState) 
   }
 }
 
-pub fn name_key(keycode: KeyCode) -> String {
+pub fn name_key(keycode: winit::event::VirtualKeyCode) -> String {
   format!("{:?}", keycode) // TODO
 }
 

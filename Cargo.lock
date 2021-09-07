@@ -152,6 +152,7 @@ dependencies = [
  "cirru_parser",
  "env_logger",
  "euclid 0.22.3",
+ "font-kit",
  "glam",
  "im",
  "lazy_static",
@@ -1847,9 +1848,9 @@ dependencies = [
 
 [[package]]
 name = "servo-fontconfig-sys"
-version = "4.0.9"
+version = "4.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62b3e166450f523f4db06c14f02a2d39e76d49b5d8cbd224338d93e3595c156c"
+checksum = "b0aa080856db55f188aaf36f01cae8c03448a6056552adb77d461179e44e1a14"
 dependencies = [
  "expat-sys",
  "pkg-config",
@@ -1858,9 +1859,9 @@ dependencies = [
 
 [[package]]
 name = "servo-freetype-sys"
-version = "4.0.5"
+version = "4.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c4ccb6d0d32d277d3ef7dea86203d8210945eb7a45fba89dd445b3595dd0dfc"
+checksum = "9232032c2e85118c0282c6562c84cab12316e655491ba0a5d1905b2320060d1b"
 dependencies = [
  "cmake",
  "pkg-config",

@@ -1,7 +1,7 @@
 use calcit_runner::primes::Calcit;
 use glam::Vec2;
 
-use raqote::Color;
+use raqote::{Color, LineCap, LineJoin};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TextAlign {

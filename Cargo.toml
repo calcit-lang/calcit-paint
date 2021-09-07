@@ -27,8 +27,13 @@ winit = "0.25"
 raqote = "0.8.0"
 glam = { version = "0.12", features = ["mint"]}
 winit_input_helper = "0.10"
-
+font-kit = { version = "0.7", optional = true }
 
 [[bin]]
 name = "calcit_paint"
 path = "src/main.rs"
+
+# need this for font-kit
+[features]
+default = ["text"]
+text = ["font-kit"]

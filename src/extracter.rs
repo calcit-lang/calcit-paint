@@ -1,12 +1,12 @@
 use glam::Vec2;
 
-use raqote::Color;
+use raqote::{Color, LineCap, LineJoin};
 
 use calcit_runner::Calcit;
 
 use crate::{
   color::extract_color,
-  primes::{kwd, LineCap, LineJoin, Shape, TextAlign, TouchAreaShape},
+  primes::{kwd, TextAlign, TouchAreaShape},
 };
 
 pub fn read_f32(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<f32, String> {
@@ -121,7 +121,7 @@ pub fn read_line_join(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<L
     Some(Calcit::Keyword(k)) => match k.as_str() {
       "round" => Ok(LineJoin::Round),
       "miter" => Ok(LineJoin::Miter),
-      "miter-clip" => Ok(LineJoin::MiterClip),
+      // "miter-clip" => Ok(LineJoin::MiterClip),
       "bevel" => Ok(LineJoin::Bevel),
       _ => Err(format!("unknown align value: {}", k)),
     },

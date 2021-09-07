@@ -4,7 +4,11 @@ use crate::{primes::path_add, touches};
 use calcit_runner::program;
 use calcit_runner::Calcit;
 
-use raqote::{Color, DrawTarget};
+use font_kit::family_name::FamilyName;
+use font_kit::properties::Properties;
+use font_kit::source::SystemSource;
+
+use raqote::{Color, DrawOptions, DrawTarget, LineCap, LineJoin, PathBuilder, Point, SolidSource, Source, StrokeStyle};
 
 use crate::{
   color::extract_color,
@@ -22,7 +26,12 @@ pub fn reset_page(draw_target: &mut DrawTarget, color: Color) -> Result<(), Stri
   // println!("reset with color: {:?}", color);
   touches::reset_touches_stack();
   key_listener::reset_listeners_stack();
-  graphics::clear(ctx, color);
+  draw_target.clear(SolidSource {
+    r: 40,
+    g: 40,
+    b: 40,
+    a: 255,
+  });
   Ok(())
 }
 
@@ -38,21 +47,20 @@ pub fn draw_page(draw_target: &mut DrawTarget, cost: f64) -> Result<(), String> 
         ("render-canvas!", Some(tree)) => {
           shown_shape = true;
           match extract_shape(&tree) {
-            Ok(shape) => draw_shape(ctx, &shape, &Vec2::new(0.0, 0.0))?,
+            Ok(shape) => draw_shape(draw_target, &shape, &Vec2::new(0.0, 0.0))?,
             Err(failure) => {
               println!("Failed to extract shape {}", failure)
             }
           }
         }
         ("reset-canvas!", Some(tree)) => {
-          reset_page(ctx, extract_color(tree)?)?;
+          reset_page(draw_target, extract_color(tree)?)?;
         }
         _ => println!("Unknown op: {}", call_op),
       }
     }
     if shown_shape {
-      draw_cost(ctx, cost)?;
-      graphics::present(ctx)
+      draw_cost(draw_target, cost)
     } else {
       Ok(())
     }
@@ -61,19 +69,40 @@ pub fn draw_page(draw_target: &mut DrawTarget, cost: f64) -> Result<(), String> 
   }
 }
 
-fn draw_cost(ctx: &mut DrawTarget, cost: f64) -> Result<(), String> {
-  let mono_font = graphics::Font::new(ctx, "/SourceCodePro-Medium.ttf")?;
-  let text_mesh = graphics::Text::new((format!("{}ms", cost), mono_font, 14.0));
-  graphics::draw(
-    ctx,
-    &text_mesh,
-    graphics::DrawParam::new()
-      .dest(Vec2::new(10.0, 190.0))
-      .color(Color::new(0.3 as u8, 1 as u8, 1 as u8, 1 as u8)),
-  )
+fn draw_cost(draw_target: &mut DrawTarget, cost: f64) -> Result<(), String> {
+  let font = SystemSource::new()
+    .select_best_match(&[FamilyName::SansSerif], &Properties::new())
+    .unwrap()
+    .load()
+    .unwrap();
+
+  draw_target.draw_text(
+    &font,
+    14.,
+    &format!("{}ms", cost),
+    Point::new(0., 100.),
+    &Source::Solid(SolidSource {
+      r: 0xff,
+      g: 0xff,
+      b: 0xff,
+      a: 0xff,
+    }),
+    &DrawOptions::new(),
+  );
+
+  Ok(())
 }
 
-fn draw_shape(ctx: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result<(), String> {
+fn turn_color_source(color: &Color) -> Source {
+  Source::Solid(SolidSource::from_unpremultiplied_argb(
+    color.a(),
+    color.r(),
+    color.g(),
+    color.b(),
+  ))
+}
+
+fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result<(), String> {
   match tree {
     Shape::Rectangle {
       position,
@@ -82,14 +111,31 @@ fn draw_shape(ctx: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result<(), Str
       line_style,
       fill_style,
     } => {
-      let rect = graphics::Rect::new(base.x + position.x, base.y + position.y, *width, *height);
+      let mut pb = PathBuilder::new();
+      pb.rect(base.x + position.x, base.y + position.y, *width, *height);
+      let path = pb.finish();
+
+      // let rect = graphics::Rect::new(base.x + position.x, base.y + position.y, *width, *height);
       if let Some((color, width)) = line_style {
-        let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::stroke(*width), rect, *color)?;
-        graphics::draw(ctx, &r1, DrawParam::default())?;
+        draw_target.stroke(
+          &path,
+          &turn_color_source(color),
+          &StrokeStyle {
+            cap: LineCap::Round,
+            join: LineJoin::Miter,
+            width: width.to_owned(),
+            miter_limit: 4.,
+            dash_array: Vec::new(),
+            dash_offset: 0.,
+          },
+          &DrawOptions::new(),
+        )
+
+        // let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::stroke(*width), rect, *color)?;
+        // graphics::draw(ctx, &r1, DrawParam::default())?;
       }
       if let Some(color) = fill_style {
-        let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, *color)?;
-        graphics::draw(ctx, &r1, DrawParam::default())?;
+        draw_target.fill(&path, &&turn_color_source(color), &DrawOptions::new());
       }
     }
     Shape::Circle {
@@ -98,32 +144,58 @@ fn draw_shape(ctx: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result<(), Str
       line_style,
       fill_style,
     } => {
+      let mut pb = PathBuilder::new();
+      pb.arc(
+        base.x + position.x,
+        base.y + position.y,
+        radius.to_owned(),
+        0.0,
+        2.0 * std::f64::consts::PI as f32,
+      );
+      let path = pb.finish();
+
       if let Some((color, width)) = line_style {
-        let circle = graphics::Mesh::new_circle(
-          ctx,
-          DrawMode::stroke(*width),
-          Vec2::new(0.0, 0.0),
-          *radius,
-          0.1,
-          color.to_owned(),
-        )?;
-        graphics::draw(ctx, &circle, (path_add(position, base),))?;
+        draw_target.stroke(
+          &path,
+          &turn_color_source(color),
+          &StrokeStyle {
+            cap: LineCap::Round,
+            join: LineJoin::Miter,
+            width: width.to_owned(),
+            miter_limit: 4.,
+            dash_array: Vec::new(),
+            dash_offset: 0.,
+          },
+          &DrawOptions::new(),
+        )
+
+        // let circle = graphics::Mesh::new_circle(
+        //   ctx,
+        //   DrawMode::stroke(*width),
+        //   Vec2::new(0.0, 0.0),
+        //   *radius,
+        //   0.1,
+        //   color.to_owned(),
+        // )?;
+        // graphics::draw(ctx, &circle, (path_add(position, base),))?;
       }
       if let Some(color) = fill_style {
-        let circle = graphics::Mesh::new_circle(
-          ctx,
-          DrawMode::fill(),
-          Vec2::new(0.0, 0.0),
-          *radius,
-          0.1,
-          color.to_owned(),
-        )?;
-        graphics::draw(ctx, &circle, (path_add(position, base),))?;
+        draw_target.fill(&path, &&turn_color_source(color), &DrawOptions::new());
+
+        // let circle = graphics::Mesh::new_circle(
+        //   ctx,
+        //   DrawMode::fill(),
+        //   Vec2::new(0.0, 0.0),
+        //   *radius,
+        //   0.1,
+        //   color.to_owned(),
+        // )?;
+        // graphics::draw(ctx, &circle, (path_add(position, base),))?;
       }
     }
     Shape::Group { position, children } => {
       for child in children {
-        draw_shape(ctx, child, &path_add(position, base))?;
+        draw_shape(draw_target, child, &path_add(position, base))?;
       }
     }
     Shape::Text {
@@ -134,15 +206,30 @@ fn draw_shape(ctx: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result<(), Str
       // weight: _w,
       // align: _a,
     } => {
-      let mono_font = graphics::Font::new(ctx, "/SourceCodePro-Medium.ttf")?;
-      let text_mesh = graphics::Text::new((text.as_str(), mono_font, *size));
-      graphics::draw(
-        ctx,
-        &text_mesh,
-        graphics::DrawParam::new()
-          .dest(path_add(position, base))
-          .color(color.to_owned()),
-      )?;
+      let font = SystemSource::new()
+        .select_best_match(&[FamilyName::SansSerif], &Properties::new())
+        .unwrap()
+        .load()
+        .unwrap();
+
+      draw_target.draw_text(
+        &font,
+        size.to_owned(),
+        &text.to_owned(),
+        Point::new(base.x + position.x, base.y + position.y),
+        &turn_color_source(color),
+        &DrawOptions::new(),
+      );
+
+      // let mono_font = graphics::Font::new(ctx, "/SourceCodePro-Medium.ttf")?;
+      // let text_mesh = graphics::Text::new((text.as_str(), mono_font, *size));
+      // graphics::draw(
+      //   ctx,
+      //   &text_mesh,
+      //   graphics::DrawParam::new()
+      //     .dest(path_add(position, base))
+      //     .color(color.to_owned()),
+      // )?;
     }
     Shape::Polyline {
       position,
@@ -153,28 +240,30 @@ fn draw_shape(ctx: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result<(), Str
       cap,
       skip_first,
     } => {
-      let mut points = stops.to_owned();
-      if *skip_first && points.len() >= 1 {
-        points.remove(0);
+      let mut pb = PathBuilder::new();
+      if *skip_first && stops.len() >= 1 {
+        pb.move_to(base.x + position.x + stops[0][0], base.y + position.y + stops[0][1]);
+      } else {
+        pb.move_to(base.x + position.x, base.y + position.y);
       }
-      let points_mesh = graphics::Mesh::new_polyline(
-        ctx,
-        DrawMode::Stroke(
-          StrokeOptions::default()
-            .with_line_join(*join)
-            .with_line_cap(*cap)
-            .with_line_width(*width),
-        ),
-        stops,
-        *color,
-      )?;
-      graphics::draw(
-        ctx,
-        &points_mesh,
-        graphics::DrawParam::new()
-          .dest(path_add(position, base))
-          .color(color.to_owned()),
-      )?;
+      for stop in stops {
+        pb.line_to(base.x + position.x + stop[0], base.y + position.y + stop[1]);
+      }
+      let path = pb.finish();
+
+      draw_target.stroke(
+        &path,
+        &turn_color_source(color),
+        &StrokeStyle {
+          cap: cap.to_owned(),
+          join: join.to_owned(),
+          width: width.to_owned(),
+          miter_limit: 4.,
+          dash_array: Vec::new(),
+          dash_offset: 0.,
+        },
+        &DrawOptions::new(),
+      );
     }
     Shape::TouchArea {
       position,
@@ -187,32 +276,82 @@ fn draw_shape(ctx: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result<(), Str
     } => {
       match area {
         TouchAreaShape::Circle(r) => {
+          let mut pb = PathBuilder::new();
+          pb.arc(
+            base.x + position.x,
+            base.y + position.y,
+            r.to_owned(),
+            0.0,
+            2.0 * std::f64::consts::PI as f32,
+          );
+          let path = pb.finish();
           if let Some((color, width)) = line_style {
-            let circle = graphics::Mesh::new_circle(
-              ctx,
-              DrawMode::stroke(*width),
-              Vec2::new(0.0, 0.0),
-              *r,
-              0.1,
-              color.to_owned(),
-            )?;
-            graphics::draw(ctx, &circle, (path_add(position, base),))?;
+            draw_target.stroke(
+              &path,
+              &turn_color_source(color),
+              &StrokeStyle {
+                cap: LineCap::Round,
+                join: LineJoin::Miter,
+                width: width.to_owned(),
+                miter_limit: 4.,
+                dash_array: Vec::new(),
+                dash_offset: 0.,
+              },
+              &DrawOptions::new(),
+            );
+
+            // let circle = graphics::Mesh::new_circle(
+            //   ctx,
+            //   DrawMode::stroke(*width),
+            //   Vec2::new(0.0, 0.0),
+            //   *r,
+            //   0.1,
+            //   color.to_owned(),
+            // )?;
+            // graphics::draw(ctx, &circle, (path_add(position, base),))?;
           }
           if let Some(color) = fill_style {
-            let circle =
-              graphics::Mesh::new_circle(ctx, DrawMode::fill(), Vec2::new(0.0, 0.0), *r, 0.1, color.to_owned())?;
-            graphics::draw(ctx, &circle, (path_add(position, base),))?;
+            draw_target.fill(&path, &&turn_color_source(color), &DrawOptions::new());
+
+            // let circle =
+            //   graphics::Mesh::new_circle(ctx, DrawMode::fill(), Vec2::new(0.0, 0.0), *r, 0.1, color.to_owned())?;
+            // graphics::draw(ctx, &circle, (path_add(position, base),))?;
           }
         }
         TouchAreaShape::Rect(dx, dy) => {
-          let rect = graphics::Rect::new(base.x + position.x - dx, base.y + position.y - dy, 2.0 * dx, 2.0 * dy);
+          // let rect = graphics::Rect::new(base.x + position.x - dx, base.y + position.y - dy, 2.0 * dx, 2.0 * dy);
+
+          let mut pb = PathBuilder::new();
+          pb.rect(
+            base.x + position.x - *dx,
+            base.y + position.y - *dy,
+            2. * dx.to_owned(),
+            2. * dy.to_owned(),
+          );
+          let path = pb.finish();
+
           if let Some((color, width)) = line_style {
-            let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::stroke(*width), rect, *color)?;
-            graphics::draw(ctx, &r1, DrawParam::default())?;
+            draw_target.stroke(
+              &path,
+              &turn_color_source(color),
+              &StrokeStyle {
+                cap: LineCap::Round,
+                join: LineJoin::Miter,
+                width: width.to_owned(),
+                miter_limit: 4.,
+                dash_array: Vec::new(),
+                dash_offset: 0.,
+              },
+              &DrawOptions::new(),
+            );
+
+            // let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::stroke(*width), rect, *color)?;
+            // graphics::draw(ctx, &r1, DrawParam::default())?;
           }
           if let Some(color) = fill_style {
-            let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, *color)?;
-            graphics::draw(ctx, &r1, DrawParam::default())?;
+            draw_target.fill(&path, &&turn_color_source(color), &DrawOptions::new());
+            // let r1 = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, *color)?;
+            // graphics::draw(ctx, &r1, DrawParam::default())?;
           }
         }
       }
@@ -238,105 +377,105 @@ fn draw_shape(ctx: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result<(), Str
       fill_style,
       position,
     } => {
-      let mut buffers: VertexBuffers<Point, u16> = VertexBuffers::new();
-      let mut path_builder = lyon::path::Path::builder().with_svg();
-      let from = path_add(&base, &position);
-      path_builder.move_to(as_point(&from));
-      for p in path {
-        match p {
-          PaintPath::MoveTo(a) => {
-            path_builder.move_to(add_to_point(&from, a));
-          }
-          PaintPath::LineTo(a) => {
-            path_builder.line_to(add_to_point(&from, a));
-          }
-          PaintPath::QuadraticBezierTo(a, b) => {
-            path_builder.quadratic_bezier_to(add_to_point(&from, a), add_to_point(&from, b));
-          }
-          PaintPath::CubicBezierTo(a, b, c) => {
-            path_builder.cubic_bezier_to(add_to_point(&from, a), add_to_point(&from, b), add_to_point(&from, c));
-          }
-        }
-      }
-      if fill_style.is_some() {
-        path_builder.close();
-      }
+      // let mut buffers: VertexBuffers<Point, u16> = VertexBuffers::new();
+      // let mut path_builder = lyon::path::Path::builder().with_svg();
+      // let from = path_add(&base, &position);
+      // path_builder.move_to(as_point(&from));
+      // for p in path {
+      //   match p {
+      //     PaintPath::MoveTo(a) => {
+      //       path_builder.move_to(add_to_point(&from, a));
+      //     }
+      //     PaintPath::LineTo(a) => {
+      //       path_builder.line_to(add_to_point(&from, a));
+      //     }
+      //     PaintPath::QuadraticBezierTo(a, b) => {
+      //       path_builder.quadratic_bezier_to(add_to_point(&from, a), add_to_point(&from, b));
+      //     }
+      //     PaintPath::CubicBezierTo(a, b, c) => {
+      //       path_builder.cubic_bezier_to(add_to_point(&from, a), add_to_point(&from, b), add_to_point(&from, c));
+      //     }
+      //   }
+      // }
+      // if fill_style.is_some() {
+      //   path_builder.close();
+      // }
 
-      let g_path = path_builder.build();
-      // save another copy, may be used in filling
-      let mut cloned_buffers = buffers.clone();
+      // let g_path = path_builder.build();
+      // // save another copy, may be used in filling
+      // let mut cloned_buffers = buffers.clone();
 
-      if let Some((color, width)) = line_style {
-        // https://docs.rs/lyon_tessellation/0.17.6/lyon_tessellation/struct.StrokeTessellator.html
-        let mut vertex_builder = tessellation::geometry_builder::simple_builder(&mut buffers);
-        let mut tessellator = tessellation::StrokeTessellator::new();
-        let _ = tessellator.tessellate(
-          &g_path,
-          &lyon::tessellation::StrokeOptions::default().with_line_width(*width),
-          &mut vertex_builder,
-        );
-        let mut g_vertices: Vec<graphics::Vertex> = vec![];
-        for v in buffers.vertices {
-          g_vertices.push(point_to_vertex(v, color.to_owned()))
-        }
-        let mut g_indices: Vec<u32> = vec![];
-        for i in buffers.indices {
-          g_indices.push(i as u32);
-        }
-        if g_vertices.len() < 3 {
-          println!("[Warn] ops needs at least 3 vertices");
-        } else {
-          let mesh = graphics::Mesh::from_raw(ctx, &g_vertices, &g_indices, None)?;
-          graphics::draw(ctx, &mesh, (position.to_owned(),))?;
-        }
-      }
+      // if let Some((color, width)) = line_style {
+      //   // https://docs.rs/lyon_tessellation/0.17.6/lyon_tessellation/struct.StrokeTessellator.html
+      //   let mut vertex_builder = tessellation::geometry_builder::simple_builder(&mut buffers);
+      //   let mut tessellator = tessellation::StrokeTessellator::new();
+      //   let _ = tessellator.tessellate(
+      //     &g_path,
+      //     &lyon::tessellation::StrokeOptions::default().with_line_width(*width),
+      //     &mut vertex_builder,
+      //   );
+      //   let mut g_vertices: Vec<graphics::Vertex> = vec![];
+      //   for v in buffers.vertices {
+      //     g_vertices.push(point_to_vertex(v, color.to_owned()))
+      //   }
+      //   let mut g_indices: Vec<u32> = vec![];
+      //   for i in buffers.indices {
+      //     g_indices.push(i as u32);
+      //   }
+      //   if g_vertices.len() < 3 {
+      //     println!("[Warn] ops needs at least 3 vertices");
+      //   } else {
+      //     let mesh = graphics::Mesh::from_raw(ctx, &g_vertices, &g_indices, None)?;
+      //     graphics::draw(ctx, &mesh, (position.to_owned(),))?;
+      //   }
+      // }
 
-      if let Some(color) = fill_style {
-        // https://docs.rs/lyon_tessellation/0.17.6/lyon_tessellation/struct.StrokeTessellator.html
-        let mut vertex_builder = tessellation::geometry_builder::simple_builder(&mut cloned_buffers);
-        let mut tessellator = tessellation::FillTessellator::new();
-        let _ = tessellator.tessellate(
-          &g_path,
-          &lyon::tessellation::FillOptions::default(),
-          &mut vertex_builder,
-        );
-        let mut g_vertices: Vec<graphics::Vertex> = vec![];
-        for v in cloned_buffers.vertices {
-          g_vertices.push(point_to_vertex(v, color.to_owned()))
-        }
-        let mut g_indices: Vec<u32> = vec![];
-        for i in cloned_buffers.indices {
-          g_indices.push(i as u32);
-        }
+      // if let Some(color) = fill_style {
+      //   // https://docs.rs/lyon_tessellation/0.17.6/lyon_tessellation/struct.StrokeTessellator.html
+      //   let mut vertex_builder = tessellation::geometry_builder::simple_builder(&mut cloned_buffers);
+      //   let mut tessellator = tessellation::FillTessellator::new();
+      //   let _ = tessellator.tessellate(
+      //     &g_path,
+      //     &lyon::tessellation::FillOptions::default(),
+      //     &mut vertex_builder,
+      //   );
+      //   let mut g_vertices: Vec<graphics::Vertex> = vec![];
+      //   for v in cloned_buffers.vertices {
+      //     g_vertices.push(point_to_vertex(v, color.to_owned()))
+      //   }
+      //   let mut g_indices: Vec<u32> = vec![];
+      //   for i in cloned_buffers.indices {
+      //     g_indices.push(i as u32);
+      //   }
 
-        if g_vertices.len() < 3 {
-          println!("[Warn] ops needs at least 3 vertices");
-        } else {
-          let mesh = graphics::Mesh::from_raw(ctx, &g_vertices, &g_indices, None)?;
-          graphics::draw(ctx, &mesh, (position.to_owned(),))?;
-        }
-      }
+      //   if g_vertices.len() < 3 {
+      //     println!("[Warn] ops needs at least 3 vertices");
+      //   } else {
+      //     let mesh = graphics::Mesh::from_raw(ctx, &g_vertices, &g_indices, None)?;
+      //     graphics::draw(ctx, &mesh, (position.to_owned(),))?;
+      //   }
+      // }
     }
   }
   Ok(())
 }
 
-// dirty but decoupled functions...
-fn point_to_vertex(v: Point, color: Color) -> graphics::Vertex {
-  graphics::Vertex {
-    pos: [v.x, v.y],
-    uv: [v.x, v.y],
-    color: [color.r, color.g, color.b, color.a],
-  }
-}
+// // dirty but decoupled functions...
+// fn point_to_vertex(v: Point, color: Color) -> graphics::Vertex {
+//   graphics::Vertex {
+//     pos: [v.x, v.y],
+//     uv: [v.x, v.y],
+//     color: [color.r, color.g, color.b, color.a],
+//   }
+// }
 
-fn as_point(a: &Vec2) -> Point {
-  point(a.x, a.y)
-}
+// fn as_point(a: &Vec2) -> Point {
+//   point(a.x, a.y)
+// }
 
-fn add_to_point(a: &Vec2, b: &Vec2) -> Point {
-  point(a.x + b.x, a.y + b.y)
-}
+// fn add_to_point(a: &Vec2, b: &Vec2) -> Point {
+//   point(a.x + b.x, a.y + b.y)
+// }
 
 fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
   match tree {

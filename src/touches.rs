@@ -51,9 +51,9 @@ pub fn read_mouse_tracked_state() -> Option<MouseDragState> {
 
 pub fn track_mouse_drag(down_position: Vec2, action: Calcit, path: Calcit, data: Calcit) {
   let item = MouseDragState {
-    data: data,
-    action: action,
-    path: path,
+    data,
+    action,
+    path,
     position: down_position,
   };
   let mut state = MOUSE_DRAG_TRACKED.lock().unwrap();
