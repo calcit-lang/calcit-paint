@@ -17,12 +17,4 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Install alsa
-        if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev
-
-      - name: Install udev
-        if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update; sudo apt-get install --no-install-recommends libudev-dev
-
       - run: cargo build
