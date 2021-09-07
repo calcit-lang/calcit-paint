@@ -19,7 +19,7 @@ mod touches;
 use std::sync::mpsc::TryRecvError;
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 use std::{thread, time};
@@ -52,7 +52,7 @@ pub fn main() -> Result<(), String> {
 
   // load entry file
   let entry_path = Path::new(cli_matches.value_of("input").unwrap());
-  let content = fs::read_to_string(entry_path).expect(&format!("expected Cirru snapshot: {:?}", entry_path));
+  let content = fs::read_to_string(entry_path).unwrap_or_else(|_| panic!("expected Cirru snapshot: {:?}", entry_path));
   let data = cirru_edn::parse(&content)?;
   // println!("reading: {}", content);
   let mut snapshot = snapshot::load_snapshot_data(data, entry_path.to_str().unwrap())?;
@@ -69,7 +69,7 @@ pub fn main() -> Result<(), String> {
 
   // attach modules
   for module_path in &snapshot.configs.modules {
-    let module_data = calcit_runner::load_module(&module_path, entry_path.parent().unwrap())?;
+    let module_data = calcit_runner::load_module(module_path, entry_path.parent().unwrap())?;
     for (k, v) in &module_data.files {
       snapshot.files.insert(k.clone(), v.clone());
     }
@@ -84,16 +84,16 @@ pub fn main() -> Result<(), String> {
 
   // make sure builtin classes are touched
   calcit_runner::runner::preprocess::preprocess_ns_def(
-    &calcit_runner::primes::CORE_NS,
-    &calcit_runner::primes::BUILTIN_CLASSES_ENTRY,
+    calcit_runner::primes::CORE_NS,
+    calcit_runner::primes::BUILTIN_CLASSES_ENTRY,
     &program_code,
-    &calcit_runner::primes::BUILTIN_CLASSES_ENTRY,
+    calcit_runner::primes::BUILTIN_CLASSES_ENTRY,
     None,
     check_warnings,
   )?;
 
   let warnings = check_warnings.to_owned().into_inner();
-  if warnings.len() > 0 {
+  if !warnings.is_empty() {
     for message in &warnings {
       println!("{}", message);
     }
@@ -170,15 +170,13 @@ pub fn main() -> Result<(), String> {
         }
         WindowEvent::CursorMoved { position, .. } => {
           let event_info = handlers::handle_mouse_move(Vec2::new(position.x as f32, position.y as f32), &track_mouse);
-          match event_info {
-            Some(e) => {
-              handle_calcit_event(&mut draw_target, &mut program_code, &event_entry, im::vector![e]);
-              window.request_redraw();
-            }
-            None => (),
+
+          if let Some(e) = event_info {
+            handle_calcit_event(&mut draw_target, &mut program_code, &event_entry, im::vector![e]);
+            window.request_redraw();
           }
         }
-        WindowEvent::MouseInput { state, button, .. } => {
+        WindowEvent::MouseInput { state, button: _, .. } => {
           // println!("mouse button: {:?}", button);
           let event_info = match state {
             winit::event::ElementState::Pressed => handlers::handle_mouse_down(&track_mouse),
@@ -286,7 +284,6 @@ pub fn main() -> Result<(), String> {
           .is_err()
         {
           *control_flow = ControlFlow::Exit;
-          return;
         }
       }
       Event::RedrawEventsCleared => {
@@ -310,7 +307,7 @@ fn handle_code_change(
   program_code: &mut ProgramCodeData,
   init_fn: &str,
   reload_fn: &str,
-  inc_path: &PathBuf,
+  inc_path: &Path,
   reload_libs: bool,
 ) {
   println!("\n-------- file change --------\n");
@@ -352,7 +349,7 @@ fn handle_calcit_event(
   let mut cost: f64 = 0.0; // in ms
 
   call_stack::clear_stack();
-  match calcit_runner::run_program(event_entry, params, &program_code) {
+  match calcit_runner::run_program(event_entry, params, program_code) {
     Ok(_v) => {
       let duration = Instant::now().duration_since(started_time);
       cost = duration.as_micros() as f64 / 1000.0;

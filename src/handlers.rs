@@ -17,19 +17,16 @@ pub fn handle_mouse_down(mouse: &RefCell<Vec2>) -> Calcit {
   info.insert(kwd("x"), Calcit::Number(position.x as f64));
   info.insert(kwd("y"), Calcit::Number(position.y as f64));
 
-  match touches::find_touch_area(position) {
-    Some(target) => {
-      info.insert(kwd("action"), target.action.to_owned());
-      info.insert(kwd("path"), target.path.to_owned());
-      info.insert(kwd("data"), target.data.to_owned());
-      touches::track_mouse_drag(
-        position,
-        target.action.to_owned(),
-        target.path.to_owned(),
-        target.data.to_owned(),
-      );
-    }
-    None => (),
+  if let Some(target) = touches::find_touch_area(position) {
+    info.insert(kwd("action"), target.action.to_owned());
+    info.insert(kwd("path"), target.path.to_owned());
+    info.insert(kwd("data"), target.data.to_owned());
+    touches::track_mouse_drag(
+      position,
+      target.action.to_owned(),
+      target.path.to_owned(),
+      target.data.to_owned(),
+    );
   }
 
   Calcit::Map(info)
@@ -45,19 +42,17 @@ pub fn handle_mouse_up(mouse: &RefCell<Vec2>) -> Calcit {
   info.insert(kwd("y"), Calcit::Number(position.y as f64));
   info.insert(kwd("clicks"), Calcit::Number(1.0)); // TODO
 
-  match touches::read_mouse_tracked_state() {
-    Some(tracked_state) => {
-      let p0 = tracked_state.position;
-      info.insert(kwd("action"), tracked_state.action);
-      info.insert(kwd("path"), tracked_state.path);
-      info.insert(kwd("data"), tracked_state.data);
-      info.insert(kwd("dx"), Calcit::Number((position.x - p0.x) as f64));
-      info.insert(kwd("dy"), Calcit::Number((position.y - p0.y) as f64));
+  if let Some(tracked_state) = touches::read_mouse_tracked_state() {
+    let p0 = tracked_state.position;
+    info.insert(kwd("action"), tracked_state.action);
+    info.insert(kwd("path"), tracked_state.path);
+    info.insert(kwd("data"), tracked_state.data);
+    info.insert(kwd("dx"), Calcit::Number((position.x - p0.x) as f64));
+    info.insert(kwd("dy"), Calcit::Number((position.y - p0.y) as f64));
 
-      touches::release_mouse_drag();
-    }
-    None => (),
+    touches::release_mouse_drag();
   }
+
   Calcit::Map(info)
 }
 
@@ -74,16 +69,13 @@ pub fn handle_mouse_move(position: Vec2, mouse: &RefCell<Vec2>) -> Option<Calcit
     info.insert(kwd("x"), Calcit::Number(position.x as f64));
     info.insert(kwd("y"), Calcit::Number(position.y as f64));
 
-    match touches::read_mouse_tracked_state() {
-      Some(tracked_state) => {
-        let p0 = tracked_state.position;
-        info.insert(kwd("action"), tracked_state.action);
-        info.insert(kwd("path"), tracked_state.path);
-        info.insert(kwd("data"), tracked_state.data);
-        info.insert(kwd("dx"), Calcit::Number((position.x - p0.x) as f64));
-        info.insert(kwd("dy"), Calcit::Number((position.y - p0.y) as f64));
-      }
-      None => (),
+    if let Some(tracked_state) = touches::read_mouse_tracked_state() {
+      let p0 = tracked_state.position;
+      info.insert(kwd("action"), tracked_state.action);
+      info.insert(kwd("path"), tracked_state.path);
+      info.insert(kwd("data"), tracked_state.data);
+      info.insert(kwd("dx"), Calcit::Number((position.x - p0.x) as f64));
+      info.insert(kwd("dy"), Calcit::Number((position.y - p0.y) as f64));
     }
 
     Some(Calcit::Map(info))

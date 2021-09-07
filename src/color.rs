@@ -48,6 +48,6 @@ pub fn extract_color(x: &Calcit) -> Result<Color, String> {
       (a, b, c) => Err(format!("unknown color values: {} {} {}", a, b, c)),
     },
     Calcit::List(xs) => Err(format!("unknown length of color: {}", xs.len())),
-    _ => Err(format!("unknown type for color")),
+    _ => Err(String::from("unknown type for color")),
   }
 }

@@ -12,7 +12,7 @@ exclude = ["resources", "!SourceCodePro-Medium.ttf"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-calcit_runner = "0.4.14"
+calcit_runner = "0.4.28"
 # calcit_runner = { path = "../calcit_runner.rs" }
 cirru_edn = "0.1.5"
 cirru_parser = "0.1.1"
