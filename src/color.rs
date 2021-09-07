@@ -25,7 +25,12 @@ fn hsl_to_rgb(h0: f32, s0: f32, l0: f32, alpha: f32) -> Color {
   let s = s0 * 0.01;
   let l = l0 * 0.01;
   if s == 0.0 {
-    Color::new(alpha as u8, l as u8, l as u8, l as u8)
+    Color::new(
+      (alpha * 256.0).round() as u8,
+      (l * 256.0).round() as u8,
+      (l * 256.0).round() as u8,
+      (l * 256.0).round() as u8,
+    )
   } else {
     let q = if l < 0.5 { l * (1.0 + s) } else { l + s - l * s };
     let p = 2.0 * l - q;
@@ -33,7 +38,12 @@ fn hsl_to_rgb(h0: f32, s0: f32, l0: f32, alpha: f32) -> Color {
     let green = hsl_helper(p, q, hue);
     let blue = hsl_helper(p, q, hue - 1.0 / 3.0);
 
-    Color::new(alpha as u8, red as u8, green as u8, blue as u8)
+    Color::new(
+      (alpha * 256.0).round() as u8,
+      (red * 256.0).round() as u8,
+      (green * 256.0).round() as u8,
+      (blue * 256.0).round() as u8,
+    )
   }
 }
 

@@ -23,7 +23,6 @@ use crate::{
 // TODO Stack
 
 pub fn reset_page(draw_target: &mut DrawTarget, color: Color) -> Result<(), String> {
-  println!("reset with color: {:?}", color);
   touches::reset_touches_stack();
   key_listener::reset_listeners_stack();
   draw_target.clear(SolidSource {
@@ -36,8 +35,6 @@ pub fn reset_page(draw_target: &mut DrawTarget, color: Color) -> Result<(), Stri
 }
 
 pub fn draw_page(draw_target: &mut DrawTarget, cost: f64) -> Result<(), String> {
-  println!("Get page drawing~");
-
   let messages = program::take_ffi_messages().unwrap();
   // clear scene and start drawing
   if !messages.is_empty() {
@@ -82,7 +79,7 @@ fn draw_cost(draw_target: &mut DrawTarget, cost: f64) -> Result<(), String> {
     &font,
     14.,
     &format!("{}ms", cost),
-    Point::new(0., 100.),
+    Point::new(10., 190.),
     &Source::Solid(SolidSource {
       r: 0xff,
       g: 0xff,
@@ -113,7 +110,6 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result
       line_style,
       fill_style,
     } => {
-      println!("rendering rect: {:?}", tree);
       let mut pb = PathBuilder::new();
       pb.rect(base.x + position.x, base.y + position.y, *width, *height);
       let path = pb.finish();
