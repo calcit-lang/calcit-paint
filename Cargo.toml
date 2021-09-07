@@ -24,10 +24,10 @@ euclid = "0.22"
 log = "0.4"
 pixels = "0.6.0"
 winit = "0.25"
-raqote = "0.8.0"
-glam = { version = "0.12", features = ["mint"]}
-winit_input_helper = "0.10"
-font-kit = { version = "0.7", optional = true }
+raqote = { git = "https://github.com/jrmuizel/raqote.git", rev = "74f0afa2be54561c1a9928e885ab95e8a4c5322d", default-features = false, features = ["text"] }
+glam = { version = "0.18", features = ["mint"]}
+font-kit = { version = "0.10", optional = true }
+
 
 [[bin]]
 name = "calcit_paint"

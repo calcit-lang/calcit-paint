@@ -23,7 +23,7 @@ use crate::{
 // TODO Stack
 
 pub fn reset_page(draw_target: &mut DrawTarget, color: Color) -> Result<(), String> {
-  // println!("reset with color: {:?}", color);
+  println!("reset with color: {:?}", color);
   touches::reset_touches_stack();
   key_listener::reset_listeners_stack();
   draw_target.clear(SolidSource {
@@ -113,6 +113,7 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result
       line_style,
       fill_style,
     } => {
+      println!("rendering rect: {:?}", tree);
       let mut pb = PathBuilder::new();
       pb.rect(base.x + position.x, base.y + position.y, *width, *height);
       let path = pb.finish();

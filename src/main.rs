@@ -32,7 +32,6 @@ use winit::event::Event;
 use winit::event::WindowEvent;
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
-use winit_input_helper::WinitInputHelper;
 
 use raqote::DrawTarget;
 
@@ -43,6 +42,7 @@ const WIDTH: u32 = 1000;
 const HEIGHT: u32 = 600;
 
 pub fn main() -> Result<(), String> {
+  env_logger::init();
   builtins::effects::init_effects_states();
   let cli_matches = cli_args::parse_cli();
 
@@ -120,7 +120,7 @@ pub fn main() -> Result<(), String> {
   watcher.watch(&inc_path, RecursiveMode::NonRecursive).unwrap();
 
   let event_loop = EventLoop::new();
-  let mut input = WinitInputHelper::new(); // TODO, what inputs
+  // let mut input = WinitInputHelper::new();
   let window = {
     let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
     WindowBuilder::new()
@@ -234,7 +234,7 @@ pub fn main() -> Result<(), String> {
             match event {
               notify::DebouncedEvent::NoticeWrite(..) => {
                 // response later
-                // some berak
+                // some break
               }
               notify::DebouncedEvent::Write(_) => {
                 let reload_libs = cli_matches.is_present("reload-libs");
@@ -257,6 +257,7 @@ pub fn main() -> Result<(), String> {
         // some break
       }
       Event::RedrawRequested(_wid) => {
+        println!("Handle redraw");
         let event_info = handlers::handle_redraw();
         handle_calcit_event(
           &mut draw_target,
