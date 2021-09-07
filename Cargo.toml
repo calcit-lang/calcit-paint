@@ -1,3 +1,7 @@
+
+[workspace]
+resolver = "2"
+
 [package]
 name = "calcit_paint"
 version = "0.0.1"
@@ -10,17 +14,20 @@ exclude = ["resources", "!SourceCodePro-Medium.ttf"]
 [dependencies]
 calcit_runner = "0.4.14"
 # calcit_runner = { path = "../calcit_runner.rs" }
-# ggez = { path = "/Users/chen/repo/others/ggez" }
-# ggez = { git = "https://github.com/ggez/ggez", branch = "devel" }
-ggez = "0.6.0"
 cirru_edn = "0.1.5"
 cirru_parser = "0.1.1"
-winit = "0.24"
 notify = "4.0.16"
-glam = { version = "0.12", features = ["mint"]}
 im = "15.0.0"
 lazy_static = "1.4.0"
-lyon = "0.17.5"
+env_logger = "0.9"
+euclid = "0.22"
+log = "0.4"
+pixels = "0.6.0"
+winit = "0.25"
+raqote = "0.8.0"
+glam = { version = "0.12", features = ["mint"]}
+winit_input_helper = "0.10"
+
 
 [[bin]]
 name = "calcit_paint"

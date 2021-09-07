@@ -1,5 +1,6 @@
-use ggez::graphics::Color;
 use glam::Vec2;
+
+use raqote::Color;
 
 use calcit_runner::Calcit;
 

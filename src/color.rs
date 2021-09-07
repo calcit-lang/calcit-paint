@@ -1,5 +1,5 @@
 use calcit_runner::Calcit;
-use ggez::graphics::Color;
+use raqote::Color;
 
 fn hsl_helper(p: f32, q: f32, t0: f32) -> f32 {
   let mut t = t0;
@@ -25,24 +25,15 @@ fn hsl_to_rgb(h0: f32, s0: f32, l0: f32, a: f32) -> Color {
   let s = s0 * 0.01;
   let l = l0 * 0.01;
   if s == 0.0 {
-    Color {
-      r: l,
-      g: l,
-      b: l,
-      a,
-    }
+    Color::new(a as u8, l as u8, l as u8, l as u8)
   } else {
-    let q = if l < 0.5 {
-      l * (1.0 + s)
-    } else {
-      l + s - l * s
-    };
+    let q = if l < 0.5 { l * (1.0 + s) } else { l + s - l * s };
     let p = 2.0 * l - q;
     let r = hsl_helper(p, q, h + 1.0 / 3.0);
     let g = hsl_helper(p, q, h);
     let b = hsl_helper(p, q, h - 1.0 / 3.0);
 
-    return Color { r, g, b, a };
+    Color::new(a as u8, r as u8, g as u8, b as u8)
   }
 }
 

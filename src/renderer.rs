@@ -1,17 +1,10 @@
-use ggez;
 use glam::Vec2;
-
-use ggez::graphics;
-use ggez::graphics::{Color, DrawMode, DrawParam};
-use ggez::graphics::{FillOptions, LineCap, LineJoin, StrokeOptions};
-use ggez::{Context, GameError, GameResult};
 
 use crate::{primes::path_add, touches};
 use calcit_runner::program;
 use calcit_runner::Calcit;
-use lyon::tessellation;
-use lyon::tessellation::math::{point, Point};
-use lyon::tessellation::VertexBuffers;
+
+use raqote::{Color, DrawTarget};
 
 use crate::{
   color::extract_color,
@@ -25,11 +18,7 @@ use crate::{
 
 // TODO Stack
 
-pub fn to_game_err(e: String) -> GameError {
-  GameError::CustomError(e)
-}
-
-pub fn reset_page(ctx: &mut Context, color: Color) -> GameResult {
+pub fn reset_page(draw_target: &mut DrawTarget, color: Color) -> Result<(), String> {
   // println!("reset with color: {:?}", color);
   touches::reset_touches_stack();
   key_listener::reset_listeners_stack();
@@ -37,7 +26,7 @@ pub fn reset_page(ctx: &mut Context, color: Color) -> GameResult {
   Ok(())
 }
 
-pub fn draw_page(ctx: &mut Context, cost: f64) -> GameResult {
+pub fn draw_page(draw_target: &mut DrawTarget, cost: f64) -> Result<(), String> {
   let messages = program::take_ffi_messages().unwrap();
   // clear scene and start drawing
   if !messages.is_empty() {
@@ -56,7 +45,7 @@ pub fn draw_page(ctx: &mut Context, cost: f64) -> GameResult {
           }
         }
         ("reset-canvas!", Some(tree)) => {
-          reset_page(ctx, extract_color(tree).map_err(to_game_err)?)?;
+          reset_page(ctx, extract_color(tree)?)?;
         }
         _ => println!("Unknown op: {}", call_op),
       }
@@ -72,7 +61,7 @@ pub fn draw_page(ctx: &mut Context, cost: f64) -> GameResult {
   }
 }
 
-fn draw_cost(ctx: &mut Context, cost: f64) -> GameResult {
+fn draw_cost(ctx: &mut DrawTarget, cost: f64) -> Result<(), String> {
   let mono_font = graphics::Font::new(ctx, "/SourceCodePro-Medium.ttf")?;
   let text_mesh = graphics::Text::new((format!("{}ms", cost), mono_font, 14.0));
   graphics::draw(
@@ -80,11 +69,11 @@ fn draw_cost(ctx: &mut Context, cost: f64) -> GameResult {
     &text_mesh,
     graphics::DrawParam::new()
       .dest(Vec2::new(10.0, 190.0))
-      .color(Color::new(1.0, 1.0, 1.0, 0.3)),
+      .color(Color::new(0.3 as u8, 1 as u8, 1 as u8, 1 as u8)),
   )
 }
 
-fn draw_shape(ctx: &mut Context, tree: &Shape, base: &Vec2) -> GameResult {
+fn draw_shape(ctx: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result<(), String> {
   match tree {
     Shape::Rectangle {
       position,

@@ -1,8 +1,7 @@
 use calcit_runner::primes::Calcit;
-use ggez::graphics::Color;
 use glam::Vec2;
 
-pub use ggez::graphics::{LineCap, LineJoin};
+use raqote::Color;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TextAlign {
