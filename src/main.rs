@@ -264,15 +264,6 @@ pub fn main() -> Result<(), String> {
         // some break
       }
       Event::RedrawRequested(_wid) => {
-        let event_info = handlers::handle_redraw();
-        handle_calcit_event(
-          &mut draw_target,
-          &mut program_code,
-          &event_entry,
-          im::vector![event_info],
-        );
-
-        // handle on redraw request
         for (dst, &src) in pixels
           .get_frame()
           .chunks_exact_mut(4)

@@ -121,9 +121,3 @@ pub fn handle_keyboard(keycode: winit::event::VirtualKeyCode, key_state: winit::
 pub fn name_key(keycode: winit::event::VirtualKeyCode) -> String {
   format!("{:?}", keycode) // TODO
 }
-
-pub fn handle_redraw() -> Calcit {
-  let mut info: im::HashMap<Calcit, Calcit> = im::HashMap::new();
-  info.insert(kwd("type"), kwd("redraw"));
-  Calcit::Map(info)
-}
