@@ -67,7 +67,7 @@ pub fn release_mouse_drag() {
 
 pub fn find_touch_area(p: Vec2) -> Option<TouchArea> {
   let stack = TOUCH_ITEMS_STACK.lock().unwrap();
-  let mut reversed = stack.clone();
+  let mut reversed = stack.to_owned();
   reversed.reverse(); // mutable...
                       // println!("Touch Stack: {:?} {:?}", reversed, stack);
   for item in reversed {

@@ -38,7 +38,6 @@ pub fn draw_page(draw_target: &mut DrawTarget, cost: f64) -> Result<(), String> 
   let messages = program::take_ffi_messages().unwrap();
   // clear scene and start drawing
   if !messages.is_empty() {
-    // println!("Calling draw_page");
     let mut shown_shape = false;
     for (call_op, args) in messages {
       // println!("op: {}", call_op);
