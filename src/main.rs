@@ -6,7 +6,7 @@ use log::error;
 use std::cell::RefCell;
 use std::time::Instant;
 
-use euclid::Point2D;
+use euclid::Vector2D;
 
 mod color;
 mod extracter;
@@ -136,7 +136,7 @@ pub fn main() -> Result<(), String> {
   let mut draw_target = DrawTarget::new(WIDTH as i32, HEIGHT as i32);
 
   let mut first_paint = true;
-  let track_mouse = RefCell::new(Point2D::new(0.0, 0.0));
+  let track_mouse = RefCell::new(Vector2D::new(0.0, 0.0));
   let track_scale: RefCell<f32> = RefCell::new(window.scale_factor() as f32);
   // Handle events. Refer to `winit` docs for more information.
   event_loop.run(move |event, _window_target, control_flow| {
@@ -173,7 +173,7 @@ pub fn main() -> Result<(), String> {
         WindowEvent::CursorMoved { position, .. } => {
           let scale = track_scale.to_owned().into_inner();
           let event_info = handlers::handle_mouse_move(
-            Point2D::new((position.x as f32) / scale, (position.y as f32) / scale),
+            Vector2D::new((position.x as f32) / scale, (position.y as f32) / scale),
             &track_mouse,
           );
 

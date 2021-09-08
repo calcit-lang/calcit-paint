@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use euclid::Point2D;
+use euclid::Vector2D;
 
 use calcit_runner::Calcit;
 
@@ -8,7 +8,7 @@ use crate::{key_listener, primes::kwd, touches};
 
 // TODO track position
 
-pub fn handle_mouse_down(mouse: &RefCell<Point2D<f32, f32>>) -> Calcit {
+pub fn handle_mouse_down(mouse: &RefCell<Vector2D<f32, f32>>) -> Calcit {
   // println!("mouse down: {:?}", mouse.to_owned().into_inner());
   let mut info: im::HashMap<Calcit, Calcit> = im::HashMap::new();
   let position = mouse.to_owned().into_inner();
@@ -33,7 +33,7 @@ pub fn handle_mouse_down(mouse: &RefCell<Point2D<f32, f32>>) -> Calcit {
   Calcit::Map(info)
 }
 
-pub fn handle_mouse_up(mouse: &RefCell<Point2D<f32, f32>>) -> Calcit {
+pub fn handle_mouse_up(mouse: &RefCell<Vector2D<f32, f32>>) -> Calcit {
   // println!("mouse up: {:?}", mouse.to_owned().into_inner());
   let mut info: im::HashMap<Calcit, Calcit> = im::HashMap::new();
   let position = mouse.to_owned().into_inner();
@@ -57,7 +57,7 @@ pub fn handle_mouse_up(mouse: &RefCell<Point2D<f32, f32>>) -> Calcit {
   Calcit::Map(info)
 }
 
-pub fn handle_mouse_move(position: Point2D<f32, f32>, mouse: &RefCell<Point2D<f32, f32>>) -> Option<Calcit> {
+pub fn handle_mouse_move(position: Vector2D<f32, f32>, mouse: &RefCell<Vector2D<f32, f32>>) -> Option<Calcit> {
   if position == mouse.to_owned().into_inner() {
     // triggered a same position, ignored
     None

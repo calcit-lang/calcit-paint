@@ -1,6 +1,6 @@
 use raqote::{Color, LineCap, LineJoin};
 
-use euclid::Point2D;
+use euclid::{Point2D, Vector2D};
 
 use calcit_runner::Calcit;
 
@@ -42,20 +42,20 @@ pub fn read_string(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Stri
   }
 }
 
-pub fn read_position(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Point2D<f32, f32>, String> {
+pub fn read_position(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Vector2D<f32, f32>, String> {
   match tree.get(&Calcit::Keyword(String::from(key))) {
     Some(Calcit::List(xs)) if xs.len() == 2 => match (&xs[0], &xs[1]) {
-      (Calcit::Number(x), Calcit::Number(y)) => Ok(Point2D::new(*x as f32, *y as f32)),
+      (Calcit::Number(x), Calcit::Number(y)) => Ok(Vector2D::new(*x as f32, *y as f32)),
       (a, b) => Err(format!("invalid positon values: {} {}", a, b)),
     },
     Some(Calcit::List(xs)) => Err(format!("invalid position length: {:?}", xs)),
-    Some(Calcit::Nil) => Ok(Point2D::new(0.0, 0.0)),
+    Some(Calcit::Nil) => Ok(Vector2D::new(0.0, 0.0)),
     Some(a) => Err(format!(
       "cannot be used as position: {} in {}",
       a,
       Calcit::Map(tree.to_owned())
     )),
-    None => Ok(Point2D::new(0.0, 0.0)),
+    None => Ok(Vector2D::new(0.0, 0.0)),
   }
 }
 

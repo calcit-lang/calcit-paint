@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use calcit_runner::Calcit;
-use euclid::Point2D;
+use euclid::{Point2D, Vector2D};
 use raqote::Transform;
 
 use crate::primes::TouchAreaShape;
@@ -16,14 +16,14 @@ pub struct TouchArea {
   pub path: Calcit,
   pub action: Calcit,
   pub data: Calcit,
-  pub position: Point2D<f32, f32>,
+  pub position: Vector2D<f32, f32>,
   pub area: TouchAreaShape,
   pub transform: Transform,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct MouseDragState {
-  pub position: Point2D<f32, f32>,
+  pub position: Vector2D<f32, f32>,
   pub action: Calcit,
   pub path: Calcit,
   pub data: Calcit,
@@ -35,7 +35,7 @@ pub fn reset_touches_stack() {
 }
 
 pub fn add_touch_area(
-  position: Point2D<f32, f32>,
+  position: Vector2D<f32, f32>,
   area: TouchAreaShape,
   action: Calcit,
   path: Calcit,
@@ -59,7 +59,7 @@ pub fn read_mouse_tracked_state() -> Option<MouseDragState> {
   MOUSE_DRAG_TRACKED.lock().unwrap().to_owned()
 }
 
-pub fn track_mouse_drag(down_position: Point2D<f32, f32>, action: Calcit, path: Calcit, data: Calcit) {
+pub fn track_mouse_drag(down_position: Vector2D<f32, f32>, action: Calcit, path: Calcit, data: Calcit) {
   let item = MouseDragState {
     data,
     action,
@@ -75,7 +75,7 @@ pub fn release_mouse_drag() {
   *state = None;
 }
 
-pub fn find_touch_area(p0: Point2D<f32, f32>) -> Option<TouchArea> {
+pub fn find_touch_area(p0: Vector2D<f32, f32>) -> Option<TouchArea> {
   let stack = TOUCH_ITEMS_STACK.lock().unwrap();
   let mut reversed = stack.to_owned();
   reversed.reverse(); // mutable...

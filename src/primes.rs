@@ -1,5 +1,5 @@
 use calcit_runner::primes::Calcit;
-use euclid::Point2D;
+use euclid::{Point2D, Vector2D};
 
 use raqote::{Color, LineCap, LineJoin};
 
@@ -22,32 +22,32 @@ pub enum PaintPathTo {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Shape {
   Rectangle {
-    position: Point2D<f32, f32>,
+    position: Vector2D<f32, f32>,
     width: f32,
     height: f32,
     line_style: Option<(Color, f32)>,
     fill_style: Option<Color>,
   },
   Group {
-    position: Point2D<f32, f32>,
+    position: Vector2D<f32, f32>,
     children: Vec<Shape>,
   },
   Circle {
-    position: Point2D<f32, f32>,
+    position: Vector2D<f32, f32>,
     radius: f32,
     line_style: Option<(Color, f32)>,
     fill_style: Option<Color>,
   },
   Text {
     text: String,
-    position: Point2D<f32, f32>,
+    position: Vector2D<f32, f32>,
     size: f32,
     // weight: String, // TODO
     color: Color,
     align: TextAlign,
   },
   // Arc {
-  //   position: Point2D<f32,f32>,
+  //   position: Vector2D<f32,f32>,
   //   radius: f32,
   //   from_angle: f32,
   //   to_angle: f32,
@@ -55,13 +55,13 @@ pub enum Shape {
   //   style: ShapeStyle,
   // },
   PaintOps {
-    position: Point2D<f32, f32>,
+    position: Vector2D<f32, f32>,
     path: Vec<PaintPathTo>,
     line_style: Option<(Color, f32)>,
     fill_style: Option<Color>,
   },
   Polyline {
-    position: Point2D<f32, f32>,
+    position: Vector2D<f32, f32>,
     stops: Vec<Point2D<f32, f32>>,
     skip_first: bool,
     color: Color,
@@ -73,7 +73,7 @@ pub enum Shape {
     path: Box<Calcit>,
     action: Box<Calcit>,
     data: Box<Calcit>,
-    position: Point2D<f32, f32>,
+    position: Vector2D<f32, f32>,
     // children: Vec<Shape>, // TODO
     area: TouchAreaShape,
     line_style: Option<(Color, f32)>,

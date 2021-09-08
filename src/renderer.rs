@@ -2,7 +2,7 @@ use crate::touches;
 use calcit_runner::program;
 use calcit_runner::Calcit;
 
-use euclid::{Angle, Point2D, Vector2D};
+use euclid::{Angle, Vector2D};
 
 use font_kit::family_name::FamilyName;
 use font_kit::properties::Properties;
@@ -543,7 +543,7 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
       None => Err(String::from("nil type")),
     },
     Calcit::Nil => Ok(Shape::Group {
-      position: Point2D::new(0.0, 0.0),
+      position: Vector2D::new(0.0, 0.0),
       children: vec![],
     }),
     _ => Err(format!("expected a map, got {}", tree)),
@@ -552,7 +552,7 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
 
 fn extract_children(children: Option<&Calcit>) -> Result<Vec<Shape>, String> {
   let empty_group = Shape::Group {
-    position: Point2D::new(0.0, 0.0),
+    position: Vector2D::new(0.0, 0.0),
     children: vec![],
   };
   match children {
