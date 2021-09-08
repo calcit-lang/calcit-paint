@@ -3,9 +3,9 @@ extern crate lazy_static;
 
 use glam::Vec2;
 
+use log::error;
+
 use std::cell::RefCell;
-use std::env;
-use std::path;
 use std::time::Instant;
 
 mod color;
@@ -18,40 +18,44 @@ mod touches;
 
 use std::sync::mpsc::TryRecvError;
 
-use ggez::conf::{WindowMode, WindowSetup};
-use ggez::event;
-use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent};
-use ggez::graphics::{self};
-use ggez::{Context, GameResult};
-use winit::event_loop::ControlFlow;
-
-use renderer::to_game_err;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 use std::{thread, time};
 
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 
-use calcit_runner;
+use pixels::{Pixels, SurfaceTexture};
+use winit::dpi::LogicalSize;
+use winit::event::Event;
+use winit::event::WindowEvent;
+use winit::event_loop::{ControlFlow, EventLoop};
+use winit::window::WindowBuilder;
+
+use raqote::DrawTarget;
+
 use calcit_runner::CalcitItems;
 use calcit_runner::{builtins, call_stack, cli_args, program, program::ProgramCodeData, snapshot};
 
-pub fn main() -> GameResult {
+const WIDTH: u32 = 1000;
+const HEIGHT: u32 = 600;
+
+pub fn main() -> Result<(), String> {
+  env_logger::init();
   builtins::effects::init_effects_states();
   let cli_matches = cli_args::parse_cli();
 
   println!("calcit_runner version: {}", cli_args::CALCIT_VERSION);
 
-  let core_snapshot = calcit_runner::load_core_snapshot().map_err(to_game_err)?;
+  let core_snapshot = calcit_runner::load_core_snapshot()?;
 
   // load entry file
   let entry_path = Path::new(cli_matches.value_of("input").unwrap());
-  let content = fs::read_to_string(entry_path).expect(&format!("expected Cirru snapshot: {:?}", entry_path));
-  let data = cirru_edn::parse(&content).map_err(to_game_err)?;
+  let content = fs::read_to_string(entry_path).unwrap_or_else(|_| panic!("expected Cirru snapshot: {:?}", entry_path));
+  let data = cirru_edn::parse(&content)?;
   // println!("reading: {}", content);
-  let mut snapshot = snapshot::load_snapshot_data(data).map_err(to_game_err)?;
+  let mut snapshot = snapshot::load_snapshot_data(data, entry_path.to_str().unwrap())?;
   let init_fn = cli_matches
     .value_of("init-fn")
     .or(Some(&snapshot.configs.init_fn))
@@ -65,7 +69,7 @@ pub fn main() -> GameResult {
 
   // attach modules
   for module_path in &snapshot.configs.modules {
-    let module_data = calcit_runner::load_module(&module_path, entry_path.parent().unwrap()).map_err(to_game_err)?;
+    let module_data = calcit_runner::load_module(module_path, entry_path.parent().unwrap())?;
     for (k, v) in &module_data.files {
       snapshot.files.insert(k.clone(), v.clone());
     }
@@ -75,34 +79,30 @@ pub fn main() -> GameResult {
   for (k, v) in core_snapshot.files {
     snapshot.files.insert(k.clone(), v.clone());
   }
-  let mut program_code = program::extract_program_data(&snapshot).map_err(to_game_err)?;
+  let mut program_code = program::extract_program_data(&snapshot)?;
   let check_warnings: &RefCell<Vec<String>> = &RefCell::new(vec![]);
 
   // make sure builtin classes are touched
   calcit_runner::runner::preprocess::preprocess_ns_def(
-    &calcit_runner::primes::CORE_NS,
-    &calcit_runner::primes::BUILTIN_CLASSES_ENTRY,
+    calcit_runner::primes::CORE_NS,
+    calcit_runner::primes::BUILTIN_CLASSES_ENTRY,
     &program_code,
-    &calcit_runner::primes::BUILTIN_CLASSES_ENTRY,
+    calcit_runner::primes::BUILTIN_CLASSES_ENTRY,
     None,
     check_warnings,
-  )
-  .map_err(to_game_err)?;
+  )?;
 
   let warnings = check_warnings.to_owned().into_inner();
-  if warnings.len() > 0 {
+  if !warnings.is_empty() {
     for message in &warnings {
       println!("{}", message);
     }
 
-    return Err(to_game_err(format!(
-      "Found {} warnings, runner blocked",
-      warnings.len()
-    )));
+    return Err(format!("Found {} warnings, runner blocked", warnings.len()));
   }
 
   let started_time = Instant::now();
-  let _v = calcit_runner::run_program(&init_fn, im::vector![], &program_code).map_err(to_game_err)?;
+  let _v = calcit_runner::run_program(&init_fn, im::vector![], &program_code)?;
   let duration = Instant::now().duration_since(started_time);
   let initial_cost: f64 = duration.as_micros() as f64 / 1000.0; // in ms
 
@@ -115,49 +115,50 @@ pub fn main() -> GameResult {
 
   let inc_path = entry_path.parent().unwrap().join(".compact-inc.cirru").to_owned();
   if !inc_path.exists() {
-    fs::write(&inc_path, "").map_err(|e| -> ggez::GameError { to_game_err(e.to_string()) })?;
+    let _todo = fs::write(&inc_path, "");
   }
   watcher.watch(&inc_path, RecursiveMode::NonRecursive).unwrap();
 
-  let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
-    let mut path = path::PathBuf::from(manifest_dir);
-    path.push("resources");
-    path
-  } else {
-    path::PathBuf::from("./resources")
+  let event_loop = EventLoop::new();
+  // let mut input = WinitInputHelper::new();
+  let window = {
+    let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+    WindowBuilder::new()
+      .with_title("Hello Raqote")
+      .with_inner_size(size)
+      .with_min_inner_size(size)
+      .build(&event_loop)
+      .unwrap()
   };
 
-  let (mut ctx, events_loop) = ggez::ContextBuilder::new("eventloop", "ggez")
-    .add_resource_path(resource_dir)
-    .window_setup(WindowSetup::default().title("Painter driven by Calcit"))
-    .window_mode(WindowMode::default().dimensions(1000.0, 600.0).resizable(true))
-    .build()?;
+  let mut pixels = {
+    let window_size = window.inner_size();
+    let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+    Pixels::new(WIDTH, HEIGHT, surface_texture).unwrap() // TODO handle error
+  };
+
+  let mut draw_target = DrawTarget::new(WIDTH as i32, HEIGHT as i32);
 
   let mut first_paint = true;
   let track_mouse = RefCell::new(Vec2::new(0.0, 0.0));
   // Handle events. Refer to `winit` docs for more information.
-  events_loop.run(move |mut event, _window_target, control_flow| {
+  event_loop.run(move |event, _window_target, control_flow| {
     // println!("Event: {:?}", event);
-    if !ctx.continuing {
-      *control_flow = ControlFlow::Exit;
-      return;
-    }
 
     *control_flow = ControlFlow::Poll;
-    let ctx = &mut ctx;
-    event::process_event(ctx, &mut event);
-    if first_paint {
-      ctx.timer_context.tick();
 
-      if let Err(e) = renderer::draw_page(ctx, initial_cost) {
+    if first_paint {
+      if let Err(e) = renderer::draw_page(&mut draw_target, initial_cost) {
         println!("failed first paint: {:?}", e);
       }
+
+      // Update internal state and request a redraw
+      window.request_redraw();
       first_paint = false
     }
 
     match event {
       Event::WindowEvent { event, .. } => match event {
-        WindowEvent::CloseRequested => event::quit(ctx),
         WindowEvent::Resized(_logical_size) => {
           // goto request_redraw
         }
@@ -169,22 +170,29 @@ pub fn main() -> GameResult {
         }
         WindowEvent::CursorMoved { position, .. } => {
           let event_info = handlers::handle_mouse_move(Vec2::new(position.x as f32, position.y as f32), &track_mouse);
-          match event_info {
-            Some(e) => handle_calcit_event(ctx, &mut program_code, &event_entry, im::vector![e]),
-            None => (),
+
+          if let Some(e) = event_info {
+            handle_calcit_event(&mut draw_target, &mut program_code, &event_entry, im::vector![e]);
+            window.request_redraw();
           }
         }
-        WindowEvent::MouseInput { state, button, .. } => {
+        WindowEvent::MouseInput { state, button: _, .. } => {
           // println!("mouse button: {:?}", button);
           let event_info = match state {
             winit::event::ElementState::Pressed => handlers::handle_mouse_down(&track_mouse),
             winit::event::ElementState::Released => handlers::handle_mouse_up(&track_mouse),
           };
-          handle_calcit_event(ctx, &mut program_code, &event_entry, im::vector![event_info]);
+          handle_calcit_event(
+            &mut draw_target,
+            &mut program_code,
+            &event_entry,
+            im::vector![event_info],
+          );
+          window.request_redraw();
         }
         WindowEvent::KeyboardInput {
           input:
-            KeyboardInput {
+            winit::event::KeyboardInput {
               state: key_state,
               scancode: _c, // unknown order
               virtual_keycode: Some(keycode),
@@ -192,15 +200,25 @@ pub fn main() -> GameResult {
             },
           ..
         } => match keycode {
-          event::KeyCode::Escape => *control_flow = ControlFlow::Exit,
+          winit::event::VirtualKeyCode::Escape => *control_flow = ControlFlow::Exit,
           _ => {
             // println!("keyboard event: {:?} {:?}", keycode, scancode);
             let event_infos = handlers::handle_keyboard(keycode, key_state);
             for event_info in event_infos {
-              handle_calcit_event(ctx, &mut program_code, &event_entry, im::vector![event_info]);
+              handle_calcit_event(
+                &mut draw_target,
+                &mut program_code,
+                &event_entry,
+                im::vector![event_info],
+              );
             }
+            window.request_redraw();
           }
         },
+        WindowEvent::CloseRequested => {
+          println!("User Close.");
+          std::process::exit(0)
+        }
         // `CloseRequested` and `KeyboardInput` events won't appear here.
         x => println!("Other window event fired: {:?}", x),
       },
@@ -209,7 +227,6 @@ pub fn main() -> GameResult {
         // println!("main events cleared");
         match rx.try_recv() {
           Err(TryRecvError::Empty) => {
-            ggez::timer::yield_now();
             thread::sleep(time::Duration::from_millis(50));
           } // most of the time
           Ok(event) => {
@@ -217,11 +234,19 @@ pub fn main() -> GameResult {
             match event {
               notify::DebouncedEvent::NoticeWrite(..) => {
                 // response later
-                ggez::timer::yield_now();
+                // some break
               }
               notify::DebouncedEvent::Write(_) => {
                 let reload_libs = cli_matches.is_present("reload-libs");
-                handle_code_change(ctx, &mut program_code, &init_fn, &reload_fn, &inc_path, reload_libs);
+                handle_code_change(
+                  &mut draw_target,
+                  &mut program_code,
+                  &init_fn,
+                  &reload_fn,
+                  &inc_path,
+                  reload_libs,
+                );
+                window.request_redraw();
               }
               _ => println!("other file event: {:?}, ignored", event),
             }
@@ -229,14 +254,36 @@ pub fn main() -> GameResult {
           Err(e) => println!("watch error: {:?}", e),
         }
 
-        ggez::timer::yield_now();
+        // some break
       }
       Event::RedrawRequested(_wid) => {
-        let size = graphics::window(ctx).inner_size();
-        let new_rect = graphics::Rect::new(0.0, 0.0, size.width as f32, size.height as f32);
-        graphics::set_screen_coordinates(ctx, new_rect).unwrap();
         let event_info = handlers::handle_redraw();
-        handle_calcit_event(ctx, &mut program_code, &event_entry, im::vector![event_info]);
+        handle_calcit_event(
+          &mut draw_target,
+          &mut program_code,
+          &event_entry,
+          im::vector![event_info],
+        );
+
+        // handle on redraw request
+        for (dst, &src) in pixels
+          .get_frame()
+          .chunks_exact_mut(4)
+          .zip(draw_target.get_data().iter())
+        {
+          dst[0] = (src >> 16) as u8;
+          dst[1] = (src >> 8) as u8;
+          dst[2] = src as u8;
+          dst[3] = (src >> 24) as u8;
+        }
+
+        if pixels
+          .render()
+          .map_err(|e| error!("pixels.render() failed: {}", e))
+          .is_err()
+        {
+          *control_flow = ControlFlow::Exit;
+        }
       }
       Event::RedrawEventsCleared => {
         // println!("redraw events cleared");
@@ -255,11 +302,11 @@ pub fn main() -> GameResult {
 }
 
 fn handle_code_change(
-  ctx: &mut Context,
+  draw_target: &mut DrawTarget,
   program_code: &mut ProgramCodeData,
   init_fn: &str,
   reload_fn: &str,
-  inc_path: &PathBuf,
+  inc_path: &Path,
   reload_libs: bool,
 ) {
   println!("\n-------- file change --------\n");
@@ -272,7 +319,7 @@ fn handle_code_change(
     let started_time = Instant::now();
     let data = cirru_edn::parse(&content).unwrap();
     let changes = snapshot::load_changes_info(data.clone()).unwrap();
-    let new_code = program::apply_code_changes(&program_code, &changes).unwrap();
+    let new_code = program::apply_code_changes(program_code, &changes).unwrap();
     // println!("\nprogram code: {:?}", new_code);
     // clear data in evaled states
     program::clear_all_program_evaled_defs(init_fn, reload_fn, reload_libs).unwrap();
@@ -282,29 +329,34 @@ fn handle_code_change(
     // overwrite previous state
     let duration = Instant::now().duration_since(started_time);
     let cost: f64 = duration.as_micros() as f64 / 1000.0;
-    if let Err(e) = renderer::draw_page(ctx, cost) {
+    if let Err(e) = renderer::draw_page(draw_target, cost) {
       println!("Failed drawing: {:?}", e);
     }
+
+    // Update internal state and request a redraw
     *program_code = new_code;
-    ctx.timer_context.tick();
   }
 }
 
-fn handle_calcit_event(ctx: &mut Context, program_code: &mut ProgramCodeData, event_entry: &str, params: CalcitItems) {
+fn handle_calcit_event(
+  draw_target: &mut DrawTarget,
+  program_code: &mut ProgramCodeData,
+  event_entry: &str,
+  params: CalcitItems,
+) {
   let started_time = Instant::now();
   let mut cost: f64 = 0.0; // in ms
 
   call_stack::clear_stack();
-  match calcit_runner::run_program(event_entry, params, &program_code) {
+  match calcit_runner::run_program(event_entry, params, program_code) {
     Ok(_v) => {
       let duration = Instant::now().duration_since(started_time);
       cost = duration.as_micros() as f64 / 1000.0;
     }
     Err(e) => println!("failed falling on-window-event: {}", e),
   }
-  ctx.timer_context.tick();
 
-  if let Err(e) = renderer::draw_page(ctx, cost) {
+  if let Err(e) = renderer::draw_page(draw_target, cost) {
     println!("Failed drawing: {:?}", e);
   }
 }

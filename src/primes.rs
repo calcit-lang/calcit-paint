@@ -1,8 +1,7 @@
 use calcit_runner::primes::Calcit;
-use ggez::graphics::Color;
 use glam::Vec2;
 
-pub use ggez::graphics::{LineCap, LineJoin};
+use raqote::{Color, LineCap, LineJoin};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TextAlign {
@@ -12,11 +11,11 @@ pub enum TextAlign {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum PaintPath {
-  MoveTo(Vec2),
-  LineTo(Vec2),
-  QuadraticBezierTo(Vec2, Vec2),
-  CubicBezierTo(Vec2, Vec2, Vec2),
+pub enum PaintPathTo {
+  Move(Vec2),
+  Line(Vec2),
+  QuadraticBezier(Vec2, Vec2),
+  CubicBezier(Vec2, Vec2, Vec2),
   // ClosePath,
 }
 
@@ -45,7 +44,7 @@ pub enum Shape {
     size: f32,
     // weight: String, // TODO
     color: Color,
-    // align: TextAlign,
+    align: TextAlign,
   },
   // Arc {
   //   position: Vec2,
@@ -57,7 +56,7 @@ pub enum Shape {
   // },
   PaintOps {
     position: Vec2,
-    path: Vec<PaintPath>,
+    path: Vec<PaintPathTo>,
     line_style: Option<(Color, f32)>,
     fill_style: Option<Color>,
   },
@@ -71,9 +70,9 @@ pub enum Shape {
     cap: LineCap,
   },
   TouchArea {
-    path: Calcit,
-    action: Calcit,
-    data: Calcit,
+    path: Box<Calcit>,
+    action: Box<Calcit>,
+    data: Box<Calcit>,
     position: Vec2,
     // children: Vec<Shape>, // TODO
     area: TouchAreaShape,
@@ -82,9 +81,9 @@ pub enum Shape {
   },
   KeyListener {
     key: String, // TODO modifier
-    action: Calcit,
-    path: Calcit,
-    data: Calcit,
+    path: Box<Calcit>,
+    action: Box<Calcit>,
+    data: Box<Calcit>,
     // children: Vec<Shape>, // TODO
   },
 }

@@ -79,7 +79,7 @@ Text {
 ```rust
 PaintOps {
   position: Vec2,
-  path: Vec<PaintPath>,
+  path: Vec<PaintPathTo>,
   line_style: Option<(Color, f32)>,
   fill_style: Option<Color>,
 },

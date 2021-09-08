@@ -1,5 +1,5 @@
 use calcit_runner::Calcit;
-use ggez::graphics::Color;
+use raqote::Color;
 
 fn hsl_helper(p: f32, q: f32, t0: f32) -> f32 {
   let mut t = t0;
@@ -20,43 +20,44 @@ fn hsl_helper(p: f32, q: f32, t0: f32) -> f32 {
   }
 }
 
-fn hsl_to_rgb(h0: f32, s0: f32, l0: f32, a: f32) -> Color {
-  let h = h0 / 360.0;
+fn hsl_to_rgb(h0: f32, s0: f32, l0: f32, alpha: f32) -> Color {
+  let hue = h0 / 360.0;
   let s = s0 * 0.01;
   let l = l0 * 0.01;
   if s == 0.0 {
-    Color {
-      r: l,
-      g: l,
-      b: l,
-      a,
-    }
+    Color::new(
+      (alpha * 256.0).round() as u8,
+      (l * 256.0).round() as u8,
+      (l * 256.0).round() as u8,
+      (l * 256.0).round() as u8,
+    )
   } else {
-    let q = if l < 0.5 {
-      l * (1.0 + s)
-    } else {
-      l + s - l * s
-    };
+    let q = if l < 0.5 { l * (1.0 + s) } else { l + s - l * s };
     let p = 2.0 * l - q;
-    let r = hsl_helper(p, q, h + 1.0 / 3.0);
-    let g = hsl_helper(p, q, h);
-    let b = hsl_helper(p, q, h - 1.0 / 3.0);
+    let red = hsl_helper(p, q, hue + 1.0 / 3.0);
+    let green = hsl_helper(p, q, hue);
+    let blue = hsl_helper(p, q, hue - 1.0 / 3.0);
 
-    return Color { r, g, b, a };
+    Color::new(
+      (alpha * 256.0).round() as u8,
+      (red * 256.0).round() as u8,
+      (green * 256.0).round() as u8,
+      (blue * 256.0).round() as u8,
+    )
   }
 }
 
 pub fn extract_color(x: &Calcit) -> Result<Color, String> {
   match x {
     Calcit::List(xs) if xs.len() == 3 || xs.len() == 4 => match (&xs[0], &xs[1], &xs[2]) {
-      (Calcit::Number(h), Calcit::Number(s), Calcit::Number(l)) => match xs.get(3) {
-        Some(Calcit::Number(a)) => Ok(hsl_to_rgb(*h as f32, *s as f32, *l as f32, *a as f32)),
+      (Calcit::Number(hue), Calcit::Number(s), Calcit::Number(light)) => match xs.get(3) {
+        Some(Calcit::Number(alpha)) => Ok(hsl_to_rgb(*hue as f32, *s as f32, *light as f32, *alpha as f32)),
         Some(a) => return Err(format!("invalid alpha: {}", a)),
-        None => Ok(hsl_to_rgb(*h as f32, *s as f32, *l as f32, 1.0)),
+        None => Ok(hsl_to_rgb(*hue as f32, *s as f32, *light as f32, 1.0)),
       },
       (a, b, c) => Err(format!("unknown color values: {} {} {}", a, b, c)),
     },
     Calcit::List(xs) => Err(format!("unknown length of color: {}", xs.len())),
-    _ => Err(format!("unknown type for color")),
+    _ => Err(String::from("unknown type for color")),
   }
 }

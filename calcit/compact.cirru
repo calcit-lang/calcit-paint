@@ -9,6 +9,10 @@
       :defs $ {}
         |main! $ quote
           defn main! () (println "\"started") (render!)
+        |on-window-event $ quote
+          defn on-window-event (event)
+            case-default (:type event) (println "\"event:" event)
+              :redraw $ render!
         |reload! $ quote
           defn reload! () (render!) (println "\"reloads 19")
         |render! $ quote
@@ -30,6 +34,7 @@
                   :color $ [] 0 80 100
                   :size 40
                   :weight "\"300"
+                  :align :center
                 {} (:type :polyline)
                   :position $ [] 400 200
                   :color $ [] 0 0 100 1
@@ -55,9 +60,3 @@
                     :bezier3-to ([] 400 200) ([] 200 400) ([] 300 400)
                   :line-color $ [] 200 80 80
                   :line-width 4
-        |on-window-event $ quote
-          defn on-window-event (event)
-            case-default (:type event) (println "\"event:" event)
-              :redraw $ render!
-      :proc $ quote ()
-      :configs $ {}
