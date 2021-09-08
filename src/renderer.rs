@@ -1,10 +1,8 @@
-use glam::Vec2;
-
 use crate::touches;
 use calcit_runner::program;
 use calcit_runner::Calcit;
 
-use euclid::{Angle, Vector2D};
+use euclid::{Angle, Point2D, Vector2D};
 
 use font_kit::family_name::FamilyName;
 use font_kit::properties::Properties;
@@ -220,12 +218,12 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
       draw_target.set_transform(tr);
 
       if *skip_first && !stops.is_empty() {
-        pb.move_to(position.x + stops[0][0], position.y + stops[0][1]);
+        pb.move_to(position.x + stops[0].x, position.y + stops[0].y);
       } else {
         pb.move_to(position.x, position.y);
       }
       for stop in stops {
-        pb.line_to(position.x + stop[0], position.y + stop[1]);
+        pb.line_to(position.x + stop.x, position.y + stop.y);
       }
       let path = pb.finish();
 
@@ -403,8 +401,8 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
       }
     }
     Shape::Translate { x, y, children } => {
-      let point = Vector2D::new(x.to_owned(), y.to_owned());
-      let t1 = Transform::identity().then_translate(point);
+      let v = Vector2D::new(x.to_owned(), y.to_owned());
+      let t1 = Transform::identity().then_translate(v);
       for child in children {
         draw_shape(draw_target, child, &t1.then(tr))?;
       }
@@ -545,7 +543,7 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
       None => Err(String::from("nil type")),
     },
     Calcit::Nil => Ok(Shape::Group {
-      position: Vec2::new(0.0, 0.0),
+      position: Point2D::new(0.0, 0.0),
       children: vec![],
     }),
     _ => Err(format!("expected a map, got {}", tree)),
@@ -554,7 +552,7 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
 
 fn extract_children(children: Option<&Calcit>) -> Result<Vec<Shape>, String> {
   let empty_group = Shape::Group {
-    position: Vec2::new(0.0, 0.0),
+    position: Point2D::new(0.0, 0.0),
     children: vec![],
   };
   match children {
