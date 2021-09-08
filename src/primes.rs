@@ -86,16 +86,25 @@ pub enum Shape {
     data: Box<Calcit>,
     // children: Vec<Shape>, // TODO
   },
+  Translate {
+    x: f32,
+    y: f32,
+    children: Vec<Shape>,
+  },
+  Rotate {
+    radius: f32,
+    children: Vec<Shape>,
+  },
+  Scale {
+    factor: f32,
+    children: Vec<Shape>,
+  },
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TouchAreaShape {
   Circle(f32),
   Rect(f32, f32),
-}
-
-pub fn path_add(a: &Vec2, b: &Vec2) -> Vec2 {
-  Vec2::new(a.x + b.x, a.y + b.y)
 }
 
 pub fn kwd(s: &str) -> Calcit {

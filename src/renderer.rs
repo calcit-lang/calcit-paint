@@ -1,14 +1,18 @@
 use glam::Vec2;
 
-use crate::{primes::path_add, touches};
+use crate::touches;
 use calcit_runner::program;
 use calcit_runner::Calcit;
+
+use euclid::{Angle, Vector2D};
 
 use font_kit::family_name::FamilyName;
 use font_kit::properties::Properties;
 use font_kit::source::SystemSource;
 
-use raqote::{Color, DrawOptions, DrawTarget, LineCap, LineJoin, PathBuilder, Point, SolidSource, Source, StrokeStyle};
+use raqote::{
+  Color, DrawOptions, DrawTarget, LineCap, LineJoin, PathBuilder, Point, SolidSource, Source, StrokeStyle, Transform,
+};
 
 use crate::{
   color::extract_color,
@@ -45,7 +49,7 @@ pub fn draw_page(draw_target: &mut DrawTarget, cost: f64) -> Result<(), String> 
         ("render-canvas!", Some(tree)) => {
           shown_shape = true;
           match extract_shape(tree) {
-            Ok(shape) => draw_shape(draw_target, &shape, &Vec2::new(0.0, 0.0))?,
+            Ok(shape) => draw_shape(draw_target, &shape, &Transform::identity())?,
             Err(failure) => {
               println!("Failed to extract shape {}", failure)
             }
@@ -100,7 +104,7 @@ fn turn_color_source(color: &Color) -> Source {
   ))
 }
 
-fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result<(), String> {
+fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Result<(), String> {
   match tree {
     Shape::Rectangle {
       position,
@@ -110,8 +114,10 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result
       fill_style,
     } => {
       let mut pb = PathBuilder::new();
-      pb.rect(base.x + position.x, base.y + position.y, *width, *height);
+      pb.rect(position.x, position.y, *width, *height);
       let path = pb.finish();
+
+      draw_target.set_transform(tr);
 
       if let Some((color, width)) = line_style {
         draw_target.stroke(
@@ -140,13 +146,15 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result
     } => {
       let mut pb = PathBuilder::new();
       pb.arc(
-        base.x + position.x,
-        base.y + position.y,
+        position.x,
+        position.y,
         radius.to_owned(),
         0.0,
         2.0 * std::f64::consts::PI as f32,
       );
       let path = pb.finish();
+
+      draw_target.set_transform(tr);
 
       if let Some((color, width)) = line_style {
         draw_target.stroke(
@@ -169,7 +177,9 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result
     }
     Shape::Group { position, children } => {
       for child in children {
-        draw_shape(draw_target, child, &path_add(position, base))?;
+        let pos = Vector2D::new(position.x, position.y);
+        let t1 = Transform::identity().then_translate(pos);
+        draw_shape(draw_target, child, &t1.then(tr))?;
       }
     }
     Shape::Text {
@@ -180,6 +190,8 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result
       // weight: _w,
       align: _a,
     } => {
+      draw_target.set_transform(tr);
+
       let font = SystemSource::new()
         .select_best_match(&[FamilyName::SansSerif], &Properties::new())
         .unwrap()
@@ -190,7 +202,7 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result
         &font,
         size.to_owned(),
         &text.to_owned(),
-        Point::new(base.x + position.x, base.y + position.y),
+        Point::new(position.x, position.y),
         &turn_color_source(color),
         &DrawOptions::new(),
       );
@@ -205,13 +217,15 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result
       skip_first,
     } => {
       let mut pb = PathBuilder::new();
+      draw_target.set_transform(tr);
+
       if *skip_first && !stops.is_empty() {
-        pb.move_to(base.x + position.x + stops[0][0], base.y + position.y + stops[0][1]);
+        pb.move_to(position.x + stops[0][0], position.y + stops[0][1]);
       } else {
-        pb.move_to(base.x + position.x, base.y + position.y);
+        pb.move_to(position.x, position.y);
       }
       for stop in stops {
-        pb.line_to(base.x + position.x + stop[0], base.y + position.y + stop[1]);
+        pb.line_to(position.x + stop[0], position.y + stop[1]);
       }
       let path = pb.finish();
 
@@ -242,13 +256,15 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result
         TouchAreaShape::Circle(r) => {
           let mut pb = PathBuilder::new();
           pb.arc(
-            base.x + position.x,
-            base.y + position.y,
+            position.x,
+            position.y,
             r.to_owned(),
             0.0,
             2.0 * std::f64::consts::PI as f32,
           );
           let path = pb.finish();
+          draw_target.set_transform(tr);
+
           if let Some((color, width)) = line_style {
             draw_target.stroke(
               &path,
@@ -271,12 +287,13 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result
         TouchAreaShape::Rect(dx, dy) => {
           let mut pb = PathBuilder::new();
           pb.rect(
-            base.x + position.x - *dx,
-            base.y + position.y - *dy,
+            position.x - *dx,
+            position.y - *dy,
             2. * dx.to_owned(),
             2. * dy.to_owned(),
           );
           let path = pb.finish();
+          draw_target.set_transform(tr);
 
           if let Some((color, width)) = line_style {
             draw_target.stroke(
@@ -299,11 +316,12 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result
         }
       }
       touches::add_touch_area(
-        path_add(position, base),
+        position.to_owned(),
         area.to_owned(),
         (**action).to_owned(),
         (**path).to_owned(),
         (**data).to_owned(),
+        tr,
       );
     }
     Shape::KeyListener {
@@ -326,9 +344,10 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result
       position,
     } => {
       let mut pb = PathBuilder::new();
-      let x0 = base.x + position.x;
-      let y0 = base.y + position.y;
+      let x0 = position.x;
+      let y0 = position.y;
       pb.move_to(x0, y0);
+      draw_target.set_transform(tr);
 
       for p in ops_path {
         match p {
@@ -369,6 +388,27 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, base: &Vec2) -> Result
         draw_target.fill(&path, &turn_color_source(color), &DrawOptions::new());
       }
     }
+    Shape::Scale { factor, children } => {
+      let t1 = Transform::identity().then_scale(factor.to_owned(), factor.to_owned());
+      for child in children {
+        draw_shape(draw_target, child, &t1.then(tr))?;
+      }
+    }
+    Shape::Rotate { radius, children } => {
+      let t1 = Transform::identity().then_rotate(Angle {
+        radians: radius.to_owned(),
+      });
+      for child in children {
+        draw_shape(draw_target, child, &t1.then(tr))?;
+      }
+    }
+    Shape::Translate { x, y, children } => {
+      let point = Vector2D::new(x.to_owned(), y.to_owned());
+      let t1 = Transform::identity().then_translate(point);
+      for child in children {
+        draw_shape(draw_target, child, &t1.then(tr))?;
+      }
+    }
   }
   Ok(())
 }
@@ -391,26 +431,9 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
           line_style: extract_line_style(m)?,
         }),
         "group" => {
-          let children = match m.get(&Calcit::Keyword(String::from("children"))) {
-            Some(Calcit::List(xs)) => {
-              let mut ys = vec![];
-              for x in xs {
-                match extract_shape(x) {
-                  Ok(v) => ys.push(v),
-                  Err(failure) => {
-                    println!("Failed extracting: {}\n  in {}", failure, x);
-                    ys.push(Shape::Group {
-                      position: read_position(m, "position")?,
-                      children: vec![],
-                    })
-                  }
-                }
-              }
-              ys
-            }
-            Some(a) => return Err(format!("invalid children: {}", a)),
-            None => vec![],
-          };
+          let c = m.get(&Calcit::Keyword(String::from("children")));
+          let children = extract_children(c)?;
+
           Ok(Shape::Group {
             position: read_position(m, "position")?,
             children,
@@ -488,6 +511,34 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
               .to_owned(),
           ),
         }),
+        "rotate" => {
+          let c = m.get(&Calcit::Keyword(String::from("children")));
+          let children = extract_children(c)?;
+
+          Ok(Shape::Rotate {
+            radius: read_f32(m, "radius")?,
+            children,
+          })
+        }
+        "scale" => {
+          let c = m.get(&Calcit::Keyword(String::from("children")));
+          let children = extract_children(c)?;
+
+          Ok(Shape::Scale {
+            factor: read_f32(m, "factor")?,
+            children,
+          })
+        }
+        "translate" => {
+          let c = m.get(&Calcit::Keyword(String::from("children")));
+          let children = extract_children(c)?;
+
+          Ok(Shape::Translate {
+            x: read_f32(m, "x")?,
+            y: read_f32(m, "y")?,
+            children,
+          })
+        }
         _ => Err(format!("unknown kind: {}", name)),
       },
       Some(a) => Err(format!("unknown kind value, {}", a)),
@@ -498,6 +549,30 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
       children: vec![],
     }),
     _ => Err(format!("expected a map, got {}", tree)),
+  }
+}
+
+fn extract_children(children: Option<&Calcit>) -> Result<Vec<Shape>, String> {
+  let empty_group = Shape::Group {
+    position: Vec2::new(0.0, 0.0),
+    children: vec![],
+  };
+  match children {
+    Some(Calcit::List(xs)) => {
+      let mut ys = vec![];
+      for x in xs {
+        match extract_shape(x) {
+          Ok(v) => ys.push(v),
+          Err(failure) => {
+            println!("Failed extracting: {}\n  in {}", failure, x);
+            ys.push(empty_group.to_owned());
+          }
+        }
+      }
+      Ok(ys)
+    }
+    Some(a) => return Err(format!("invalid children: {}", a)),
+    None => Ok(vec![]),
   }
 }
 
