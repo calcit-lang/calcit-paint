@@ -1,6 +1,6 @@
-use glam::Vec2;
-
 use raqote::{Color, LineCap, LineJoin};
+
+use euclid::{Point2D, Vector2D};
 
 use calcit_runner::Calcit;
 
@@ -42,28 +42,28 @@ pub fn read_string(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Stri
   }
 }
 
-pub fn read_position(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Vec2, String> {
+pub fn read_position(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Vector2D<f32, f32>, String> {
   match tree.get(&Calcit::Keyword(String::from(key))) {
     Some(Calcit::List(xs)) if xs.len() == 2 => match (&xs[0], &xs[1]) {
-      (Calcit::Number(x), Calcit::Number(y)) => Ok(Vec2::new(*x as f32, *y as f32)),
+      (Calcit::Number(x), Calcit::Number(y)) => Ok(Vector2D::new(*x as f32, *y as f32)),
       (a, b) => Err(format!("invalid positon values: {} {}", a, b)),
     },
     Some(Calcit::List(xs)) => Err(format!("invalid position length: {:?}", xs)),
-    Some(Calcit::Nil) => Ok(Vec2::new(0.0, 0.0)),
+    Some(Calcit::Nil) => Ok(Vector2D::new(0.0, 0.0)),
     Some(a) => Err(format!(
       "cannot be used as position: {} in {}",
       a,
       Calcit::Map(tree.to_owned())
     )),
-    None => Ok(Vec2::new(0.0, 0.0)),
+    None => Ok(Vector2D::new(0.0, 0.0)),
   }
 }
 
 // get position from a value
-pub fn extract_position(x: &Calcit) -> Result<Vec2, String> {
+pub fn extract_position(x: &Calcit) -> Result<Point2D<f32, f32>, String> {
   match x {
     Calcit::List(xs) if xs.len() == 2 => match (&xs[0], &xs[1]) {
-      (Calcit::Number(x), Calcit::Number(y)) => Ok(Vec2::new(*x as f32, *y as f32)),
+      (Calcit::Number(x), Calcit::Number(y)) => Ok(Point2D::new(*x as f32, *y as f32)),
       (a, b) => Err(format!("invalid positon values: {} {}", a, b)),
     },
     a => Err(format!("cannot be used as position: {} in {}", a, x)),
@@ -143,14 +143,14 @@ pub fn read_line_cap(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Li
   }
 }
 
-pub fn read_points(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Vec<Vec2>, String> {
+pub fn read_points(tree: &im::HashMap<Calcit, Calcit>, key: &str) -> Result<Vec<Point2D<f32, f32>>, String> {
   match tree.get(&Calcit::Keyword(String::from(key))) {
     Some(Calcit::List(xs)) => {
-      let mut ys: Vec<Vec2> = vec![];
+      let mut ys: Vec<Point2D<f32, f32>> = vec![];
       for x in xs {
         match x {
           Calcit::List(pair) if pair.len() == 2 => match (&pair[0], &pair[1]) {
-            (Calcit::Number(x), Calcit::Number(y)) => ys.push(Vec2::new(*x as f32, *y as f32)),
+            (Calcit::Number(x), Calcit::Number(y)) => ys.push(Point2D::new(*x as f32, *y as f32)),
             (a, b) => return Err(format!("invalid point: {} {}", a, b)),
           },
           Calcit::List(ps) => return Err(format!("invalid point position: {:?}", ps)),

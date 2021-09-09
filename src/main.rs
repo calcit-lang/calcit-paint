@@ -1,12 +1,12 @@
 #[macro_use]
 extern crate lazy_static;
 
-use glam::Vec2;
-
 use log::error;
 
 use std::cell::RefCell;
 use std::time::Instant;
+
+use euclid::Vector2D;
 
 mod color;
 mod extracter;
@@ -58,26 +58,24 @@ pub fn main() -> Result<(), String> {
   let mut snapshot = snapshot::load_snapshot_data(data, entry_path.to_str().unwrap())?;
   let init_fn = cli_matches
     .value_of("init-fn")
-    .or(Some(&snapshot.configs.init_fn))
-    .unwrap()
+    .unwrap_or(&snapshot.configs.init_fn)
     .to_owned();
   let reload_fn = cli_matches
     .value_of("reload-fn")
-    .or(Some(&snapshot.configs.reload_fn))
-    .unwrap()
+    .unwrap_or(&snapshot.configs.reload_fn)
     .to_owned();
 
   // attach modules
   for module_path in &snapshot.configs.modules {
     let module_data = calcit_runner::load_module(module_path, entry_path.parent().unwrap())?;
     for (k, v) in &module_data.files {
-      snapshot.files.insert(k.clone(), v.clone());
+      snapshot.files.insert(k.to_owned(), v.to_owned());
     }
   }
 
   // attach core
   for (k, v) in core_snapshot.files {
-    snapshot.files.insert(k.clone(), v.clone());
+    snapshot.files.insert(k.to_owned(), v.to_owned());
   }
   let mut program_code = program::extract_program_data(&snapshot)?;
   let check_warnings: &RefCell<Vec<String>> = &RefCell::new(vec![]);
@@ -112,6 +110,7 @@ pub fn main() -> Result<(), String> {
   let event_entry = cli_matches.value_of("event-entry").unwrap().to_owned();
 
   let mut watcher: RecommendedWatcher = Watcher::new(tx, Duration::from_millis(200)).unwrap();
+  let event_loop = EventLoop::new();
 
   let inc_path = entry_path.parent().unwrap().join(".compact-inc.cirru").to_owned();
   if !inc_path.exists() {
@@ -119,14 +118,11 @@ pub fn main() -> Result<(), String> {
   }
   watcher.watch(&inc_path, RecursiveMode::NonRecursive).unwrap();
 
-  let event_loop = EventLoop::new();
-  // let mut input = WinitInputHelper::new();
   let window = {
     let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
     WindowBuilder::new()
-      .with_title("Hello Raqote")
+      .with_title("Calcit Paint")
       .with_inner_size(size)
-      .with_min_inner_size(size)
       .build(&event_loop)
       .unwrap()
   };
@@ -140,12 +136,11 @@ pub fn main() -> Result<(), String> {
   let mut draw_target = DrawTarget::new(WIDTH as i32, HEIGHT as i32);
 
   let mut first_paint = true;
-  let track_mouse = RefCell::new(Vec2::new(0.0, 0.0));
+  let track_mouse = RefCell::new(Vector2D::new(0.0, 0.0));
+  let track_scale: RefCell<f32> = RefCell::new(window.scale_factor() as f32);
   // Handle events. Refer to `winit` docs for more information.
   event_loop.run(move |event, _window_target, control_flow| {
     // println!("Event: {:?}", event);
-
-    *control_flow = ControlFlow::Poll;
 
     if first_paint {
       if let Err(e) = renderer::draw_page(&mut draw_target, initial_cost) {
@@ -159,17 +154,28 @@ pub fn main() -> Result<(), String> {
 
     match event {
       Event::WindowEvent { event, .. } => match event {
-        WindowEvent::Resized(_logical_size) => {
-          // goto request_redraw
+        WindowEvent::Resized(size) => {
+          println!("Window size change change {:?}", size);
+          pixels.resize_surface(size.width, size.height);
+          pixels.resize_buffer(size.width, size.height);
+          draw_target = DrawTarget::new(size.width as i32, size.height as i32);
+          window.request_redraw();
         }
         WindowEvent::ScaleFactorChanged {
-          scale_factor: _f,
-          new_inner_size: _size,
+          scale_factor: factor,
+          new_inner_size: size,
         } => {
-          // goto request_redraw
+          println!("DPI scale change {} {:?}", factor, size);
+          track_scale.replace(factor as f32);
+          pixels.resize_surface(size.width, size.height);
+          window.request_redraw();
         }
         WindowEvent::CursorMoved { position, .. } => {
-          let event_info = handlers::handle_mouse_move(Vec2::new(position.x as f32, position.y as f32), &track_mouse);
+          let scale = track_scale.to_owned().into_inner();
+          let event_info = handlers::handle_mouse_move(
+            Vector2D::new((position.x as f32) / scale, (position.y as f32) / scale),
+            &track_mouse,
+          );
 
           if let Some(e) = event_info {
             handle_calcit_event(&mut draw_target, &mut program_code, &event_entry, im::vector![e]);
@@ -245,7 +251,8 @@ pub fn main() -> Result<(), String> {
                   &reload_fn,
                   &inc_path,
                   reload_libs,
-                );
+                )
+                .unwrap();
                 window.request_redraw();
               }
               _ => println!("other file event: {:?}, ignored", event),
@@ -257,15 +264,6 @@ pub fn main() -> Result<(), String> {
         // some break
       }
       Event::RedrawRequested(_wid) => {
-        let event_info = handlers::handle_redraw();
-        handle_calcit_event(
-          &mut draw_target,
-          &mut program_code,
-          &event_entry,
-          im::vector![event_info],
-        );
-
-        // handle on redraw request
         for (dst, &src) in pixels
           .get_frame()
           .chunks_exact_mut(4)
@@ -308,7 +306,7 @@ fn handle_code_change(
   reload_fn: &str,
   inc_path: &Path,
   reload_libs: bool,
-) {
+) -> Result<(), String> {
   println!("\n-------- file change --------\n");
   call_stack::clear_stack();
   // load new program code
@@ -317,15 +315,15 @@ fn handle_code_change(
     println!("failed re-compiling, got empty inc file");
   } else {
     let started_time = Instant::now();
-    let data = cirru_edn::parse(&content).unwrap();
-    let changes = snapshot::load_changes_info(data.clone()).unwrap();
-    let new_code = program::apply_code_changes(program_code, &changes).unwrap();
+    let data = cirru_edn::parse(&content)?;
+    let changes = snapshot::load_changes_info(data.to_owned())?;
+    let new_code = program::apply_code_changes(program_code, &changes)?;
     // println!("\nprogram code: {:?}", new_code);
     // clear data in evaled states
-    program::clear_all_program_evaled_defs(init_fn, reload_fn, reload_libs).unwrap();
-    builtins::meta::force_reset_gensym_index().unwrap();
+    program::clear_all_program_evaled_defs(init_fn, reload_fn, reload_libs)?;
+    builtins::meta::force_reset_gensym_index()?;
     // run from `reload_fn` after reload
-    calcit_runner::run_program(reload_fn, im::vector![], &new_code).unwrap();
+    calcit_runner::run_program(reload_fn, im::vector![], &new_code)?;
     // overwrite previous state
     let duration = Instant::now().duration_since(started_time);
     let cost: f64 = duration.as_micros() as f64 / 1000.0;
@@ -336,6 +334,7 @@ fn handle_code_change(
     // Update internal state and request a redraw
     *program_code = new_code;
   }
+  Ok(())
 }
 
 fn handle_calcit_event(

@@ -147,7 +147,6 @@ dependencies = [
  "env_logger",
  "euclid",
  "font-kit",
- "glam",
  "im",
  "lazy_static",
  "log",
@@ -801,15 +800,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "glam"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "525a3e490ba77b8e326fb67d4b44b4bd2f920f44d4cc73ccec50adc68e3bee34"
-dependencies = [
- "mint",
-]
-
-[[package]]
 name = "glow"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1124,12 +1114,6 @@ dependencies = [
  "log",
  "objc",
 ]
-
-[[package]]
-name = "mint"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "519df8d6856dcd4b40519947737b408f81be051fc032590659cae5d77d664185"
 
 [[package]]
 name = "mio"

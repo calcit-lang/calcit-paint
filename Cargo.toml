@@ -25,9 +25,7 @@ log = "0.4"
 pixels = "0.6.0"
 winit = "0.25"
 raqote = { git = "https://github.com/jrmuizel/raqote.git", rev = "74f0afa2be54561c1a9928e885ab95e8a4c5322d", default-features = false, features = ["text"] }
-glam = { version = "0.18", features = ["mint"]}
 font-kit = { version = "0.10", optional = true }
-
 
 [[bin]]
 name = "calcit_paint"

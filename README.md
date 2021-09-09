@@ -142,6 +142,31 @@ KeyListener {
 },
 ```
 
+- Rotate
+
+```rust
+Rotate {
+  radius: f32,
+}
+```
+
+- Translate
+
+```rust
+Translate {
+  x: f32,
+  y: f32,
+}
+```
+
+- Scale
+
+```rust
+Scale {
+  factor: f32,
+}
+```
+
 ### License
 
 MIT

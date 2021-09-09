@@ -49,7 +49,7 @@
                   :cap :round
                 {} (:type :touch-area) (:radius 10) (:action nil) (:path nil) (:data nil)
                   :position $ [] 200 200
-                  :fill-color $ [] 200 80 80
+                  :fill-color $ [] 40 80 80
                 {} (:type :key-listener) (:key "\"D") (:action :keyboard)
                   :path $ [] :k
                   :data :data
@@ -60,3 +60,19 @@
                     :bezier3-to ([] 400 200) ([] 200 400) ([] 300 400)
                   :line-color $ [] 200 80 80
                   :line-width 4
+                {} (:type :translate) (:x 200) (:y 200)
+                  :children $ []
+                    {} (:type :scale) (:factor 2)
+                      :children $ []
+                        {} (:type :rotate) (:radius 0.8)
+                          :children $ []
+                            {} (:type :rectangle)
+                              :position $ [] 0 0
+                              :width 100
+                              :height 40
+                              :fill-color $ [] 200 80 80
+                {} (:type :scale) (:factor 2.5)
+                  :children $ []
+                    {} (:type :touch-area) (:radius 10) (:action nil) (:path nil) (:data nil)
+                      :position $ [] 200 200
+                      :fill-color $ [] 40 80 80
