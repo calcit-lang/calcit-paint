@@ -1,6 +1,6 @@
 use crate::touches;
 use calcit_runner::program;
-use calcit_runner::Calcit;
+use calcit_runner::{primes::load_kwd, primes::lookup_order_kwd_str, Calcit};
 
 use euclid::{Angle, Vector2D};
 
@@ -413,8 +413,8 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
 
 fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
   match tree {
-    Calcit::Map(m) => match m.get(&Calcit::Keyword(String::from("type"))) {
-      Some(Calcit::Keyword(name)) => match name.as_str() {
+    Calcit::Map(m) => match m.get(&load_kwd("type")) {
+      Some(Calcit::Keyword(name)) => match lookup_order_kwd_str(name).as_str() {
         "rectangle" | "rect" => Ok(Shape::Rectangle {
           position: read_position(m, "position")?,
           width: read_f32(m, "width")?,
@@ -429,7 +429,7 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
           line_style: extract_line_style(m)?,
         }),
         "group" => {
-          let c = m.get(&Calcit::Keyword(String::from("children")));
+          let c = m.get(&load_kwd("children"));
           let children = extract_children(c)?;
 
           Ok(Shape::Group {
@@ -447,7 +447,7 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
         // }),
         "ops" => Ok(Shape::PaintOps {
           position: read_position(m, "position")?,
-          path: extract_paint_path(m.get(&Calcit::Keyword(String::from("path"))).unwrap_or(&Calcit::Nil))?,
+          path: extract_paint_path(m.get(&load_kwd("path")).unwrap_or(&Calcit::Nil))?,
           fill_style: read_some_color(m, "fill-color")?,
           line_style: extract_line_style(m)?,
         }),
@@ -471,21 +471,9 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
           width: read_f32(m, "width")?,
         }),
         "touch-area" => Ok(Shape::TouchArea {
-          path: Box::new(
-            m.get(&Calcit::Keyword(String::from("path")))
-              .unwrap_or(&Calcit::Nil)
-              .to_owned(),
-          ),
-          action: Box::new(
-            m.get(&Calcit::Keyword(String::from("action")))
-              .unwrap_or(&Calcit::Nil)
-              .to_owned(),
-          ),
-          data: Box::new(
-            m.get(&Calcit::Keyword(String::from("data")))
-              .unwrap_or(&Calcit::Nil)
-              .to_owned(),
-          ),
+          path: Box::new(m.get(&load_kwd("path")).unwrap_or(&Calcit::Nil).to_owned()),
+          action: Box::new(m.get(&load_kwd("action")).unwrap_or(&Calcit::Nil).to_owned()),
+          data: Box::new(m.get(&load_kwd("data")).unwrap_or(&Calcit::Nil).to_owned()),
           position: read_position(m, "position")?,
           area: extract_touch_area_shape(m)?,
           fill_style: read_some_color(m, "fill-color")?,
@@ -493,24 +481,12 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
         }),
         "key-listener" => Ok(Shape::KeyListener {
           key: read_string(m, "key")?,
-          path: Box::new(
-            m.get(&Calcit::Keyword(String::from("path")))
-              .unwrap_or(&Calcit::Nil)
-              .to_owned(),
-          ),
-          action: Box::new(
-            m.get(&Calcit::Keyword(String::from("action")))
-              .unwrap_or(&Calcit::Nil)
-              .to_owned(),
-          ),
-          data: Box::new(
-            m.get(&Calcit::Keyword(String::from("data")))
-              .unwrap_or(&Calcit::Nil)
-              .to_owned(),
-          ),
+          path: Box::new(m.get(&load_kwd("path")).unwrap_or(&Calcit::Nil).to_owned()),
+          action: Box::new(m.get(&load_kwd("action")).unwrap_or(&Calcit::Nil).to_owned()),
+          data: Box::new(m.get(&load_kwd("data")).unwrap_or(&Calcit::Nil).to_owned()),
         }),
         "rotate" => {
-          let c = m.get(&Calcit::Keyword(String::from("children")));
+          let c = m.get(&load_kwd("children"));
           let children = extract_children(c)?;
 
           Ok(Shape::Rotate {
@@ -519,7 +495,7 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
           })
         }
         "scale" => {
-          let c = m.get(&Calcit::Keyword(String::from("children")));
+          let c = m.get(&load_kwd("children"));
           let children = extract_children(c)?;
 
           Ok(Shape::Scale {
@@ -528,7 +504,7 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
           })
         }
         "translate" => {
-          let c = m.get(&Calcit::Keyword(String::from("children")));
+          let c = m.get(&load_kwd("children"));
           let children = extract_children(c)?;
 
           Ok(Shape::Translate {
@@ -591,40 +567,42 @@ fn extract_paint_path(data: &Calcit) -> Result<Vec<PaintPathTo>, String> {
 
 fn extract_paint_op(xs: &im::Vector<Calcit>) -> Result<PaintPathTo, String> {
   if !xs.is_empty() {
-    match &xs[0] {
-      Calcit::Keyword(s) | Calcit::Str(s) => match s.as_str() {
-        "move-to" => match xs.get(1) {
-          Some(v) => match extract_position(v) {
-            Ok(p) => Ok(PaintPathTo::Move(p)),
-            Err(e) => Err(format!("failed move-to position, {}", e)),
-          },
-          None => Err(String::from("missing line-to position")),
+    let op = match &xs[0] {
+      Calcit::Keyword(s) => lookup_order_kwd_str(s),
+      Calcit::Str(s) => s.to_owned(),
+      _ => return Err(format!("unknown paint op value: {}", xs[0])),
+    };
+    match op.as_str() {
+      "move-to" => match xs.get(1) {
+        Some(v) => match extract_position(v) {
+          Ok(p) => Ok(PaintPathTo::Move(p)),
+          Err(e) => Err(format!("failed move-to position, {}", e)),
         },
-        "line-to" => match xs.get(1) {
-          Some(v) => match extract_position(v) {
-            Ok(p) => Ok(PaintPathTo::Line(p)),
-            Err(e) => Err(format!("failed line-to position, {}", e)),
-          },
-          None => Err(String::from("missing line-to position")),
-        },
-        "quadratic-bezier-to" | "bezier2-to" => match (xs.get(1), xs.get(2)) {
-          (Some(v1), Some(v2)) => match (extract_position(v1), extract_position(v2)) {
-            (Ok(p1), Ok(p2)) => Ok(PaintPathTo::QuadraticBezier(p1, p2)),
-            (a, b) => Err(format!("failed quadratic points, {:?} {:?}", a, b)),
-          },
-          (a, b) => Err(format!("missing quadratic points {:?} {:?}", a, b)),
-        },
-        "cubic-bezier-to" | "bezier3-to" => match (xs.get(1), xs.get(2), xs.get(3)) {
-          (Some(v1), Some(v2), Some(v3)) => match (extract_position(v1), extract_position(v2), extract_position(v3)) {
-            (Ok(p1), Ok(p2), Ok(p3)) => Ok(PaintPathTo::CubicBezier(p1, p2, p3)),
-            (a, b, c) => Err(format!("failed quadratic points, {:?} {:?} {:?}", a, b, c)),
-          },
-          (a, b, c) => Err(format!("missing quadratic points {:?} {:?} {:?}", a, b, c)),
-        },
-        // "close-path" => Ok(PaintPathTo::ClosePath),
-        _ => Err(format!("unknown paint op: {}", s)),
+        None => Err(String::from("missing line-to position")),
       },
-      _ => Err(format!("unknown paint op value: {}", xs[0])),
+      "line-to" => match xs.get(1) {
+        Some(v) => match extract_position(v) {
+          Ok(p) => Ok(PaintPathTo::Line(p)),
+          Err(e) => Err(format!("failed line-to position, {}", e)),
+        },
+        None => Err(String::from("missing line-to position")),
+      },
+      "quadratic-bezier-to" | "bezier2-to" => match (xs.get(1), xs.get(2)) {
+        (Some(v1), Some(v2)) => match (extract_position(v1), extract_position(v2)) {
+          (Ok(p1), Ok(p2)) => Ok(PaintPathTo::QuadraticBezier(p1, p2)),
+          (a, b) => Err(format!("failed quadratic points, {:?} {:?}", a, b)),
+        },
+        (a, b) => Err(format!("missing quadratic points {:?} {:?}", a, b)),
+      },
+      "cubic-bezier-to" | "bezier3-to" => match (xs.get(1), xs.get(2), xs.get(3)) {
+        (Some(v1), Some(v2), Some(v3)) => match (extract_position(v1), extract_position(v2), extract_position(v3)) {
+          (Ok(p1), Ok(p2), Ok(p3)) => Ok(PaintPathTo::CubicBezier(p1, p2, p3)),
+          (a, b, c) => Err(format!("failed quadratic points, {:?} {:?} {:?}", a, b, c)),
+        },
+        (a, b, c) => Err(format!("missing quadratic points {:?} {:?} {:?}", a, b, c)),
+      },
+      // "close-path" => Ok(PaintPathTo::ClosePath),
+      _ => Err(format!("unknown paint op: {}", op)),
     }
   } else {
     Err(String::from("empty is not paint op"))

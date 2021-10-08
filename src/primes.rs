@@ -1,4 +1,4 @@
-use calcit_runner::primes::Calcit;
+use calcit_runner::primes::{load_kwd, Calcit};
 use euclid::{Point2D, Vector2D};
 
 use raqote::{Color, LineCap, LineJoin};
@@ -108,5 +108,5 @@ pub enum TouchAreaShape {
 }
 
 pub fn kwd(s: &str) -> Calcit {
-  Calcit::Keyword(s.to_string())
+  load_kwd(s)
 }
