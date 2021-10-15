@@ -11,6 +11,7 @@ use euclid::Vector2D;
 mod color;
 mod extracter;
 mod handlers;
+mod injection;
 mod key_listener;
 mod primes;
 mod renderer;
@@ -49,6 +50,8 @@ pub fn main() -> Result<(), String> {
   println!("calcit_runner version: {}", cli_args::CALCIT_VERSION);
 
   let core_snapshot = calcit_runner::load_core_snapshot()?;
+  calcit_runner::builtins::register_import_proc("echo", injection::echo);
+  calcit_runner::builtins::register_import_proc("println", injection::echo);
 
   // load entry file
   let entry_path = Path::new(cli_matches.value_of("input").unwrap());
@@ -88,7 +91,13 @@ pub fn main() -> Result<(), String> {
     calcit_runner::primes::BUILTIN_CLASSES_ENTRY,
     None,
     check_warnings,
-  )?;
+  )
+  .map_err(|e| {
+    for w in e.warnings {
+      println!("{}", w);
+    }
+    e.msg
+  })?;
 
   let warnings = check_warnings.to_owned().into_inner();
   if !warnings.is_empty() {
@@ -100,7 +109,12 @@ pub fn main() -> Result<(), String> {
   }
 
   let started_time = Instant::now();
-  let _v = calcit_runner::run_program(&init_fn, im::vector![], &program_code)?;
+  let _v = calcit_runner::run_program(&init_fn, im::vector![], &program_code).map_err(|e| {
+    for w in e.warnings {
+      println!("{}", w);
+    }
+    e.msg
+  })?;
   let duration = Instant::now().duration_since(started_time);
   let initial_cost: f64 = duration.as_micros() as f64 / 1000.0; // in ms
 
@@ -323,7 +337,12 @@ fn handle_code_change(
     program::clear_all_program_evaled_defs(init_fn, reload_fn, reload_libs)?;
     builtins::meta::force_reset_gensym_index()?;
     // run from `reload_fn` after reload
-    calcit_runner::run_program(reload_fn, im::vector![], &new_code)?;
+    calcit_runner::run_program(reload_fn, im::vector![], &new_code).map_err(|e| {
+      for w in e.warnings {
+        println!("{}", w);
+      }
+      e.msg
+    })?;
     // overwrite previous state
     let duration = Instant::now().duration_since(started_time);
     let cost: f64 = duration.as_micros() as f64 / 1000.0;
