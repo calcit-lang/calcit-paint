@@ -2,7 +2,7 @@ use crate::touches;
 use calcit_runner::program;
 use calcit_runner::{primes::load_kwd, primes::lookup_order_kwd_str, Calcit};
 
-use euclid::{Angle, Vector2D};
+use euclid::{Angle, Point2D, Vector2D};
 
 use font_kit::family_name::FamilyName;
 use font_kit::properties::Properties;
@@ -188,7 +188,11 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
       // weight: _w,
       align: _a,
     } => {
-      draw_target.set_transform(tr);
+      // draw_target.set_transform(tr);
+      // https://github.com/jrmuizel/raqote/issues/179
+      // for now we have to by pass bug in text rendering
+      let text_pos = tr.transform_point(Point2D::new(position.x, position.y));
+      draw_target.set_transform(&Transform::identity());
 
       let font = SystemSource::new()
         .select_best_match(&[FamilyName::SansSerif], &Properties::new())
@@ -200,7 +204,7 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
         &font,
         size.to_owned(),
         &text.to_owned(),
-        Point::new(position.x, position.y),
+        Point::new(text_pos.x, text_pos.y),
         &turn_color_source(color),
         &DrawOptions::new(),
       );
