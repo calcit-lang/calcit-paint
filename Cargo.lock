@@ -149,6 +149,7 @@ dependencies = [
  "font-kit",
  "im",
  "lazy_static",
+ "libloading 0.7.1",
  "log",
  "notify",
  "pixels",

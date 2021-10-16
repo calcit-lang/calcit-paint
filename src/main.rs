@@ -50,8 +50,8 @@ pub fn main() -> Result<(), String> {
   println!("calcit_runner version: {}", cli_args::CALCIT_VERSION);
 
   let core_snapshot = calcit_runner::load_core_snapshot()?;
-  calcit_runner::builtins::register_import_proc("echo", injection::echo);
-  calcit_runner::builtins::register_import_proc("println", injection::echo);
+
+  injection::inject_platform_apis();
 
   // load entry file
   let entry_path = Path::new(cli_matches.value_of("input").unwrap());
