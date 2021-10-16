@@ -1,3 +1,5 @@
+use std::sync::RwLock;
+
 use crate::touches;
 use calcit_runner::program;
 use calcit_runner::{primes::load_kwd, primes::lookup_order_kwd_str, Calcit};
@@ -36,10 +38,25 @@ pub fn reset_page(draw_target: &mut DrawTarget, color: Color) -> Result<(), Stri
   Ok(())
 }
 
-pub fn draw_page(draw_target: &mut DrawTarget, cost: f64) -> Result<(), String> {
-  let messages = program::take_ffi_messages().unwrap();
-  // clear scene and start drawing
+lazy_static! {
+  static ref PREV_MESSAGES: RwLock<Vec<(String, im::Vector<Calcit>)>> = RwLock::new(vec![]);
+}
+
+pub fn draw_page(draw_target: &mut DrawTarget, cost: f64, eager_render: bool) -> Result<(), String> {
+  let mut messages = program::take_ffi_messages().unwrap();
+
+  if eager_render {
+    // render previous piece of data, during resizing
+    if messages.is_empty() {
+      let m = PREV_MESSAGES.read().unwrap();
+      messages = m.to_owned();
+    }
+  }
   if !messages.is_empty() {
+    // tracking
+    let mut m = PREV_MESSAGES.write().unwrap();
+    *m = messages.to_owned();
+
     let mut shown_shape = false;
     for (call_op, args) in messages {
       // println!("op: {}", call_op);

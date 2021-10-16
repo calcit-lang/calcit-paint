@@ -1,9 +1,9 @@
-use std::sync::Mutex;
+use std::sync::RwLock;
 
 use calcit_runner::Calcit;
 
 lazy_static! {
-  static ref KEY_LISTENERS: Mutex<Vec<KeyListenerMark>> = Mutex::new(vec![]);
+  static ref KEY_LISTENERS: RwLock<Vec<KeyListenerMark>> = RwLock::new(vec![]);
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -15,12 +15,12 @@ pub struct KeyListenerMark {
 }
 
 pub fn reset_listeners_stack() {
-  let stack = &mut KEY_LISTENERS.lock().unwrap();
+  let mut stack = KEY_LISTENERS.write().unwrap();
   stack.clear();
 }
 
 pub fn add_key_listener(key: String, action: Calcit, path: Calcit, data: Calcit) {
-  let stack = &mut KEY_LISTENERS.lock().unwrap();
+  let mut stack = KEY_LISTENERS.write().unwrap();
   stack.push(KeyListenerMark {
     key,
     action,
@@ -30,7 +30,7 @@ pub fn add_key_listener(key: String, action: Calcit, path: Calcit, data: Calcit)
 }
 
 pub fn find_key_listeners(k: &str) -> Vec<KeyListenerMark> {
-  let stack = KEY_LISTENERS.lock().unwrap();
+  let stack = KEY_LISTENERS.read().unwrap();
   let mut marks: Vec<KeyListenerMark> = vec![];
   for item in stack.iter() {
     if item.key.as_str() == k {

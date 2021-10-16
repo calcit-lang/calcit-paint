@@ -67,6 +67,7 @@ pub fn main() -> Result<(), String> {
     .value_of("reload-fn")
     .unwrap_or(&snapshot.configs.reload_fn)
     .to_owned();
+  let reload_libs = cli_matches.is_present("reload-libs");
 
   // attach modules
   for module_path in &snapshot.configs.modules {
@@ -157,7 +158,7 @@ pub fn main() -> Result<(), String> {
     // println!("Event: {:?}", event);
 
     if first_paint {
-      if let Err(e) = renderer::draw_page(&mut draw_target, initial_cost) {
+      if let Err(e) = renderer::draw_page(&mut draw_target, initial_cost, false) {
         println!("failed first paint: {:?}", e);
       }
 
@@ -169,10 +170,15 @@ pub fn main() -> Result<(), String> {
     match event {
       Event::WindowEvent { event, .. } => match event {
         WindowEvent::Resized(size) => {
-          println!("Window size change change {:?}", size);
+          println!("Window size changed: {:?}", size);
+          let scale = track_scale.to_owned().into_inner();
           pixels.resize_surface(size.width, size.height);
-          pixels.resize_buffer(size.width, size.height);
-          draw_target = DrawTarget::new(size.width as i32, size.height as i32);
+          let w = size.width as f32 / scale;
+          let h = size.height as f32 / scale;
+          pixels.resize_buffer(w as u32, h as u32);
+          draw_target = DrawTarget::new(w as i32, h as i32);
+          let e = handlers::handle_resize(w as f64, h as f64).unwrap();
+          handle_calcit_event(&mut draw_target, &mut program_code, &event_entry, im::vector![e], true);
           window.request_redraw();
         }
         WindowEvent::ScaleFactorChanged {
@@ -192,7 +198,7 @@ pub fn main() -> Result<(), String> {
           );
 
           if let Some(e) = event_info {
-            handle_calcit_event(&mut draw_target, &mut program_code, &event_entry, im::vector![e]);
+            handle_calcit_event(&mut draw_target, &mut program_code, &event_entry, im::vector![e], false);
             window.request_redraw();
           }
         }
@@ -207,6 +213,7 @@ pub fn main() -> Result<(), String> {
             &mut program_code,
             &event_entry,
             im::vector![event_info],
+            false,
           );
           window.request_redraw();
         }
@@ -230,6 +237,7 @@ pub fn main() -> Result<(), String> {
                 &mut program_code,
                 &event_entry,
                 im::vector![event_info],
+                false,
               );
             }
             window.request_redraw();
@@ -257,7 +265,6 @@ pub fn main() -> Result<(), String> {
                 // some break
               }
               notify::DebouncedEvent::Write(_) => {
-                let reload_libs = cli_matches.is_present("reload-libs");
                 handle_code_change(
                   &mut draw_target,
                   &mut program_code,
@@ -346,7 +353,7 @@ fn handle_code_change(
     // overwrite previous state
     let duration = Instant::now().duration_since(started_time);
     let cost: f64 = duration.as_micros() as f64 / 1000.0;
-    if let Err(e) = renderer::draw_page(draw_target, cost) {
+    if let Err(e) = renderer::draw_page(draw_target, cost, false) {
       println!("Failed drawing: {:?}", e);
     }
 
@@ -361,6 +368,7 @@ fn handle_calcit_event(
   program_code: &mut ProgramCodeData,
   event_entry: &str,
   params: CalcitItems,
+  eager_render: bool,
 ) {
   let started_time = Instant::now();
   let mut cost: f64 = 0.0; // in ms
@@ -374,7 +382,7 @@ fn handle_calcit_event(
     Err(e) => println!("failed falling on-window-event: {}", e),
   }
 
-  if let Err(e) = renderer::draw_page(draw_target, cost) {
+  if let Err(e) = renderer::draw_page(draw_target, cost, eager_render) {
     println!("Failed drawing: {:?}", e);
   }
 }
