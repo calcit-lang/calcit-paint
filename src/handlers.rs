@@ -122,3 +122,12 @@ pub fn handle_keyboard(keycode: winit::event::VirtualKeyCode, key_state: winit::
 pub fn name_key(keycode: winit::event::VirtualKeyCode) -> String {
   format!("{:?}", keycode) // TODO
 }
+
+pub fn handle_resize(w: f64, h: f64) -> Option<Calcit> {
+  let mut info: im::HashMap<Calcit, Calcit> = im::HashMap::new();
+  info.insert(kwd("type"), kwd("resize"));
+  info.insert(kwd("width"), Calcit::Number(w));
+  info.insert(kwd("height"), Calcit::Number(h));
+
+  Some(Calcit::Map(info))
+}

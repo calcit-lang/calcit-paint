@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::RwLock;
 
 use calcit_runner::Calcit;
 use euclid::{Point2D, Vector2D};
@@ -7,8 +7,8 @@ use raqote::Transform;
 use crate::primes::TouchAreaShape;
 
 lazy_static! {
-  static ref TOUCH_ITEMS_STACK: Mutex<Vec<TouchArea>> = Mutex::new(vec![]);
-  static ref MOUSE_DRAG_TRACKED: Mutex<Option<MouseDragState>> = Mutex::new(None);
+  static ref TOUCH_ITEMS_STACK: RwLock<Vec<TouchArea>> = RwLock::new(vec![]);
+  static ref MOUSE_DRAG_TRACKED: RwLock<Option<MouseDragState>> = RwLock::new(None);
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -30,7 +30,7 @@ pub struct MouseDragState {
 }
 
 pub fn reset_touches_stack() {
-  let stack = &mut TOUCH_ITEMS_STACK.lock().unwrap();
+  let mut stack = TOUCH_ITEMS_STACK.write().unwrap();
   stack.clear()
 }
 
@@ -42,7 +42,7 @@ pub fn add_touch_area(
   data: Calcit,
   transform: &Transform,
 ) {
-  let stack = &mut TOUCH_ITEMS_STACK.lock().unwrap();
+  let mut stack = TOUCH_ITEMS_STACK.write().unwrap();
 
   let item = TouchArea {
     action: action.to_owned(),
@@ -56,7 +56,7 @@ pub fn add_touch_area(
 }
 
 pub fn read_mouse_tracked_state() -> Option<MouseDragState> {
-  MOUSE_DRAG_TRACKED.lock().unwrap().to_owned()
+  MOUSE_DRAG_TRACKED.read().unwrap().to_owned()
 }
 
 pub fn track_mouse_drag(down_position: Vector2D<f32, f32>, action: Calcit, path: Calcit, data: Calcit) {
@@ -66,17 +66,17 @@ pub fn track_mouse_drag(down_position: Vector2D<f32, f32>, action: Calcit, path:
     path,
     position: down_position,
   };
-  let mut state = MOUSE_DRAG_TRACKED.lock().unwrap();
+  let mut state = MOUSE_DRAG_TRACKED.write().unwrap();
   *state = Some(item);
 }
 
 pub fn release_mouse_drag() {
-  let mut state = MOUSE_DRAG_TRACKED.lock().unwrap();
+  let mut state = MOUSE_DRAG_TRACKED.write().unwrap();
   *state = None;
 }
 
 pub fn find_touch_area(p0: Vector2D<f32, f32>) -> Option<TouchArea> {
-  let stack = TOUCH_ITEMS_STACK.lock().unwrap();
+  let stack = TOUCH_ITEMS_STACK.read().unwrap();
   let mut reversed = stack.to_owned();
   reversed.reverse(); // mutable...
                       // println!("Touch Stack: {:?} {:?}", reversed, stack);

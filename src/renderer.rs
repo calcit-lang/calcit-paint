@@ -1,8 +1,10 @@
+use std::sync::RwLock;
+
 use crate::touches;
 use calcit_runner::program;
 use calcit_runner::{primes::load_kwd, primes::lookup_order_kwd_str, Calcit};
 
-use euclid::{Angle, Vector2D};
+use euclid::{Angle, Point2D, Vector2D};
 
 use font_kit::family_name::FamilyName;
 use font_kit::properties::Properties;
@@ -36,10 +38,25 @@ pub fn reset_page(draw_target: &mut DrawTarget, color: Color) -> Result<(), Stri
   Ok(())
 }
 
-pub fn draw_page(draw_target: &mut DrawTarget, cost: f64) -> Result<(), String> {
-  let messages = program::take_ffi_messages().unwrap();
-  // clear scene and start drawing
+lazy_static! {
+  static ref PREV_MESSAGES: RwLock<Vec<(String, im::Vector<Calcit>)>> = RwLock::new(vec![]);
+}
+
+pub fn draw_page(draw_target: &mut DrawTarget, cost: f64, eager_render: bool) -> Result<(), String> {
+  let mut messages = program::take_ffi_messages().unwrap();
+
+  if eager_render {
+    // render previous piece of data, during resizing
+    if messages.is_empty() {
+      let m = PREV_MESSAGES.read().unwrap();
+      messages = m.to_owned();
+    }
+  }
   if !messages.is_empty() {
+    // tracking
+    let mut m = PREV_MESSAGES.write().unwrap();
+    *m = messages.to_owned();
+
     let mut shown_shape = false;
     for (call_op, args) in messages {
       // println!("op: {}", call_op);
@@ -188,7 +205,11 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
       // weight: _w,
       align: _a,
     } => {
-      draw_target.set_transform(tr);
+      // draw_target.set_transform(tr);
+      // https://github.com/jrmuizel/raqote/issues/179
+      // for now we have to by pass bug in text rendering
+      let text_pos = tr.transform_point(Point2D::new(position.x, position.y));
+      draw_target.set_transform(&Transform::identity());
 
       let font = SystemSource::new()
         .select_best_match(&[FamilyName::SansSerif], &Properties::new())
@@ -200,7 +221,7 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
         &font,
         size.to_owned(),
         &text.to_owned(),
-        Point::new(position.x, position.y),
+        Point::new(text_pos.x, text_pos.y),
         &turn_color_source(color),
         &DrawOptions::new(),
       );
