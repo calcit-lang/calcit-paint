@@ -37,7 +37,7 @@ use winit::window::WindowBuilder;
 use raqote::DrawTarget;
 
 use calcit_runner::CalcitItems;
-use calcit_runner::{builtins, call_stack, cli_args, program, program::ProgramCodeData, snapshot};
+use calcit_runner::{builtins, call_stack, cli_args, program, snapshot};
 
 const WIDTH: u32 = 1000;
 const HEIGHT: u32 = 600;
@@ -81,14 +81,16 @@ pub fn main() -> Result<(), String> {
   for (k, v) in core_snapshot.files {
     snapshot.files.insert(k.to_owned(), v.to_owned());
   }
-  let mut program_code = program::extract_program_data(&snapshot)?;
+  {
+    let mut prgm = { program::PROGRAM_CODE_DATA.write().unwrap() };
+    *prgm = program::extract_program_data(&snapshot)?;
+  }
   let check_warnings: &RefCell<Vec<String>> = &RefCell::new(vec![]);
 
   // make sure builtin classes are touched
   calcit_runner::runner::preprocess::preprocess_ns_def(
     calcit_runner::primes::CORE_NS,
     calcit_runner::primes::BUILTIN_CLASSES_ENTRY,
-    &program_code,
     calcit_runner::primes::BUILTIN_CLASSES_ENTRY,
     None,
     check_warnings,
@@ -110,7 +112,7 @@ pub fn main() -> Result<(), String> {
   }
 
   let started_time = Instant::now();
-  let _v = calcit_runner::run_program(&init_fn, im::vector![], &program_code).map_err(|e| {
+  let _v = calcit_runner::run_program(&init_fn, im::vector![]).map_err(|e| {
     for w in e.warnings {
       println!("{}", w);
     }
@@ -178,7 +180,7 @@ pub fn main() -> Result<(), String> {
           pixels.resize_buffer(w as u32, h as u32);
           draw_target = DrawTarget::new(w as i32, h as i32);
           let e = handlers::handle_resize(w as f64, h as f64).unwrap();
-          handle_calcit_event(&mut draw_target, &mut program_code, &event_entry, im::vector![e], true);
+          handle_calcit_event(&mut draw_target, &event_entry, im::vector![e], true);
           window.request_redraw();
         }
         WindowEvent::ScaleFactorChanged {
@@ -198,7 +200,7 @@ pub fn main() -> Result<(), String> {
           );
 
           if let Some(e) = event_info {
-            handle_calcit_event(&mut draw_target, &mut program_code, &event_entry, im::vector![e], false);
+            handle_calcit_event(&mut draw_target, &event_entry, im::vector![e], false);
             window.request_redraw();
           }
         }
@@ -208,13 +210,7 @@ pub fn main() -> Result<(), String> {
             winit::event::ElementState::Pressed => handlers::handle_mouse_down(&track_mouse),
             winit::event::ElementState::Released => handlers::handle_mouse_up(&track_mouse),
           };
-          handle_calcit_event(
-            &mut draw_target,
-            &mut program_code,
-            &event_entry,
-            im::vector![event_info],
-            false,
-          );
+          handle_calcit_event(&mut draw_target, &event_entry, im::vector![event_info], false);
           window.request_redraw();
         }
         WindowEvent::KeyboardInput {
@@ -232,13 +228,7 @@ pub fn main() -> Result<(), String> {
             // println!("keyboard event: {:?} {:?}", keycode, scancode);
             let event_infos = handlers::handle_keyboard(keycode, key_state);
             for event_info in event_infos {
-              handle_calcit_event(
-                &mut draw_target,
-                &mut program_code,
-                &event_entry,
-                im::vector![event_info],
-                false,
-              );
+              handle_calcit_event(&mut draw_target, &event_entry, im::vector![event_info], false);
             }
             window.request_redraw();
           }
@@ -265,15 +255,7 @@ pub fn main() -> Result<(), String> {
                 // some break
               }
               notify::DebouncedEvent::Write(_) => {
-                handle_code_change(
-                  &mut draw_target,
-                  &mut program_code,
-                  &init_fn,
-                  &reload_fn,
-                  &inc_path,
-                  reload_libs,
-                )
-                .unwrap();
+                handle_code_change(&mut draw_target, &init_fn, &reload_fn, &inc_path, reload_libs).unwrap();
                 window.request_redraw();
               }
               _ => println!("other file event: {:?}, ignored", event),
@@ -322,7 +304,6 @@ pub fn main() -> Result<(), String> {
 
 fn handle_code_change(
   draw_target: &mut DrawTarget,
-  program_code: &mut ProgramCodeData,
   init_fn: &str,
   reload_fn: &str,
   inc_path: &Path,
@@ -338,13 +319,13 @@ fn handle_code_change(
     let started_time = Instant::now();
     let data = cirru_edn::parse(&content)?;
     let changes = snapshot::load_changes_info(data.to_owned())?;
-    let new_code = program::apply_code_changes(program_code, &changes)?;
+    program::apply_code_changes(&changes)?;
     // println!("\nprogram code: {:?}", new_code);
     // clear data in evaled states
     program::clear_all_program_evaled_defs(init_fn, reload_fn, reload_libs)?;
     builtins::meta::force_reset_gensym_index()?;
     // run from `reload_fn` after reload
-    calcit_runner::run_program(reload_fn, im::vector![], &new_code).map_err(|e| {
+    calcit_runner::run_program(reload_fn, im::vector![]).map_err(|e| {
       for w in e.warnings {
         println!("{}", w);
       }
@@ -356,25 +337,16 @@ fn handle_code_change(
     if let Err(e) = renderer::draw_page(draw_target, cost, false) {
       println!("Failed drawing: {:?}", e);
     }
-
-    // Update internal state and request a redraw
-    *program_code = new_code;
   }
   Ok(())
 }
 
-fn handle_calcit_event(
-  draw_target: &mut DrawTarget,
-  program_code: &mut ProgramCodeData,
-  event_entry: &str,
-  params: CalcitItems,
-  eager_render: bool,
-) {
+fn handle_calcit_event(draw_target: &mut DrawTarget, event_entry: &str, params: CalcitItems, eager_render: bool) {
   let started_time = Instant::now();
   let mut cost: f64 = 0.0; // in ms
 
   call_stack::clear_stack();
-  match calcit_runner::run_program(event_entry, params, program_code) {
+  match calcit_runner::run_program(event_entry, params) {
     Ok(_v) => {
       let duration = Instant::now().duration_since(started_time);
       cost = duration.as_micros() as f64 / 1000.0;

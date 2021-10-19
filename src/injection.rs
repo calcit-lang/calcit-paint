@@ -1,6 +1,14 @@
 /// reused code from
 /// https://github.com/calcit-lang/calcit_runner.rs/blob/main/src/bin/injection/mod.rs
 use cirru_edn::Edn;
+use std::sync::RwLock;
+
+lazy_static! {
+
+  // TODO need better soution for immediate calls
+    /// to be read by external logics and used as FFI
+    static ref PROGRAM_FFI_MESSAGES: RwLock<Vec<(String, CalcitItems)>> = RwLock::new(vec![]);
+}
 
 use calcit_runner::{
   builtins,
@@ -15,6 +23,7 @@ pub fn inject_platform_apis() {
   builtins::register_import_proc("&call-dylib-edn", call_dylib_edn);
   builtins::register_import_proc("echo", echo);
   builtins::register_import_proc("println", echo);
+  builtins::register_import_proc("&ffi-message", ffi_message);
 }
 
 // &call-dylib-edn
@@ -67,4 +76,37 @@ pub fn echo(xs: &CalcitItems) -> Result<Calcit, CalcitErr> {
   }
   println!("{}", s);
   Ok(Calcit::Nil)
+}
+
+fn send_ffi_message(op: String, items: CalcitItems) {
+  let mut ref_messages = PROGRAM_FFI_MESSAGES.write().unwrap();
+  (*ref_messages).push((op, items))
+}
+
+pub fn take_ffi_messages() -> Result<Vec<(String, CalcitItems)>, String> {
+  let mut messages: Vec<(String, CalcitItems)> = vec![];
+  let mut ref_messages = PROGRAM_FFI_MESSAGES.write().unwrap();
+  for m in (*ref_messages).iter() {
+    messages.push(m.to_owned())
+  }
+  (*ref_messages).clear();
+  Ok(messages)
+}
+
+fn ffi_message(xs: &CalcitItems) -> Result<Calcit, CalcitErr> {
+  if !xs.is_empty() {
+    match &xs[0] {
+      Calcit::Str(s) | Calcit::Symbol(s, ..) => {
+        let items = xs.to_owned().slice(1..);
+        send_ffi_message(s.to_owned(), items);
+        Ok(Calcit::Nil)
+      }
+      a => Err(CalcitErr::use_string(format!(
+        "&ffi-message expected string, got {}",
+        a
+      ))),
+    }
+  } else {
+    Err(CalcitErr::use_str("&ffi-message expected arguments but got empty"))
+  }
 }

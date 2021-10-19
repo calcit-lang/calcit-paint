@@ -1,7 +1,7 @@
 use std::sync::RwLock;
 
+use crate::injection;
 use crate::touches;
-use calcit_runner::program;
 use calcit_runner::{primes::load_kwd, primes::lookup_order_kwd_str, Calcit};
 
 use euclid::{Angle, Point2D, Vector2D};
@@ -43,7 +43,7 @@ lazy_static! {
 }
 
 pub fn draw_page(draw_target: &mut DrawTarget, cost: f64, eager_render: bool) -> Result<(), String> {
-  let mut messages = program::take_ffi_messages().unwrap();
+  let mut messages = injection::take_ffi_messages().unwrap();
 
   if eager_render {
     // render previous piece of data, during resizing
