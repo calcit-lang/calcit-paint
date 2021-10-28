@@ -1,6 +1,6 @@
 use std::sync::RwLock;
 
-use calcit_runner::Calcit;
+use cirru_edn::Edn;
 use euclid::{Point2D, Vector2D};
 use raqote::Transform;
 
@@ -13,9 +13,9 @@ lazy_static! {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TouchArea {
-  pub path: Calcit,
-  pub action: Calcit,
-  pub data: Calcit,
+  pub path: Edn,
+  pub action: Edn,
+  pub data: Edn,
   pub position: Vector2D<f32, f32>,
   pub area: TouchAreaShape,
   pub transform: Transform,
@@ -24,9 +24,9 @@ pub struct TouchArea {
 #[derive(Debug, PartialEq, Clone)]
 pub struct MouseDragState {
   pub position: Vector2D<f32, f32>,
-  pub action: Calcit,
-  pub path: Calcit,
-  pub data: Calcit,
+  pub action: Edn,
+  pub path: Edn,
+  pub data: Edn,
 }
 
 pub fn reset_touches_stack() {
@@ -37,9 +37,9 @@ pub fn reset_touches_stack() {
 pub fn add_touch_area(
   position: Vector2D<f32, f32>,
   area: TouchAreaShape,
-  action: Calcit,
-  path: Calcit,
-  data: Calcit,
+  action: Edn,
+  path: Edn,
+  data: Edn,
   transform: &Transform,
 ) {
   let mut stack = TOUCH_ITEMS_STACK.write().unwrap();
@@ -59,7 +59,7 @@ pub fn read_mouse_tracked_state() -> Option<MouseDragState> {
   MOUSE_DRAG_TRACKED.read().unwrap().to_owned()
 }
 
-pub fn track_mouse_drag(down_position: Vector2D<f32, f32>, action: Calcit, path: Calcit, data: Calcit) {
+pub fn track_mouse_drag(down_position: Vector2D<f32, f32>, action: Edn, path: Edn, data: Edn) {
   let item = MouseDragState {
     data,
     action,

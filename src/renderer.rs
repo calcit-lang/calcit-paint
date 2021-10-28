@@ -1,14 +1,13 @@
-use std::sync::RwLock;
-
-use crate::injection;
 use crate::touches;
-use calcit_runner::{primes::load_kwd, primes::lookup_order_kwd_str, Calcit};
+use std::sync::RwLock;
 
 use euclid::{Angle, Point2D, Vector2D};
 
 use font_kit::family_name::FamilyName;
 use font_kit::properties::Properties;
 use font_kit::source::SystemSource;
+
+use cirru_edn::Edn;
 
 use raqote::{
   Color, DrawOptions, DrawTarget, LineCap, LineJoin, PathBuilder, Point, SolidSource, Source, StrokeStyle, Transform,
@@ -17,8 +16,8 @@ use raqote::{
 use crate::{
   color::extract_color,
   extracter::{
-    extract_line_style, extract_position, extract_touch_area_shape, read_bool, read_color, read_f32, read_line_cap,
-    read_line_join, read_points, read_position, read_some_color, read_string, read_text_align,
+    extract_line_style, extract_position, extract_touch_area_shape, load_kwd, read_bool, read_color, read_f32,
+    read_line_cap, read_line_join, read_points, read_position, read_some_color, read_string, read_text_align,
   },
   key_listener,
   primes::{PaintPathTo, Shape, TouchAreaShape},
@@ -39,12 +38,16 @@ pub fn reset_page(draw_target: &mut DrawTarget, color: Color) -> Result<(), Stri
 }
 
 lazy_static! {
-  static ref PREV_MESSAGES: RwLock<Vec<(String, im::Vector<Calcit>)>> = RwLock::new(vec![]);
+  static ref PREV_MESSAGES: RwLock<Vec<(String, Edn)>> = RwLock::new(vec![]);
 }
 
-pub fn draw_page(draw_target: &mut DrawTarget, cost: f64, eager_render: bool) -> Result<(), String> {
-  let mut messages = injection::take_ffi_messages().unwrap();
-
+pub fn draw_page(
+  draw_target: &mut DrawTarget,
+  base_messages: Vec<(String, Edn)>,
+  cost: f64,
+  eager_render: bool,
+) -> Result<(), String> {
+  let mut messages = base_messages;
   if eager_render {
     // render previous piece of data, during resizing
     if messages.is_empty() {
@@ -58,20 +61,20 @@ pub fn draw_page(draw_target: &mut DrawTarget, cost: f64, eager_render: bool) ->
     *m = messages.to_owned();
 
     let mut shown_shape = false;
-    for (call_op, args) in messages {
+    for (call_op, arg) in messages {
       // println!("op: {}", call_op);
-      match (call_op.as_str(), args.get(0)) {
-        ("render-canvas!", Some(tree)) => {
+      match (call_op.as_str(), arg) {
+        ("render-canvas!", tree) => {
           shown_shape = true;
-          match extract_shape(tree) {
+          match extract_shape(&tree) {
             Ok(shape) => draw_shape(draw_target, &shape, &Transform::identity())?,
             Err(failure) => {
               println!("Failed to extract shape {}", failure)
             }
           }
         }
-        ("reset-canvas!", Some(tree)) => {
-          reset_page(draw_target, extract_color(tree)?)?;
+        ("reset-canvas!", tree) => {
+          reset_page(draw_target, extract_color(&tree)?)?;
         }
         _ => println!("Unknown op: {}", call_op),
       }
@@ -432,10 +435,10 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
   Ok(())
 }
 
-fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
+fn extract_shape(tree: &Edn) -> Result<Shape, String> {
   match tree {
-    Calcit::Map(m) => match m.get(&load_kwd("type")) {
-      Some(Calcit::Keyword(name)) => match lookup_order_kwd_str(name).as_str() {
+    Edn::Map(m) => match m.get(&load_kwd("type")) {
+      Some(Edn::Keyword(name)) => match name.as_str() {
         "rectangle" | "rect" => Ok(Shape::Rectangle {
           position: read_position(m, "position")?,
           width: read_f32(m, "width")?,
@@ -468,7 +471,7 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
         // }),
         "ops" => Ok(Shape::PaintOps {
           position: read_position(m, "position")?,
-          path: extract_paint_path(m.get(&load_kwd("path")).unwrap_or(&Calcit::Nil))?,
+          path: extract_paint_path(m.get(&load_kwd("path")).unwrap_or(&Edn::Nil))?,
           fill_style: read_some_color(m, "fill-color")?,
           line_style: extract_line_style(m)?,
         }),
@@ -492,9 +495,9 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
           width: read_f32(m, "width")?,
         }),
         "touch-area" => Ok(Shape::TouchArea {
-          path: Box::new(m.get(&load_kwd("path")).unwrap_or(&Calcit::Nil).to_owned()),
-          action: Box::new(m.get(&load_kwd("action")).unwrap_or(&Calcit::Nil).to_owned()),
-          data: Box::new(m.get(&load_kwd("data")).unwrap_or(&Calcit::Nil).to_owned()),
+          path: Box::new(m.get(&load_kwd("path")).unwrap_or(&Edn::Nil).to_owned()),
+          action: Box::new(m.get(&load_kwd("action")).unwrap_or(&Edn::Nil).to_owned()),
+          data: Box::new(m.get(&load_kwd("data")).unwrap_or(&Edn::Nil).to_owned()),
           position: read_position(m, "position")?,
           area: extract_touch_area_shape(m)?,
           fill_style: read_some_color(m, "fill-color")?,
@@ -502,9 +505,9 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
         }),
         "key-listener" => Ok(Shape::KeyListener {
           key: read_string(m, "key")?,
-          path: Box::new(m.get(&load_kwd("path")).unwrap_or(&Calcit::Nil).to_owned()),
-          action: Box::new(m.get(&load_kwd("action")).unwrap_or(&Calcit::Nil).to_owned()),
-          data: Box::new(m.get(&load_kwd("data")).unwrap_or(&Calcit::Nil).to_owned()),
+          path: Box::new(m.get(&load_kwd("path")).unwrap_or(&Edn::Nil).to_owned()),
+          action: Box::new(m.get(&load_kwd("action")).unwrap_or(&Edn::Nil).to_owned()),
+          data: Box::new(m.get(&load_kwd("data")).unwrap_or(&Edn::Nil).to_owned()),
         }),
         "rotate" => {
           let c = m.get(&load_kwd("children"));
@@ -539,7 +542,7 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
       Some(a) => Err(format!("unknown kind value, {}", a)),
       None => Err(String::from("nil type")),
     },
-    Calcit::Nil => Ok(Shape::Group {
+    Edn::Nil => Ok(Shape::Group {
       position: Vector2D::new(0.0, 0.0),
       children: vec![],
     }),
@@ -547,13 +550,13 @@ fn extract_shape(tree: &Calcit) -> Result<Shape, String> {
   }
 }
 
-fn extract_children(children: Option<&Calcit>) -> Result<Vec<Shape>, String> {
+fn extract_children(children: Option<&Edn>) -> Result<Vec<Shape>, String> {
   let empty_group = Shape::Group {
     position: Vector2D::new(0.0, 0.0),
     children: vec![],
   };
   match children {
-    Some(Calcit::List(xs)) => {
+    Some(Edn::List(xs)) => {
       let mut ys = vec![];
       for x in xs {
         match extract_shape(x) {
@@ -571,12 +574,12 @@ fn extract_children(children: Option<&Calcit>) -> Result<Vec<Shape>, String> {
   }
 }
 
-fn extract_paint_path(data: &Calcit) -> Result<Vec<PaintPathTo>, String> {
-  if let Calcit::List(xs) = data {
+fn extract_paint_path(data: &Edn) -> Result<Vec<PaintPathTo>, String> {
+  if let Edn::List(xs) = data {
     let mut ys = vec![];
     for x in xs {
       match x {
-        Calcit::List(zs) => ys.push(extract_paint_op(zs)?),
+        Edn::List(zs) => ys.push(extract_paint_op(zs)?),
         _ => return Err(format!("expected single op in list, for {}", x)),
       }
     }
@@ -586,11 +589,11 @@ fn extract_paint_path(data: &Calcit) -> Result<Vec<PaintPathTo>, String> {
   }
 }
 
-fn extract_paint_op(xs: &im::Vector<Calcit>) -> Result<PaintPathTo, String> {
+fn extract_paint_op(xs: &[Edn]) -> Result<PaintPathTo, String> {
   if !xs.is_empty() {
     let op = match &xs[0] {
-      Calcit::Keyword(s) => lookup_order_kwd_str(s),
-      Calcit::Str(s) => s.to_owned(),
+      Edn::Keyword(s) => s.to_owned(),
+      Edn::Str(s) => s.to_owned(),
       _ => return Err(format!("unknown paint op value: {}", xs[0])),
     };
     match op.as_str() {

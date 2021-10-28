@@ -1,6 +1,5 @@
+use cirru_edn::Edn;
 use std::sync::RwLock;
-
-use calcit_runner::Calcit;
 
 lazy_static! {
   static ref KEY_LISTENERS: RwLock<Vec<KeyListenerMark>> = RwLock::new(vec![]);
@@ -9,9 +8,9 @@ lazy_static! {
 #[derive(Debug, PartialEq, Clone)]
 pub struct KeyListenerMark {
   pub key: String,
-  pub path: Calcit,
-  pub action: Calcit,
-  pub data: Calcit,
+  pub path: Edn,
+  pub action: Edn,
+  pub data: Edn,
 }
 
 pub fn reset_listeners_stack() {
@@ -19,7 +18,7 @@ pub fn reset_listeners_stack() {
   stack.clear();
 }
 
-pub fn add_key_listener(key: String, action: Calcit, path: Calcit, data: Calcit) {
+pub fn add_key_listener(key: String, action: Edn, path: Edn, data: Edn) {
   let mut stack = KEY_LISTENERS.write().unwrap();
   stack.push(KeyListenerMark {
     key,
