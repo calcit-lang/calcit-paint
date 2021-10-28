@@ -4,9 +4,17 @@
 
 Previous work: https://github.com/calcit-lang/edn-paint .
 
+_TODO_ not stable yet...
+
 ### Usages
 
-_TODO_ not stable yet...
+```cirru
+calcit-paint.core/push-drawing-data! |reset-canvas! nil
+calcit-paint.core/push-drawing-data! |render-canvas! shape-data
+
+calcit-paint.core/launch-canvas! $ fn (event)
+  println "|rendering to canvas..."
+```
 
 It runs [calcit_runner](https://github.com/calcit-lang/calcit_runner.rs) and is supposed to be driven by `compact.cirru` code.
 
