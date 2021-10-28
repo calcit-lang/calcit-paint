@@ -19,7 +19,7 @@ mod touches;
 use std::sync::Arc;
 use std::sync::RwLock;
 // use std::time::Duration;
-// use std::{thread, time};
+use std::{thread, time};
 
 use cirru_edn::Edn;
 
@@ -78,16 +78,29 @@ pub fn launch_canvas(
   event_loop.run(move |event, _window_target, control_flow| {
     // println!("Event: {:?}", event);
 
-    // TODO
-    // if first_paint {
-    //   if let Err(e) = renderer::draw_page(&mut draw_target, initial_cost, false) {
-    //     println!("failed first paint: {:?}", e);
-    //   }
+    if first_paint {
+      if let Err(err) = handler(vec![Edn::Nil]) {
+        println!("error in handling event: {}", err);
+      } else {
+        match take_drawing_data() {
+          Ok(None) => {
+            // nothing
+          }
+          Ok(Some(messages)) => {
+            if let Err(e) = renderer::draw_page(&mut draw_target, messages, 2.2, true) {
+              println!("Failed drawing: {:?}", e);
+            }
+          }
+          Err(e) => {
+            println!("failed extracting messages: {}", e)
+          }
+        }
+      }
 
-    //   // Update internal state and request a redraw
-    //   window.request_redraw();
-    //   first_paint = false
-    // }
+      // Update internal state and request a redraw
+      window.request_redraw();
+      first_paint = false
+    }
 
     match event {
       Event::WindowEvent { event, .. } => match event {
@@ -139,6 +152,20 @@ pub fn launch_canvas(
           if let Some(e) = event_info {
             if let Err(err) = handler(vec![e]) {
               println!("error in handling event: {}", err);
+            } else {
+              match take_drawing_data() {
+                Ok(None) => {
+                  // nothing
+                }
+                Ok(Some(messages)) => {
+                  if let Err(e) = renderer::draw_page(&mut draw_target, messages, 2.2, true) {
+                    println!("Failed drawing: {:?}", e);
+                  }
+                }
+                Err(e) => {
+                  println!("failed extracting messages: {}", e)
+                }
+              }
             }
             window.request_redraw();
           }
@@ -152,6 +179,20 @@ pub fn launch_canvas(
 
           if let Err(err) = handler(vec![event_info]) {
             println!("error in handling event: {}", err);
+          } else {
+            match take_drawing_data() {
+              Ok(None) => {
+                // nothing
+              }
+              Ok(Some(messages)) => {
+                if let Err(e) = renderer::draw_page(&mut draw_target, messages, 2.2, true) {
+                  println!("Failed drawing: {:?}", e);
+                }
+              }
+              Err(e) => {
+                println!("failed extracting messages: {}", e)
+              }
+            }
           }
           window.request_redraw();
         }
@@ -172,6 +213,20 @@ pub fn launch_canvas(
             for event_info in event_infos {
               if let Err(err) = handler(vec![event_info]) {
                 println!("error in handling event: {}", err);
+              } else {
+                match take_drawing_data() {
+                  Ok(None) => {
+                    // nothing
+                  }
+                  Ok(Some(messages)) => {
+                    if let Err(e) = renderer::draw_page(&mut draw_target, messages, 2.2, true) {
+                      println!("Failed drawing: {:?}", e);
+                    }
+                  }
+                  Err(e) => {
+                    println!("failed extracting messages: {}", e)
+                  }
+                }
               }
             }
             window.request_redraw();
@@ -187,10 +242,7 @@ pub fn launch_canvas(
 
       Event::MainEventsCleared => {
         // println!("main events cleared");
-
-        // some break
-
-        todo!(); // check if rendered
+        thread::sleep(time::Duration::from_millis(50));
       }
       Event::RedrawRequested(_wid) => {
         for (dst, &src) in pixels
@@ -226,8 +278,6 @@ pub fn launch_canvas(
       }
     }
   });
-
-  Ok(Edn::Nil)
 }
 
 fn take_drawing_data() -> Result<Option<Vec<(String, Edn)>>, String> {

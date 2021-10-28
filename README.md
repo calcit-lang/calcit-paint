@@ -8,17 +8,10 @@ Previous work: https://github.com/calcit-lang/edn-paint .
 
 _TODO_ not stable yet...
 
-```bash
-cargo install calcit_paint
-```
-
-It imports [calcit_runner](https://github.com/calcit-lang/calcit_runner.rs) inside and is supposed to be driven by `compact.cirru` code.
+It runs [calcit_runner](https://github.com/calcit-lang/calcit_runner.rs) and is supposed to be driven by `compact.cirru` code.
 
 ```bash
-cargo run calcit/compact.cirru
-
-# or adding entry
-cargo run -- calcit/compact.cirru --event-entry "app.main/main!"
+cr -1 compact.cirru
 ```
 
 ### Shapes

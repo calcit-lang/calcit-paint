@@ -4,6 +4,66 @@
     |u0 $ {} (:theme :star-trail) (:id |u0) (:name |chen) (:nickname |chen) (:avatar nil) (:password |d41d8cd98f00b204e9800998ecf8427e)
   :ir $ {} (:package |calcit-paint)
     :files $ {}
+      |calcit-paint.core $ {}
+        :ns $ {} (:type :expr) (:by |u0) (:at 1635409672442)
+          :data $ {}
+            |T $ {} (:type :leaf) (:by |u0) (:at 1635409672442) (:text |ns)
+            |j $ {} (:type :leaf) (:by |u0) (:at 1635409672442) (:text |calcit-paint.core)
+            |r $ {} (:type :expr) (:by |u0) (:at 1635409786282)
+              :data $ {}
+                |T $ {} (:type :leaf) (:by |u0) (:at 1635409786282) (:text |:require)
+                |j $ {} (:type :expr) (:by |u0) (:at 1635409786282)
+                  :data $ {}
+                    |T $ {} (:type :leaf) (:by |u0) (:at 1635410464249) (:text |calcit-paint.$meta)
+                    |j $ {} (:type :leaf) (:by |u0) (:at 1635409786282) (:text |:refer)
+                    |r $ {} (:type :expr) (:by |u0) (:at 1635409786282)
+                      :data $ {}
+                        |T $ {} (:type :leaf) (:by |u0) (:at 1635409786282) (:text |calcit-dirname)
+                |r $ {} (:type :expr) (:by |u0) (:at 1635409786282)
+                  :data $ {}
+                    |T $ {} (:type :leaf) (:by |u0) (:at 1635410468734) (:text |calcit-paint.util)
+                    |j $ {} (:type :leaf) (:by |u0) (:at 1635409786282) (:text |:refer)
+                    |r $ {} (:type :expr) (:by |u0) (:at 1635409786282)
+                      :data $ {}
+                        |T $ {} (:type :leaf) (:by |u0) (:at 1635409786282) (:text |get-dylib-path)
+        :configs $ {}
+        :defs $ {}
+          |launch-canvas! $ {} (:type :expr) (:by |u0) (:at 1635409806386)
+            :data $ {}
+              |T $ {} (:type :leaf) (:by |u0) (:at 1635409806386) (:text |defn)
+              |j $ {} (:type :leaf) (:by |u0) (:at 1635409841841) (:text |launch-canvas!)
+              |n $ {} (:type :expr) (:by |u0) (:at 1635409858795)
+                :data $ {}
+                  |T $ {} (:type :leaf) (:by |u0) (:at 1635410509431) (:text |cb)
+              |r $ {} (:type :expr) (:by |u0) (:at 1635409851113)
+                :data $ {}
+                  |T $ {} (:type :leaf) (:by |u0) (:at 1635414492245) (:text |&blocking-dylib-edn-fn)
+                  |j $ {} (:type :expr) (:by |u0) (:at 1635409851113)
+                    :data $ {}
+                      |T $ {} (:type :leaf) (:by |u0) (:at 1635409851113) (:text |get-dylib-path)
+                      |j $ {} (:type :leaf) (:by |u0) (:at 1635410504089) (:text "|\"/dylibs/libcalcit_paint")
+                  |r $ {} (:type :leaf) (:by |u0) (:at 1635409873536) (:text "|\"launch_canvas")
+                  |v $ {} (:type :leaf) (:by |u0) (:at 1635410513138) (:text |cb)
+          |push-drawing-data! $ {} (:type :expr) (:by |u0) (:at 1635409825540)
+            :data $ {}
+              |T $ {} (:type :leaf) (:by |u0) (:at 1635409825540) (:text |defn)
+              |j $ {} (:type :leaf) (:by |u0) (:at 1635409825540) (:text |push-drawing-data!)
+              |n $ {} (:type :expr) (:by |u0) (:at 1635409907590)
+                :data $ {}
+                  |T $ {} (:type :leaf) (:by |u0) (:at 1635409912017) (:text |op)
+                  |j $ {} (:type :leaf) (:by |u0) (:at 1635409912592) (:text |data)
+              |r $ {} (:type :expr) (:by |u0) (:at 1635409905980)
+                :data $ {}
+                  |T $ {} (:type :leaf) (:by |u0) (:at 1635409905980) (:text |&call-dylib-edn)
+                  |j $ {} (:type :expr) (:by |u0) (:at 1635409905980)
+                    :data $ {}
+                      |T $ {} (:type :leaf) (:by |u0) (:at 1635409905980) (:text |get-dylib-path)
+                      |j $ {} (:type :leaf) (:by |u0) (:at 1635410518336) (:text "|\"/dylibs/libcalcit_paint")
+                  |r $ {} (:type :leaf) (:by |u0) (:at 1635409926856) (:text "|\"push_drawing_data")
+                  |v $ {} (:type :leaf) (:by |u0) (:at 1635409928112) (:text |op)
+                  |x $ {} (:type :leaf) (:by |u0) (:at 1635409928662) (:text |data)
+        :proc $ {} (:type :expr) (:by |u0) (:at 1635409672442)
+          :data $ {}
       |calcit-paint.main $ {}
         :ns $ {} (:type :expr) (:by |u0) (:at 1620576367501)
           :data $ {}
@@ -54,33 +114,6 @@
               |j $ {} (:type :leaf) (:by |u0) (:at 1620627695917) (:text |render!)
               |r $ {} (:type :expr) (:by |u0) (:at 1620627695917)
                 :data $ {}
-              |s $ {} (:type :expr) (:by |u0) (:at 1635410370180)
-                :data $ {}
-                  |D $ {} (:type :leaf) (:by |u0) (:at 1635410379125) (:text |launch-canvas!)
-                  |T $ {} (:type :expr) (:by |u0) (:at 1635410364262)
-                    :data $ {}
-                      |T $ {} (:type :leaf) (:by |u0) (:at 1635410369551) (:text |fn)
-                      |r $ {} (:type :expr) (:by |u0) (:at 1635410364262)
-                        :data $ {}
-                          |T $ {} (:type :leaf) (:by |u0) (:at 1635410364262) (:text |event)
-                      |v $ {} (:type :expr) (:by |u0) (:at 1635410364262)
-                        :data $ {}
-                          |T $ {} (:type :leaf) (:by |u0) (:at 1635410364262) (:text |case-default)
-                          |j $ {} (:type :expr) (:by |u0) (:at 1635410364262)
-                            :data $ {}
-                              |T $ {} (:type :leaf) (:by |u0) (:at 1635410364262) (:text |:type)
-                              |j $ {} (:type :leaf) (:by |u0) (:at 1635410364262) (:text |event)
-                          |r $ {} (:type :expr) (:by |u0) (:at 1635410364262)
-                            :data $ {}
-                              |T $ {} (:type :leaf) (:by |u0) (:at 1635410364262) (:text |println)
-                              |j $ {} (:type :leaf) (:by |u0) (:at 1635410364262) (:text "|\"event:")
-                              |r $ {} (:type :leaf) (:by |u0) (:at 1635410364262) (:text |event)
-                          |v $ {} (:type :expr) (:by |u0) (:at 1635410364262)
-                            :data $ {}
-                              |T $ {} (:type :leaf) (:by |u0) (:at 1635410364262) (:text |:redraw)
-                              |j $ {} (:type :expr) (:by |u0) (:at 1635410364262)
-                                :data $ {}
-                                  |T $ {} (:type :leaf) (:by |u0) (:at 1635410364262) (:text |render!)
               |t $ {} (:type :expr) (:by |u0) (:at 1620634596768)
                 :data $ {}
                   |T $ {} (:type :leaf) (:by |u0) (:at 1635410412836) (:text |push-drawing-data!)
@@ -565,68 +598,35 @@
                                     :data $ {}
                                       |T $ {} (:type :leaf) (:by |u0) (:at 1621096105726) (:text |:data)
                                       |j $ {} (:type :leaf) (:by |u0) (:at 1621096106919) (:text |:data)
+              |x $ {} (:type :expr) (:by |u0) (:at 1635414507587)
+                :data $ {}
+                  |T $ {} (:type :leaf) (:by |u0) (:at 1635414507587) (:text |launch-canvas!)
+                  |j $ {} (:type :expr) (:by |u0) (:at 1635414507587)
+                    :data $ {}
+                      |T $ {} (:type :leaf) (:by |u0) (:at 1635414507587) (:text |fn)
+                      |j $ {} (:type :expr) (:by |u0) (:at 1635414507587)
+                        :data $ {}
+                          |T $ {} (:type :leaf) (:by |u0) (:at 1635414507587) (:text |event)
+                      |r $ {} (:type :expr) (:by |u0) (:at 1635414507587)
+                        :data $ {}
+                          |T $ {} (:type :leaf) (:by |u0) (:at 1635414507587) (:text |case-default)
+                          |j $ {} (:type :expr) (:by |u0) (:at 1635414507587)
+                            :data $ {}
+                              |T $ {} (:type :leaf) (:by |u0) (:at 1635414507587) (:text |:type)
+                              |j $ {} (:type :leaf) (:by |u0) (:at 1635414507587) (:text |event)
+                          |r $ {} (:type :expr) (:by |u0) (:at 1635414507587)
+                            :data $ {}
+                              |T $ {} (:type :leaf) (:by |u0) (:at 1635414507587) (:text |println)
+                              |j $ {} (:type :leaf) (:by |u0) (:at 1635414507587) (:text "|\"event:")
+                              |r $ {} (:type :leaf) (:by |u0) (:at 1635414507587) (:text |event)
+                          |v $ {} (:type :expr) (:by |u0) (:at 1635414507587)
+                            :data $ {}
+                              |T $ {} (:type :leaf) (:by |u0) (:at 1635414507587) (:text |:redraw)
+                              |j $ {} (:type :expr) (:by |u0) (:at 1635414507587)
+                                :data $ {}
+                                  |T $ {} (:type :leaf) (:by |u0) (:at 1635414507587) (:text |render!)
         :proc $ {} (:type :expr) (:by |u0) (:at 1620576367501)
           :data $ {}
-      |calcit-paint.core $ {}
-        :ns $ {} (:type :expr) (:by |u0) (:at 1635409672442)
-          :data $ {}
-            |T $ {} (:type :leaf) (:by |u0) (:at 1635409672442) (:text |ns)
-            |j $ {} (:type :leaf) (:by |u0) (:at 1635409672442) (:text |calcit-paint.core)
-            |r $ {} (:type :expr) (:by |u0) (:at 1635409786282)
-              :data $ {}
-                |T $ {} (:type :leaf) (:by |u0) (:at 1635409786282) (:text |:require)
-                |j $ {} (:type :expr) (:by |u0) (:at 1635409786282)
-                  :data $ {}
-                    |T $ {} (:type :leaf) (:by |u0) (:at 1635410464249) (:text |calcit-paint.$meta)
-                    |j $ {} (:type :leaf) (:by |u0) (:at 1635409786282) (:text |:refer)
-                    |r $ {} (:type :expr) (:by |u0) (:at 1635409786282)
-                      :data $ {}
-                        |T $ {} (:type :leaf) (:by |u0) (:at 1635409786282) (:text |calcit-dirname)
-                |r $ {} (:type :expr) (:by |u0) (:at 1635409786282)
-                  :data $ {}
-                    |T $ {} (:type :leaf) (:by |u0) (:at 1635410468734) (:text |calcit-paint.util)
-                    |j $ {} (:type :leaf) (:by |u0) (:at 1635409786282) (:text |:refer)
-                    |r $ {} (:type :expr) (:by |u0) (:at 1635409786282)
-                      :data $ {}
-                        |T $ {} (:type :leaf) (:by |u0) (:at 1635409786282) (:text |get-dylib-path)
-        :defs $ {}
-          |push-drawing-data! $ {} (:type :expr) (:by |u0) (:at 1635409825540)
-            :data $ {}
-              |T $ {} (:type :leaf) (:by |u0) (:at 1635409825540) (:text |defn)
-              |j $ {} (:type :leaf) (:by |u0) (:at 1635409825540) (:text |push-drawing-data!)
-              |n $ {} (:type :expr) (:by |u0) (:at 1635409907590)
-                :data $ {}
-                  |T $ {} (:type :leaf) (:by |u0) (:at 1635409912017) (:text |op)
-                  |j $ {} (:type :leaf) (:by |u0) (:at 1635409912592) (:text |data)
-              |r $ {} (:type :expr) (:by |u0) (:at 1635409905980)
-                :data $ {}
-                  |T $ {} (:type :leaf) (:by |u0) (:at 1635409905980) (:text |&call-dylib-edn)
-                  |j $ {} (:type :expr) (:by |u0) (:at 1635409905980)
-                    :data $ {}
-                      |T $ {} (:type :leaf) (:by |u0) (:at 1635409905980) (:text |get-dylib-path)
-                      |j $ {} (:type :leaf) (:by |u0) (:at 1635410518336) (:text "|\"/dylibs/libcalcit_paint")
-                  |r $ {} (:type :leaf) (:by |u0) (:at 1635409926856) (:text "|\"push_drawing_data")
-                  |v $ {} (:type :leaf) (:by |u0) (:at 1635409928112) (:text |op)
-                  |x $ {} (:type :leaf) (:by |u0) (:at 1635409928662) (:text |data)
-          |launch-canvas! $ {} (:type :expr) (:by |u0) (:at 1635409806386)
-            :data $ {}
-              |T $ {} (:type :leaf) (:by |u0) (:at 1635409806386) (:text |defn)
-              |j $ {} (:type :leaf) (:by |u0) (:at 1635409841841) (:text |launch-canvas!)
-              |n $ {} (:type :expr) (:by |u0) (:at 1635409858795)
-                :data $ {}
-                  |T $ {} (:type :leaf) (:by |u0) (:at 1635410509431) (:text |cb)
-              |r $ {} (:type :expr) (:by |u0) (:at 1635409851113)
-                :data $ {}
-                  |T $ {} (:type :leaf) (:by |u0) (:at 1635409864063) (:text |&call-dylib-edn-fn)
-                  |j $ {} (:type :expr) (:by |u0) (:at 1635409851113)
-                    :data $ {}
-                      |T $ {} (:type :leaf) (:by |u0) (:at 1635409851113) (:text |get-dylib-path)
-                      |j $ {} (:type :leaf) (:by |u0) (:at 1635410504089) (:text "|\"/dylibs/libcalcit_paint")
-                  |r $ {} (:type :leaf) (:by |u0) (:at 1635409873536) (:text "|\"launch_canvas")
-                  |v $ {} (:type :leaf) (:by |u0) (:at 1635410513138) (:text |cb)
-        :proc $ {} (:type :expr) (:by |u0) (:at 1635409672442)
-          :data $ {}
-        :configs $ {}
       |calcit-paint.util $ {}
         :ns $ {} (:type :expr) (:by |u0) (:at 1635409770042)
           :data $ {}

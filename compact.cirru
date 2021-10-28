@@ -4,6 +4,18 @@
     :modules $ []
     :version |0.0.1
   :files $ {}
+    |calcit-paint.core $ {}
+      :ns $ quote
+        ns calcit-paint.core $ :require
+          calcit-paint.$meta :refer $ calcit-dirname
+          calcit-paint.util :refer $ get-dylib-path
+      :defs $ {}
+        |launch-canvas! $ quote
+          defn launch-canvas! (cb)
+            &blocking-dylib-edn-fn (get-dylib-path "\"/dylibs/libcalcit_paint") "\"launch_canvas" cb
+        |push-drawing-data! $ quote
+          defn push-drawing-data! (op data)
+            &call-dylib-edn (get-dylib-path "\"/dylibs/libcalcit_paint") "\"push_drawing_data" op data
     |calcit-paint.main $ {}
       :ns $ quote
         ns calcit-paint.main $ :require
@@ -15,9 +27,6 @@
           defn reload! () (render!) (println "\"reloads 19")
         |render! $ quote
           defn render! ()
-            launch-canvas! $ fn (event)
-              case-default (:type event) (println "\"event:" event)
-                :redraw $ render!
             push-drawing-data! "\"reset-canvas!" $ [] 200 50 30
             push-drawing-data! "\"render-canvas!" $ {} (:type :group)
               :children $ []
@@ -77,18 +86,9 @@
                     {} (:type :touch-area) (:radius 10) (:action nil) (:path nil) (:data nil)
                       :position $ [] 200 200
                       :fill-color $ [] 40 80 80
-    |calcit-paint.core $ {}
-      :ns $ quote
-        ns calcit-paint.core $ :require
-          calcit-paint.$meta :refer $ calcit-dirname
-          calcit-paint.util :refer $ get-dylib-path
-      :defs $ {}
-        |push-drawing-data! $ quote
-          defn push-drawing-data! (op data)
-            &call-dylib-edn (get-dylib-path "\"/dylibs/libcalcit_paint") "\"push_drawing_data" op data
-        |launch-canvas! $ quote
-          defn launch-canvas! (cb)
-            &call-dylib-edn-fn (get-dylib-path "\"/dylibs/libcalcit_paint") "\"launch_canvas" cb
+            launch-canvas! $ fn (event)
+              case-default (:type event) (println "\"event:" event)
+                :redraw $ render!
     |calcit-paint.util $ {}
       :ns $ quote
         ns calcit-paint.util $ :require
