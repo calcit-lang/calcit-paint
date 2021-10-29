@@ -12,12 +12,7 @@ exclude = ["resources", "!SourceCodePro-Medium.ttf"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-calcit_runner = "=0.5.0-a10"
-# calcit_runner = { path = "../calcit-runner.rs" }
 cirru_edn = "0.2.2"
-cirru_parser = "0.1.8"
-notify = "4.0.17"
-im = "15.0.0"
 lazy_static = "1.4.0"
 env_logger = "0.9"
 euclid = "0.22.6"
@@ -28,9 +23,10 @@ raqote = { git = "https://github.com/jrmuizel/raqote.git", rev = "74f0afa2be5456
 font-kit = { version = "0.10", optional = true }
 libloading = "0.7.1"
 
-[[bin]]
+[lib]
 name = "calcit_paint"
-path = "src/main.rs"
+path = "src/lib.rs"
+crate-type = ["dylib"] # Creates dynamic lib
 
 # need this for font-kit
 [features]

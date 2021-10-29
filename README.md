@@ -4,21 +4,22 @@
 
 Previous work: https://github.com/calcit-lang/edn-paint .
 
-### Usages
-
 _TODO_ not stable yet...
 
-```bash
-cargo install calcit_paint
+### Usages
+
+```cirru
+calcit-paint.core/push-drawing-data! |reset-canvas! nil
+calcit-paint.core/push-drawing-data! |render-canvas! shape-data
+
+calcit-paint.core/launch-canvas! $ fn (event)
+  println "|rendering to canvas..."
 ```
 
-It imports [calcit_runner](https://github.com/calcit-lang/calcit_runner.rs) inside and is supposed to be driven by `compact.cirru` code.
+It runs [calcit_runner](https://github.com/calcit-lang/calcit_runner.rs) and is supposed to be driven by `compact.cirru` code.
 
 ```bash
-cargo run calcit/compact.cirru
-
-# or adding entry
-cargo run -- calcit/compact.cirru --event-entry "app.main/main!"
+cr -1 compact.cirru
 ```
 
 ### Shapes

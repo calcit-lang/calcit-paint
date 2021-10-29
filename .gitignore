@@ -1,6 +1,6 @@
 /target
 
-calcit/.compact-inc.cirru
+.compact-inc.cirru
 .calcit-error.cirru
 
 js-out/
@@ -10,4 +10,4 @@ node_modules/
 lib/*.js
 builds/
 
-/ggez
+dylibs/*

@@ -1,7 +1,9 @@
-use calcit_runner::primes::{load_kwd, Calcit};
+use cirru_edn::Edn;
 use euclid::{Point2D, Vector2D};
 
 use raqote::{Color, LineCap, LineJoin};
+
+use crate::extracter::load_kwd;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TextAlign {
@@ -70,9 +72,9 @@ pub enum Shape {
     cap: LineCap,
   },
   TouchArea {
-    path: Box<Calcit>,
-    action: Box<Calcit>,
-    data: Box<Calcit>,
+    path: Box<Edn>,
+    action: Box<Edn>,
+    data: Box<Edn>,
     position: Vector2D<f32, f32>,
     // children: Vec<Shape>, // TODO
     area: TouchAreaShape,
@@ -81,9 +83,9 @@ pub enum Shape {
   },
   KeyListener {
     key: String, // TODO modifier
-    path: Box<Calcit>,
-    action: Box<Calcit>,
-    data: Box<Calcit>,
+    path: Box<Edn>,
+    action: Box<Edn>,
+    data: Box<Edn>,
     // children: Vec<Shape>, // TODO
   },
   Translate {
@@ -107,6 +109,6 @@ pub enum TouchAreaShape {
   Rect(f32, f32),
 }
 
-pub fn kwd(s: &str) -> Calcit {
+pub fn kwd(s: &str) -> Edn {
   load_kwd(s)
 }

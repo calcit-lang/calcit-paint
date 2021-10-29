@@ -17,4 +17,5 @@ jobs:
         with:
           toolchain: stable
 
-      - run: cargo build
+      - run: cargo build --release
+      - run: mkdir -p dylibs/ && ls target/release/ && cp -v target/release/*.* dylibs/
