@@ -2,7 +2,7 @@
 {} (:package |calcit-paint)
   :configs $ {} (:init-fn |calcit-paint.main/main!) (:reload-fn |calcit-paint.main/reload!)
     :modules $ []
-    :version |0.0.1
+    :version |0.0.2
   :files $ {}
     |calcit-paint.core $ {}
       :ns $ quote
