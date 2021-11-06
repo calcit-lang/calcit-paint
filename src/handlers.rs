@@ -95,7 +95,7 @@ pub fn handle_keyboard(keycode: winit::event::VirtualKeyCode, key_state: winit::
       },
     );
     info.insert(kwd("key-code"), Edn::Number(keycode as usize as f64));
-    info.insert(kwd("name"), Edn::Str(name_key(keycode)));
+    info.insert(kwd("name"), Edn::Str(name_key(keycode).into_boxed_str()));
     vec![Edn::Map(info)]
   } else {
     let mut hits: Vec<Edn> = vec![];
@@ -109,7 +109,7 @@ pub fn handle_keyboard(keycode: winit::event::VirtualKeyCode, key_state: winit::
         },
       );
       info.insert(kwd("key-code"), Edn::Number(keycode as usize as f64));
-      info.insert(kwd("name"), Edn::Str(name_key(keycode)));
+      info.insert(kwd("name"), Edn::Str(name_key(keycode).into_boxed_str()));
       info.insert(kwd("action"), target.action);
       info.insert(kwd("path"), target.path);
       info.insert(kwd("data"), target.data);

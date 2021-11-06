@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub fn load_kwd(s: &str) -> Edn {
-  Edn::Keyword(s.to_owned())
+  Edn::kwd(s)
 }
 
 pub fn read_f32(tree: &HashMap<Edn, Edn>, key: &str) -> Result<f32, String> {
@@ -109,7 +109,7 @@ pub fn extract_line_style(tree: &HashMap<Edn, Edn>) -> Result<Option<(Color, f32
 
 pub fn read_text_align(tree: &HashMap<Edn, Edn>, key: &str) -> Result<TextAlign, String> {
   match tree.get(&load_kwd(key)) {
-    Some(Edn::Keyword(k)) => match k.as_str() {
+    Some(Edn::Keyword(k)) => match &*k.to_str() {
       "left" => Ok(TextAlign::Left),
       "center" => Ok(TextAlign::Center),
       "right" => Ok(TextAlign::Right),
@@ -122,7 +122,7 @@ pub fn read_text_align(tree: &HashMap<Edn, Edn>, key: &str) -> Result<TextAlign,
 
 pub fn read_line_join(tree: &HashMap<Edn, Edn>, key: &str) -> Result<LineJoin, String> {
   match tree.get(&load_kwd(key)) {
-    Some(Edn::Keyword(k)) => match k.as_str() {
+    Some(Edn::Keyword(k)) => match &*k.to_str() {
       "round" => Ok(LineJoin::Round),
       "miter" => Ok(LineJoin::Miter),
       // "miter-clip" => Ok(LineJoin::MiterClip),
@@ -136,7 +136,7 @@ pub fn read_line_join(tree: &HashMap<Edn, Edn>, key: &str) -> Result<LineJoin, S
 
 pub fn read_line_cap(tree: &HashMap<Edn, Edn>, key: &str) -> Result<LineCap, String> {
   match tree.get(&load_kwd(key)) {
-    Some(Edn::Keyword(k)) => match k.as_str() {
+    Some(Edn::Keyword(k)) => match &*k.to_str() {
       "round" => Ok(LineCap::Round),
       "butt" => Ok(LineCap::Butt),
       "square" => Ok(LineCap::Square),

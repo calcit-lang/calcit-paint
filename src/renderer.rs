@@ -38,12 +38,12 @@ pub fn reset_page(draw_target: &mut DrawTarget, color: Color) -> Result<(), Stri
 }
 
 lazy_static! {
-  static ref PREV_MESSAGES: RwLock<Vec<(String, Edn)>> = RwLock::new(vec![]);
+  static ref PREV_MESSAGES: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
 }
 
 pub fn draw_page(
   draw_target: &mut DrawTarget,
-  base_messages: Vec<(String, Edn)>,
+  base_messages: Vec<(Box<str>, Edn)>,
   cost: f64,
   eager_render: bool,
 ) -> Result<(), String> {
@@ -62,14 +62,14 @@ pub fn draw_page(
 
     let mut shown_shape = false;
     for (call_op, arg) in messages {
-      // println!("op: {}", call_op);
-      match (call_op.as_str(), arg) {
+      // println!("op: {} {:?}", call_op, arg);
+      match (&*call_op, arg) {
         ("render-canvas!", tree) => {
           shown_shape = true;
           match extract_shape(&tree) {
             Ok(shape) => draw_shape(draw_target, &shape, &Transform::identity())?,
             Err(failure) => {
-              println!("Failed to extract shape {}", failure)
+              println!("Failed to extract shape: {}", failure)
             }
           }
         }
@@ -436,9 +436,10 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
 }
 
 fn extract_shape(tree: &Edn) -> Result<Shape, String> {
+  // println!("extracting shape: {:?} -- {:?}", load_kwd("type"), tree);
   match tree {
     Edn::Map(m) => match m.get(&load_kwd("type")) {
-      Some(Edn::Keyword(name)) => match name.as_str() {
+      Some(Edn::Keyword(name)) => match &*name.to_str() {
         "rectangle" | "rect" => Ok(Shape::Rectangle {
           position: read_position(m, "position")?,
           width: read_f32(m, "width")?,
@@ -591,12 +592,12 @@ fn extract_paint_path(data: &Edn) -> Result<Vec<PaintPathTo>, String> {
 
 fn extract_paint_op(xs: &[Edn]) -> Result<PaintPathTo, String> {
   if !xs.is_empty() {
-    let op = match &xs[0] {
-      Edn::Keyword(s) => s.to_owned(),
+    let op: Box<str> = match &xs[0] {
+      Edn::Keyword(s) => s.to_str(),
       Edn::Str(s) => s.to_owned(),
       _ => return Err(format!("unknown paint op value: {}", xs[0])),
     };
-    match op.as_str() {
+    match &*op {
       "move-to" => match xs.get(1) {
         Some(v) => match extract_position(v) {
           Ok(p) => Ok(PaintPathTo::Move(p)),

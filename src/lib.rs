@@ -36,7 +36,7 @@ const WIDTH: u32 = 1000;
 const HEIGHT: u32 = 600;
 
 lazy_static! {
-  static ref NEXT_DRAWING_DATA: RwLock<Vec<(String, Edn)>> = RwLock::new(vec![]);
+  static ref NEXT_DRAWING_DATA: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
 }
 
 #[no_mangle]
@@ -280,14 +280,14 @@ pub fn launch_canvas(
   });
 }
 
-fn take_drawing_data() -> Result<Option<Vec<(String, Edn)>>, String> {
+fn take_drawing_data() -> Result<Option<Vec<(Box<str>, Edn)>>, String> {
   let mut m = NEXT_DRAWING_DATA.write().unwrap();
   let ret = m.to_owned();
   *m = vec![];
   if ret.is_empty() {
     Ok(None)
   } else {
-    let mut ys: Vec<(String, Edn)> = vec![];
+    let mut ys: Vec<(Box<str>, Edn)> = vec![];
     for (op, data) in ret {
       ys.push((op.to_owned(), data.to_owned()));
     }
@@ -310,5 +310,5 @@ pub fn push_drawing_data(args: Vec<Edn>) -> Result<Edn, String> {
 
 #[no_mangle]
 pub fn abi_version() -> String {
-  String::from("0.0.1")
+  String::from("0.0.5")
 }
