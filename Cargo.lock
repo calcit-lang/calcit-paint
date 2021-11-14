@@ -121,7 +121,7 @@ checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "calcit_paint"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "cirru_edn",
  "env_logger",
@@ -171,9 +171,9 @@ checksum = "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
 
 [[package]]
 name = "cirru_edn"
-version = "0.2.8"
+version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4888ae76433b2504f820e97d63297db438f9d3ba377456f203ebb0747282c613"
+checksum = "a0ee334f8cc2ee791e8f0df7f934a50ce4cb48d2169b3d1bf7a3b2fbace3564a"
 dependencies = [
  "cirru_parser",
  "hex",
@@ -182,9 +182,9 @@ dependencies = [
 
 [[package]]
 name = "cirru_parser"
-version = "0.1.12"
+version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7344fe701ed60135a9caad1269b200a7dc559abd9860ac5a8b29c674ce579a05"
+checksum = "f5004e11be1bc491748d59b73e3e0ad4f73ff2bbb47e0a9b3e205a83dc416fde"
 
 [[package]]
 name = "cmake"
@@ -746,9 +746,9 @@ dependencies = [
 
 [[package]]
 name = "hex"
-version = "0.3.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "805026a5d0141ffc30abb3be3173848ad46a1b1664fe632428479619a3644d77"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hexf-parse"

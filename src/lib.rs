@@ -310,5 +310,5 @@ pub fn push_drawing_data(args: Vec<Edn>) -> Result<Edn, String> {
 
 #[no_mangle]
 pub fn abi_version() -> String {
-  String::from("0.0.5")
+  String::from("0.0.6")
 }
