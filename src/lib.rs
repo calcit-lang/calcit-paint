@@ -79,9 +79,9 @@ pub fn launch_canvas(
 
   let cb = cb.with_double_buffer(Some(true));
 
-  let windowed_context = cb.build_windowed(wb, &el).unwrap();
+  let windowed_context = unsafe { cb.build_windowed(wb, &el).unwrap().make_current().unwrap() };
 
-  let windowed_context = unsafe { windowed_context.make_current().unwrap() };
+  let window = windowed_context.window();
   let pixel_format = windowed_context.get_pixel_format();
 
   println!("Pixel format of the window's GL context: {:?}", pixel_format);
@@ -100,12 +100,10 @@ pub fn launch_canvas(
     }
   };
 
-  // windowed_context
-  //   .window()
-  //   .set_inner_size(glutin::dpi::Size::new(glutin::dpi::LogicalSize::new(WIDTH, HEIGHT)));
+  window.set_inner_size(glutin::dpi::Size::new(glutin::dpi::LogicalSize::new(WIDTH, HEIGHT)));
 
   let surface = create_surface(&windowed_context, &fb_info, &mut gr_context);
-  let sf = windowed_context.window().scale_factor() as f32;
+  let scale_factor = window.scale_factor() as f32;
 
   let mut env = Env {
     surface,
@@ -114,44 +112,28 @@ pub fn launch_canvas(
   };
 
   let canvas = env.surface.canvas();
-  canvas.scale((sf, sf));
+  canvas.scale((scale_factor, scale_factor));
 
   let event_loop = EventLoop::new();
 
   let mut first_paint = true;
   let track_mouse = RefCell::new(Vector2D::new(0.0, 0.0));
-  let track_scale: RefCell<f32> = RefCell::new(sf);
+  let track_scale: RefCell<f32> = RefCell::new(scale_factor);
   // Handle events. Refer to `winit` docs for more information.
   event_loop.run(move |event, _window_target, control_flow| {
     // println!("Event: {:?}", event);
     *control_flow = ControlFlow::Wait;
     let scaled = track_scale.clone().into_inner();
+    let window = env.windowed_context.window();
 
     if first_paint {
       if let Err(err) = handler(vec![Edn::Nil]) {
         println!("error in handling event: {}", err);
       } else {
-        match take_drawing_data() {
-          Ok(messages) => {
-            if !messages.is_empty() {
-              let mut canvas = env.surface.canvas();
-              canvas.clear(renderer::get_bg_color());
-              canvas.reset_matrix();
-              canvas.scale((scaled, scaled));
-              if let Err(e) = renderer::draw_page(&mut canvas, scaled, messages, 2.2, true) {
-                println!("Failed drawing: {:?}", e);
-              }
-            }
-          }
-          Err(e) => {
-            println!("failed extracting messages: {}", e)
-          }
-        }
+        // Update internal state and request a redraw
+        window.request_redraw();
+        first_paint = false
       }
-
-      // Update internal state and request a redraw
-      // window.request_redraw();
-      first_paint = false
     }
 
     match event {
@@ -190,7 +172,7 @@ pub fn launch_canvas(
         } => {
           println!("DPI scale change {} {:?}", factor, size);
           track_scale.replace(factor as f32);
-          // window.request_redraw();
+          window.request_redraw();
         }
         WindowEvent::CursorMoved { position, .. } => {
           // let scale = track_scale.to_owned().into_inner();
@@ -204,25 +186,8 @@ pub fn launch_canvas(
             if let Err(err) = handler(vec![e]) {
               println!("error in handling event: {}", err);
             } else {
-              match take_drawing_data() {
-                Ok(messages) => {
-                  if !messages.is_empty() {
-                    let mut canvas = env.surface.canvas();
-
-                    canvas.clear(renderer::get_bg_color());
-                    canvas.reset_matrix();
-                    canvas.scale((scaled, scaled));
-                    if let Err(e) = renderer::draw_page(&mut canvas, scaled, messages, 2.2, true) {
-                      println!("Failed drawing: {:?}", e);
-                    }
-                  }
-                }
-                Err(e) => {
-                  println!("failed extracting messages: {}", e)
-                }
-              }
+              window.request_redraw();
             }
-            // window.request_redraw();
           }
         }
         WindowEvent::MouseInput { state, button: _, .. } => {
@@ -235,24 +200,8 @@ pub fn launch_canvas(
           if let Err(err) = handler(vec![event_info]) {
             println!("error in handling event: {}", err);
           } else {
-            match take_drawing_data() {
-              Ok(messages) => {
-                if !messages.is_empty() {
-                  let mut canvas = env.surface.canvas();
-                  canvas.clear(renderer::get_bg_color());
-                  canvas.reset_matrix();
-                  canvas.scale((scaled, scaled));
-                  if let Err(e) = renderer::draw_page(&mut canvas, scaled, messages, 2.2, true) {
-                    println!("Failed drawing: {:?}", e);
-                  }
-                }
-              }
-              Err(e) => {
-                println!("failed extracting messages: {}", e)
-              }
-            }
+            window.request_redraw();
           }
-          // window.request_redraw();
         }
         WindowEvent::KeyboardInput {
           input:
@@ -271,26 +220,9 @@ pub fn launch_canvas(
             for event_info in event_infos {
               if let Err(err) = handler(vec![event_info]) {
                 println!("error in handling event: {}", err);
-              } else {
-                match take_drawing_data() {
-                  Ok(messages) => {
-                    if !messages.is_empty() {
-                      let mut canvas = env.surface.canvas();
-                      canvas.clear(renderer::get_bg_color());
-                      canvas.reset_matrix();
-                      canvas.scale((scaled, scaled));
-                      if let Err(e) = renderer::draw_page(&mut canvas, scaled, messages, 2.2, true) {
-                        println!("Failed drawing: {:?}", e);
-                      }
-                    }
-                  }
-                  Err(e) => {
-                    println!("failed extracting messages: {}", e)
-                  }
-                }
               }
             }
-            // window.request_redraw();
+            window.request_redraw();
           }
         },
         WindowEvent::CloseRequested => {
@@ -307,15 +239,21 @@ pub fn launch_canvas(
         thread::sleep(time::Duration::from_millis(50));
       }
       Event::RedrawRequested(_wid) => {
-        {
-          let mut canvas = env.surface.canvas();
-          canvas.clear(renderer::get_bg_color());
-          canvas.reset_matrix();
-          canvas.scale((scaled, scaled));
-          if let Err(e) = renderer::draw_page(&mut canvas, scaled, vec![], 2.2, true) {
-            println!("Failed drawing: {:?}", e);
+        match take_drawing_data() {
+          Ok(messages) => {
+            let mut canvas = env.surface.canvas();
+            canvas.clear(renderer::get_bg_color());
+            canvas.reset_matrix();
+            canvas.scale((scaled, scaled));
+            if let Err(e) = renderer::draw_page(&mut canvas, scaled, messages, 2.2, true) {
+              println!("Failed drawing: {:?}", e);
+            }
+          }
+          Err(e) => {
+            println!("failed extracting messages: {}", e)
           }
         }
+
         env.surface.flush();
         env.windowed_context.swap_buffers().unwrap();
       }
