@@ -125,6 +125,7 @@ pub fn launch_canvas(
   event_loop.run(move |event, _window_target, control_flow| {
     // println!("Event: {:?}", event);
     *control_flow = ControlFlow::Wait;
+    let scaled = track_scale.clone().into_inner();
 
     if first_paint {
       if let Err(err) = handler(vec![Edn::Nil]) {
@@ -135,7 +136,7 @@ pub fn launch_canvas(
             if !messages.is_empty() {
               let mut canvas = env.surface.canvas();
               canvas.clear(renderer::get_bg_color());
-              if let Err(e) = renderer::draw_page(&mut canvas, messages, 2.2, true) {
+              if let Err(e) = renderer::draw_page(&mut canvas, scaled, messages, 2.2, true) {
                 println!("Failed drawing: {:?}", e);
               }
             }
@@ -158,11 +159,8 @@ pub fn launch_canvas(
           env.windowed_context.resize(physical_size);
           // println!("Window size changed: {:?}", size);
           let scale = track_scale.to_owned().into_inner();
-          // pixels.resize_surface(size.width, size.height);
           let w = physical_size.width as f32 / scale;
           let h = physical_size.height as f32 / scale;
-          // pixels.resize_buffer(w as u32, h as u32);
-          // draw_target = DrawTarget::new(w as i32, h as i32);
           let _e = handlers::handle_resize(w as f64, h as f64).unwrap();
 
           // if let Err(err) = handler(vec![e]) {
@@ -190,7 +188,6 @@ pub fn launch_canvas(
         } => {
           println!("DPI scale change {} {:?}", factor, size);
           track_scale.replace(factor as f32);
-          // pixels.resize_surface(size.width, size.height);
           // window.request_redraw();
         }
         WindowEvent::CursorMoved { position, .. } => {
@@ -210,7 +207,7 @@ pub fn launch_canvas(
                   if !messages.is_empty() {
                     let mut canvas = env.surface.canvas();
                     canvas.clear(renderer::get_bg_color());
-                    if let Err(e) = renderer::draw_page(&mut canvas, messages, 2.2, true) {
+                    if let Err(e) = renderer::draw_page(&mut canvas, scaled, messages, 2.2, true) {
                       println!("Failed drawing: {:?}", e);
                     }
                   }
@@ -238,7 +235,7 @@ pub fn launch_canvas(
                 if !messages.is_empty() {
                   let mut canvas = env.surface.canvas();
                   canvas.clear(renderer::get_bg_color());
-                  if let Err(e) = renderer::draw_page(&mut canvas, messages, 2.2, true) {
+                  if let Err(e) = renderer::draw_page(&mut canvas, scaled, messages, 2.2, true) {
                     println!("Failed drawing: {:?}", e);
                   }
                 }
@@ -273,7 +270,7 @@ pub fn launch_canvas(
                     if !messages.is_empty() {
                       let mut canvas = env.surface.canvas();
                       canvas.clear(renderer::get_bg_color());
-                      if let Err(e) = renderer::draw_page(&mut canvas, messages, 2.2, true) {
+                      if let Err(e) = renderer::draw_page(&mut canvas, scaled, messages, 2.2, true) {
                         println!("Failed drawing: {:?}", e);
                       }
                     }
@@ -304,11 +301,11 @@ pub fn launch_canvas(
         {
           let mut canvas = env.surface.canvas();
           canvas.clear(renderer::get_bg_color());
-          if let Err(e) = renderer::draw_page(&mut canvas, vec![], 2.2, true) {
+          if let Err(e) = renderer::draw_page(&mut canvas, scaled, vec![], 2.2, true) {
             println!("Failed drawing: {:?}", e);
           }
         }
-        env.surface.canvas().flush();
+        env.surface.flush();
         env.windowed_context.swap_buffers().unwrap();
       }
       Event::RedrawEventsCleared => {
@@ -320,8 +317,11 @@ pub fn launch_canvas(
       Event::DeviceEvent { event: _event, .. } => {
         // println!("Device event fired: {:?}", event);
       }
+      Event::NewEvents(_e) => {
+        // println!("New events fired: {:?}", e);
+      }
       e => {
-        println!("unkwnon event: {:?}", e)
+        println!("unknown event: {:?}", e)
       }
     }
   });

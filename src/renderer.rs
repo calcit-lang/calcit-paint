@@ -46,6 +46,7 @@ pub fn get_bg_color() -> Color {
 
 pub fn draw_page(
   canvas: &mut skia_safe::canvas::Canvas,
+  scale: f32,
   base_messages: Vec<(Box<str>, Edn)>,
   cost: f64,
   eager_render: bool,
@@ -70,7 +71,7 @@ pub fn draw_page(
         ("render-canvas!", tree) => {
           shown_shape = true;
           match extract_shape(&tree) {
-            Ok(shape) => draw_shape(canvas, &shape, &Transform::identity())?,
+            Ok(shape) => draw_shape(canvas, &shape, &Transform::identity().then_scale(scale, scale))?,
             Err(failure) => {
               println!("Failed to extract shape: {}", failure)
             }
@@ -358,25 +359,34 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
       }
     }
     Shape::Scale { factor, children } => {
+      canvas.save();
+      canvas.scale((*factor, *factor));
       let t1 = Transform::identity().then_scale(factor.to_owned(), factor.to_owned());
       for child in children {
         draw_shape(canvas, child, &t1.then(tr))?;
       }
+      canvas.restore();
     }
     Shape::Rotate { radius, children } => {
+      canvas.save();
+      canvas.rotate(*radius, None);
       let t1 = Transform::identity().then_rotate(Angle {
         radians: radius.to_owned(),
       });
       for child in children {
         draw_shape(canvas, child, &t1.then(tr))?;
       }
+      canvas.restore();
     }
     Shape::Translate { x, y, children } => {
+      canvas.save();
+      canvas.translate((*x, *y));
       let v = Vector2D::new(x.to_owned(), y.to_owned());
       let t1 = Transform::identity().then_translate(v);
       for child in children {
         draw_shape(canvas, child, &t1.then(tr))?;
       }
+      canvas.restore();
     }
   }
   Ok(())
