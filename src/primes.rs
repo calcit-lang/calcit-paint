@@ -1,7 +1,7 @@
 use cirru_edn::Edn;
 use euclid::{Point2D, Vector2D};
 
-use raqote::{Color, LineCap, LineJoin};
+use skia_safe::Color;
 
 use crate::extracter::load_kwd;
 
@@ -10,6 +10,20 @@ pub enum TextAlign {
   Left,
   Center,
   Right,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum LineJoin {
+  Miter,
+  Round,
+  Bevel,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum LineCap {
+  Butt,
+  Round,
+  Square,
 }
 
 #[derive(Debug, PartialEq, Clone)]

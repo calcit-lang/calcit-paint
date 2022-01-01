@@ -1,9 +1,13 @@
-use raqote::{Color, LineCap, LineJoin};
+// use raqote::{Color, LineCap, LineJoin};
 
 use cirru_edn::Edn;
 use euclid::{Point2D, Vector2D};
 use std::collections::HashMap;
 
+use skia_safe::Color;
+
+use crate::primes::LineCap;
+use crate::primes::LineJoin;
 use crate::{
   color::extract_color,
   primes::{kwd, TextAlign, TouchAreaShape},

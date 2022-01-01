@@ -1,5 +1,5 @@
 use cirru_edn::Edn;
-use raqote::Color;
+use skia_safe::Color;
 
 fn hsl_helper(p: f32, q: f32, t0: f32) -> f32 {
   let mut t = t0;
@@ -25,7 +25,7 @@ fn hsl_to_rgb(h0: f32, s0: f32, l0: f32, alpha: f32) -> Color {
   let s = s0 * 0.01;
   let l = l0 * 0.01;
   if s == 0.0 {
-    Color::new(
+    Color::from_argb(
       (alpha * 256.0).round() as u8,
       (l * 256.0).round() as u8,
       (l * 256.0).round() as u8,
@@ -38,7 +38,7 @@ fn hsl_to_rgb(h0: f32, s0: f32, l0: f32, alpha: f32) -> Color {
     let green = hsl_helper(p, q, hue);
     let blue = hsl_helper(p, q, hue - 1.0 / 3.0);
 
-    Color::new(
+    Color::from_argb(
       (alpha * 256.0).round() as u8,
       (red * 256.0).round() as u8,
       (green * 256.0).round() as u8,
