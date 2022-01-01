@@ -99,6 +99,7 @@ fn draw_cost(canvas: &mut skia_safe::canvas::Canvas, cost: f64) -> Result<(), St
   let text_blob = TextBlob::new(text, &font).unwrap();
 
   let mut paint = Paint::default();
+  paint.set_anti_alias(true);
   paint.set_style(PaintStyle::Fill).set_color(Color::WHITE);
 
   canvas.draw_text_blob(text_blob, (10, 190), &paint);
@@ -121,6 +122,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
 
       if let Some((color, width)) = line_style {
         let mut paint = Paint::default();
+        paint.set_anti_alias(true);
         paint
           .set_style(PaintStyle::Stroke)
           .set_stroke_width(*width)
@@ -132,6 +134,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
       }
       if let Some(color) = fill_style {
         let mut paint = Paint::default();
+        paint.set_anti_alias(true);
         paint.set_style(PaintStyle::Fill).set_color(*color);
 
         canvas.draw_rect(&rect_path, &paint);
@@ -147,6 +150,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
 
       if let Some((color, width)) = line_style {
         let mut paint = Paint::default();
+        paint.set_anti_alias(true);
 
         paint
           .set_style(PaintStyle::Stroke)
@@ -159,6 +163,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
       }
       if let Some(color) = fill_style {
         let mut paint = Paint::default();
+        paint.set_anti_alias(true);
         paint.set_style(PaintStyle::Fill).set_color(*color);
 
         canvas.draw_circle((position.x, position.y), *radius, &paint);
@@ -189,6 +194,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
       let text_blob = TextBlob::new(text, &font).unwrap();
 
       let mut paint = Paint::default();
+      paint.set_anti_alias(true);
       paint.set_style(PaintStyle::Fill).set_color(*color);
 
       canvas.draw_text_blob(text_blob, (text_pos.x, text_pos.y), &paint);
@@ -216,6 +222,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
       path.close();
 
       let mut paint = Paint::default();
+      paint.set_anti_alias(true);
       paint
         .set_style(PaintStyle::Stroke)
         .set_stroke_width(*width)
@@ -240,6 +247,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
 
           if let Some((color, width)) = line_style {
             let mut paint = Paint::default();
+            paint.set_anti_alias(true);
             paint
               .set_style(PaintStyle::Stroke)
               .set_stroke_width(*width)
@@ -251,6 +259,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
           }
           if let Some(color) = fill_style {
             let mut paint = Paint::default();
+            paint.set_anti_alias(true);
             paint.set_style(PaintStyle::Fill).set_color(*color);
 
             canvas.draw_circle((position.x, position.y), *r, &paint);
@@ -268,6 +277,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
 
           if let Some((color, width)) = line_style {
             let mut paint = Paint::default();
+            paint.set_anti_alias(true);
             paint
               .set_style(PaintStyle::Stroke)
               .set_stroke_width(*width)
@@ -279,6 +289,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
           }
           if let Some(color) = fill_style {
             let mut paint = Paint::default();
+            paint.set_anti_alias(true);
             paint.set_style(PaintStyle::Fill).set_color(*color);
 
             canvas.draw_rect(&rect_path, &paint);
@@ -341,6 +352,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
 
       if let Some((color, width)) = line_style {
         let mut paint = Paint::default();
+        paint.set_anti_alias(true);
         paint
           .set_style(PaintStyle::Stroke)
           .set_stroke_width(*width)
@@ -353,6 +365,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
 
       if let Some(color) = fill_style {
         let mut paint = Paint::default();
+        paint.set_anti_alias(true);
         paint.set_style(PaintStyle::Fill).set_color(*color);
 
         canvas.draw_path(&path, &paint);

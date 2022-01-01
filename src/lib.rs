@@ -136,6 +136,8 @@ pub fn launch_canvas(
             if !messages.is_empty() {
               let mut canvas = env.surface.canvas();
               canvas.clear(renderer::get_bg_color());
+              canvas.reset_matrix();
+              canvas.scale((scaled, scaled));
               if let Err(e) = renderer::draw_page(&mut canvas, scaled, messages, 2.2, true) {
                 println!("Failed drawing: {:?}", e);
               }
@@ -206,7 +208,10 @@ pub fn launch_canvas(
                 Ok(messages) => {
                   if !messages.is_empty() {
                     let mut canvas = env.surface.canvas();
+
                     canvas.clear(renderer::get_bg_color());
+                    canvas.reset_matrix();
+                    canvas.scale((scaled, scaled));
                     if let Err(e) = renderer::draw_page(&mut canvas, scaled, messages, 2.2, true) {
                       println!("Failed drawing: {:?}", e);
                     }
@@ -235,6 +240,8 @@ pub fn launch_canvas(
                 if !messages.is_empty() {
                   let mut canvas = env.surface.canvas();
                   canvas.clear(renderer::get_bg_color());
+                  canvas.reset_matrix();
+                  canvas.scale((scaled, scaled));
                   if let Err(e) = renderer::draw_page(&mut canvas, scaled, messages, 2.2, true) {
                     println!("Failed drawing: {:?}", e);
                   }
@@ -270,6 +277,8 @@ pub fn launch_canvas(
                     if !messages.is_empty() {
                       let mut canvas = env.surface.canvas();
                       canvas.clear(renderer::get_bg_color());
+                      canvas.reset_matrix();
+                      canvas.scale((scaled, scaled));
                       if let Err(e) = renderer::draw_page(&mut canvas, scaled, messages, 2.2, true) {
                         println!("Failed drawing: {:?}", e);
                       }
@@ -301,6 +310,8 @@ pub fn launch_canvas(
         {
           let mut canvas = env.surface.canvas();
           canvas.clear(renderer::get_bg_color());
+          canvas.reset_matrix();
+          canvas.scale((scaled, scaled));
           if let Err(e) = renderer::draw_page(&mut canvas, scaled, vec![], 2.2, true) {
             println!("Failed drawing: {:?}", e);
           }
