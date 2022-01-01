@@ -4,7 +4,7 @@ resolver = "2"
 
 [package]
 name = "calcit_paint"
-version = "0.0.3"
+version = "0.0.4-a1"
 authors = ["jiyinyiyong <jiyinyiyong@gmail.com>"]
 edition = "2018"
 exclude = ["resources", "!SourceCodePro-Medium.ttf"]
