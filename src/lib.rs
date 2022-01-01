@@ -32,7 +32,7 @@ use gl_rs as gl;
 use glutin::GlProfile;
 use skia_safe::{
   gpu::{gl::FramebufferInfo, BackendRenderTarget, SurfaceOrigin},
-  Color, ColorType, Surface,
+  ColorType, Surface,
 };
 
 type WindowedContext = glutin::ContextWrapper<glutin::PossiblyCurrent, glutin::window::Window>;
@@ -120,7 +120,7 @@ pub fn launch_canvas(
 
   let mut first_paint = true;
   let track_mouse = RefCell::new(Vector2D::new(0.0, 0.0));
-  // let track_scale: RefCell<f32> = RefCell::new(wb.scale_factor() as f32);
+  let track_scale: RefCell<f32> = RefCell::new(sf);
   // Handle events. Refer to `winit` docs for more information.
   event_loop.run(move |event, _window_target, control_flow| {
     // println!("Event: {:?}", event);
@@ -155,15 +155,15 @@ pub fn launch_canvas(
       Event::WindowEvent { event, .. } => match event {
         WindowEvent::Resized(physical_size) => {
           env.surface = create_surface(&env.windowed_context, &fb_info, &mut env.gr_context);
-          env.windowed_context.resize(physical_size)
+          env.windowed_context.resize(physical_size);
           // println!("Window size changed: {:?}", size);
-          // let scale = track_scale.to_owned().into_inner();
+          let scale = track_scale.to_owned().into_inner();
           // pixels.resize_surface(size.width, size.height);
-          // let w = size.width as f32 / scale;
-          // let h = size.height as f32 / scale;
+          let w = physical_size.width as f32 / scale;
+          let h = physical_size.height as f32 / scale;
           // pixels.resize_buffer(w as u32, h as u32);
           // draw_target = DrawTarget::new(w as i32, h as i32);
-          // let e = handlers::handle_resize(w as f64, h as f64).unwrap();
+          let _e = handlers::handle_resize(w as f64, h as f64).unwrap();
 
           // if let Err(err) = handler(vec![e]) {
           //   println!("error in handling event: {}", err);
@@ -189,7 +189,7 @@ pub fn launch_canvas(
           new_inner_size: size,
         } => {
           println!("DPI scale change {} {:?}", factor, size);
-          // track_scale.replace(factor as f32);
+          track_scale.replace(factor as f32);
           // pixels.resize_surface(size.width, size.height);
           // window.request_redraw();
         }

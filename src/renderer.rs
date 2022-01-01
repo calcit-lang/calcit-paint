@@ -93,25 +93,14 @@ pub fn draw_page(
 }
 
 fn draw_cost(canvas: &mut skia_safe::canvas::Canvas, cost: f64) -> Result<(), String> {
-  // let font = SystemSource::new()
-  //   .select_best_match(&[FamilyName::SansSerif], &Properties::new())
-  //   .unwrap()
-  //   .load()
-  //   .unwrap();
+  let text = format!("{}ms", cost);
+  let font = Font::new(Typeface::default(), Some(14.0));
+  let text_blob = TextBlob::new(text, &font).unwrap();
 
-  // canvas.draw_text(
-  //   &font,
-  //   14.,
-  //   &format!("{}ms", cost),
-  //   Point::new(10., 190.),
-  //   &Source::Solid(SolidSource {
-  //     r: 0xff,
-  //     g: 0xff,
-  //     b: 0xff,
-  //     a: 0xff,
-  //   }),
-  //   &DrawOptions::new(),
-  // );
+  let mut paint = Paint::default();
+  paint.set_style(PaintStyle::Fill).set_color(Color::WHITE);
+
+  canvas.draw_text_blob(text_blob, (10, 190), &paint);
 
   Ok(())
 }
