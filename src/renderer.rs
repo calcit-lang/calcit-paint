@@ -3,16 +3,19 @@ use std::sync::RwLock;
 
 use euclid::{Angle, Point2D, Vector2D};
 
-use font_kit::family_name::FamilyName;
-use font_kit::properties::Properties;
-use font_kit::source::SystemSource;
-
 use cirru_edn::Edn;
+
+use lazy_static::lazy_static;
 
 type Transform = euclid::default::Transform2D<f32>;
 
 use skia_safe::paint::{Cap, Join};
-use skia_safe::{Color, Font, Paint, PaintStyle, Path, Point, Rect, TextBlob, Typeface};
+use skia_safe::{Color, Font, Paint, PaintStyle, Path, Rect, TextBlob, Typeface};
+
+lazy_static! {
+  static ref PREV_MESSAGES: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
+  static ref BG_COLOR: RwLock<Color> = RwLock::new(Color::BLACK);
+}
 
 use crate::{
   color::extract_color,
@@ -21,26 +24,24 @@ use crate::{
     read_line_cap, read_line_join, read_points, read_position, read_some_color, read_string, read_text_align,
   },
   key_listener,
-  primes::{LineCap, LineJoin, PaintPathTo, Shape, TouchAreaShape},
+  primes::{PaintPathTo, Shape, TouchAreaShape},
 };
 
 // TODO Stack
 
-pub fn reset_page(canvas: &mut skia_safe::canvas::Canvas, color: Color) -> Result<(), String> {
+pub fn reset_page(_canvas: &mut skia_safe::canvas::Canvas, color: Color) -> Result<(), String> {
   touches::reset_touches_stack();
   key_listener::reset_listeners_stack();
-  // canvas.clear(SolidSource {
-  //   r: color.r(),
-  //   g: color.g(),
-  //   b: color.b(),
-  //   a: color.a(),
-  // });
-  println!("TODO reset page color");
+
+  let mut c = BG_COLOR.write().unwrap();
+  *c = color;
+
   Ok(())
 }
 
-lazy_static! {
-  static ref PREV_MESSAGES: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
+pub fn get_bg_color() -> Color {
+  let c = BG_COLOR.read().unwrap();
+  c.to_owned()
 }
 
 pub fn draw_page(
@@ -115,15 +116,6 @@ fn draw_cost(canvas: &mut skia_safe::canvas::Canvas, cost: f64) -> Result<(), St
   Ok(())
 }
 
-// fn turn_color_source(color: &Color) -> Source {
-//   Source::Solid(SolidSource::from_unpremultiplied_argb(
-//     color.a(),
-//     color.r(),
-//     color.g(),
-//     color.b(),
-//   ))
-// }
-
 fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) -> Result<(), String> {
   match tree {
     Shape::Rectangle {
@@ -133,7 +125,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
       line_style,
       fill_style,
     } => {
-      let mut rect_path = Rect::from_xywh(position.x, position.y, *width, *height);
+      let rect_path = Rect::from_xywh(position.x, position.y, *width, *height);
 
       // canvas.set_transform(tr);
 
@@ -144,17 +136,13 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
           .set_stroke_width(*width)
           .set_stroke_cap(Cap::Round)
           .set_stroke_join(Join::Round)
-          .set_color(0x_ff_ff_ff_ff);
-        // .set_color(color.into());
+          .set_color(*color);
 
         canvas.draw_rect(&rect_path, &paint);
       }
       if let Some(color) = fill_style {
         let mut paint = Paint::default();
-        paint
-          .set_style(PaintStyle::Fill)
-          // .set_color(color.into())
-          .set_color(0x_ff_ff_ff_ff);
+        paint.set_style(PaintStyle::Fill).set_color(*color);
 
         canvas.draw_rect(&rect_path, &paint);
       }
@@ -175,17 +163,13 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
           .set_stroke_width(*width)
           .set_stroke_cap(Cap::Round)
           .set_stroke_join(Join::Round)
-          // .set_color(color.into())
-          .set_color(0x_ff_ff_ff_ff);
+          .set_color(*color);
 
         canvas.draw_circle((position.x, position.y), *radius, &paint);
       }
       if let Some(color) = fill_style {
         let mut paint = Paint::default();
-        paint
-          .set_style(PaintStyle::Fill)
-          // .set_color(color.into())
-          .set_color(0x_ff_ff_ff_ff);
+        paint.set_style(PaintStyle::Fill).set_color(*color);
 
         canvas.draw_circle((position.x, position.y), *radius, &paint);
       }
@@ -215,10 +199,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
       let text_blob = TextBlob::new(text, &font).unwrap();
 
       let mut paint = Paint::default();
-      paint
-        .set_style(PaintStyle::Fill)
-        // .set_color(color.into())
-        .set_color(0x_ff_ff_ff_ff);
+      paint.set_style(PaintStyle::Fill).set_color(*color);
 
       canvas.draw_text_blob(text_blob, (text_pos.x, text_pos.y), &paint);
     }
@@ -248,10 +229,9 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
       paint
         .set_style(PaintStyle::Stroke)
         .set_stroke_width(*width)
-        .set_stroke_cap(Cap::Round)
-        .set_stroke_join(Join::Round)
-        // .set_color(color.into())
-        .set_color(0x_ff_ff_ff_ff);
+        .set_stroke_cap(*cap)
+        .set_stroke_join(*join)
+        .set_color(*color);
 
       canvas.draw_path(&path, &paint);
     }
@@ -275,15 +255,13 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
               .set_stroke_width(*width)
               .set_stroke_cap(Cap::Round)
               .set_stroke_join(Join::Round)
-              // .set_color(color.into());
-              .set_color(0x_ff_ff_ff_ff);
+              .set_color(*color);
 
             canvas.draw_circle((position.x, position.y), *r, &paint);
           }
           if let Some(color) = fill_style {
             let mut paint = Paint::default();
-            paint.set_style(PaintStyle::Fill).set_color(0x_ff_ff_ff_ff);
-            // set_color(color.into());
+            paint.set_style(PaintStyle::Fill).set_color(*color);
 
             canvas.draw_circle((position.x, position.y), *r, &paint);
           }
@@ -305,17 +283,13 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
               .set_stroke_width(*width)
               .set_stroke_cap(Cap::Round)
               .set_stroke_join(Join::Round)
-              // .set_color(color.into());
-              .set_color(0x_ff_ff_ff_ff);
+              .set_color(*color);
 
             canvas.draw_rect(&rect_path, &paint);
           }
           if let Some(color) = fill_style {
             let mut paint = Paint::default();
-            paint
-              .set_style(PaintStyle::Fill)
-              // .set_color(color.into());
-              .set_color(0x_ff_ff_ff_ff);
+            paint.set_style(PaintStyle::Fill).set_color(*color);
 
             canvas.draw_rect(&rect_path, &paint);
           }
@@ -382,18 +356,15 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
           .set_stroke_width(*width)
           .set_stroke_cap(Cap::Round)
           .set_stroke_join(Join::Round)
-          // .set_color(color.into());
-          .set_color(0x_ff_ff_ff_ff);
+          .set_color(*color);
 
         canvas.draw_path(&path, &paint);
       }
 
       if let Some(color) = fill_style {
         let mut paint = Paint::default();
-        paint
-          .set_style(PaintStyle::Fill)
-          // .set_color(color.into());
-          .set_color(0x_ff_ff_ff_ff);
+        paint.set_style(PaintStyle::Fill).set_color(*color);
+
         canvas.draw_path(&path, &paint);
       }
     }

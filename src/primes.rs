@@ -1,7 +1,10 @@
 use cirru_edn::Edn;
 use euclid::{Point2D, Vector2D};
 
-use skia_safe::Color;
+use skia_safe::{
+  paint::{Cap, Join},
+  Color,
+};
 
 use crate::extracter::load_kwd;
 
@@ -10,20 +13,6 @@ pub enum TextAlign {
   Left,
   Center,
   Right,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum LineJoin {
-  Miter,
-  Round,
-  Bevel,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum LineCap {
-  Butt,
-  Round,
-  Square,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -82,8 +71,8 @@ pub enum Shape {
     skip_first: bool,
     color: Color,
     width: f32,
-    join: LineJoin,
-    cap: LineCap,
+    join: Join,
+    cap: Cap,
   },
   TouchArea {
     path: Box<Edn>,

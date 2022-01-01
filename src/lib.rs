@@ -21,6 +21,7 @@ use std::{thread, time};
 
 use cirru_edn::Edn;
 
+use winit::dpi::LogicalSize;
 use winit::event::Event;
 use winit::event::WindowEvent;
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -51,7 +52,7 @@ lazy_static! {
 
 #[no_mangle]
 pub fn launch_canvas(
-  args: Vec<Edn>,
+  _args: Vec<Edn>,
   handler: Arc<dyn Fn(Vec<Edn>) -> Result<Edn, String> + Send + Sync + 'static>,
   _finish: Box<dyn FnOnce() + Send + Sync + 'static>,
 ) -> Result<Edn, String> {
@@ -63,7 +64,12 @@ pub fn launch_canvas(
   println!("\nRunner: in watch mode...\n");
 
   let el = EventLoop::new();
-  let wb = WindowBuilder::new().with_title("rust-skia-gl-window");
+
+  let area_size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+
+  let wb = WindowBuilder::new()
+    .with_inner_size(area_size)
+    .with_title("Calcit Paint");
 
   let cb = glutin::ContextBuilder::new()
     .with_depth_buffer(0)
@@ -94,21 +100,21 @@ pub fn launch_canvas(
     }
   };
 
-  windowed_context
-    .window()
-    .set_inner_size(glutin::dpi::Size::new(glutin::dpi::LogicalSize::new(1024.0, 1024.0)));
+  // windowed_context
+  //   .window()
+  //   .set_inner_size(glutin::dpi::Size::new(glutin::dpi::LogicalSize::new(WIDTH, HEIGHT)));
 
   let surface = create_surface(&windowed_context, &fb_info, &mut gr_context);
-  // let sf = windowed_context.window().scale_factor() as f32;
-  // surface.canvas().scale((sf, sf));
-
-  let mut frame = 0;
+  let sf = windowed_context.window().scale_factor() as f32;
 
   let mut env = Env {
     surface,
     gr_context,
     windowed_context,
   };
+
+  let canvas = env.surface.canvas();
+  canvas.scale((sf, sf));
 
   let event_loop = EventLoop::new();
 
@@ -125,14 +131,13 @@ pub fn launch_canvas(
         println!("error in handling event: {}", err);
       } else {
         match take_drawing_data() {
-          Ok(None) => {
-            // nothing
-          }
-          Ok(Some(messages)) => {
-            let mut canvas = env.surface.canvas();
-            canvas.clear(Color::BLACK);
-            if let Err(e) = renderer::draw_page(&mut canvas, messages, 2.2, true) {
-              println!("Failed drawing: {:?}", e);
+          Ok(messages) => {
+            if !messages.is_empty() {
+              let mut canvas = env.surface.canvas();
+              canvas.clear(renderer::get_bg_color());
+              if let Err(e) = renderer::draw_page(&mut canvas, messages, 2.2, true) {
+                println!("Failed drawing: {:?}", e);
+              }
             }
           }
           Err(e) => {
@@ -201,14 +206,13 @@ pub fn launch_canvas(
               println!("error in handling event: {}", err);
             } else {
               match take_drawing_data() {
-                Ok(None) => {
-                  // nothing
-                }
-                Ok(Some(messages)) => {
-                  let mut canvas = env.surface.canvas();
-                  canvas.clear(Color::BLACK);
-                  if let Err(e) = renderer::draw_page(&mut canvas, messages, 2.2, true) {
-                    println!("Failed drawing: {:?}", e);
+                Ok(messages) => {
+                  if !messages.is_empty() {
+                    let mut canvas = env.surface.canvas();
+                    canvas.clear(renderer::get_bg_color());
+                    if let Err(e) = renderer::draw_page(&mut canvas, messages, 2.2, true) {
+                      println!("Failed drawing: {:?}", e);
+                    }
                   }
                 }
                 Err(e) => {
@@ -230,14 +234,13 @@ pub fn launch_canvas(
             println!("error in handling event: {}", err);
           } else {
             match take_drawing_data() {
-              Ok(None) => {
-                // nothing
-              }
-              Ok(Some(messages)) => {
-                let mut canvas = env.surface.canvas();
-                canvas.clear(Color::BLACK);
-                if let Err(e) = renderer::draw_page(&mut canvas, messages, 2.2, true) {
-                  println!("Failed drawing: {:?}", e);
+              Ok(messages) => {
+                if !messages.is_empty() {
+                  let mut canvas = env.surface.canvas();
+                  canvas.clear(renderer::get_bg_color());
+                  if let Err(e) = renderer::draw_page(&mut canvas, messages, 2.2, true) {
+                    println!("Failed drawing: {:?}", e);
+                  }
                 }
               }
               Err(e) => {
@@ -266,14 +269,13 @@ pub fn launch_canvas(
                 println!("error in handling event: {}", err);
               } else {
                 match take_drawing_data() {
-                  Ok(None) => {
-                    // nothing
-                  }
-                  Ok(Some(messages)) => {
-                    let mut canvas = env.surface.canvas();
-                    canvas.clear(Color::BLACK);
-                    if let Err(e) = renderer::draw_page(&mut canvas, messages, 2.2, true) {
-                      println!("Failed drawing: {:?}", e);
+                  Ok(messages) => {
+                    if !messages.is_empty() {
+                      let mut canvas = env.surface.canvas();
+                      canvas.clear(renderer::get_bg_color());
+                      if let Err(e) = renderer::draw_page(&mut canvas, messages, 2.2, true) {
+                        println!("Failed drawing: {:?}", e);
+                      }
                     }
                   }
                   Err(e) => {
@@ -301,8 +303,10 @@ pub fn launch_canvas(
       Event::RedrawRequested(_wid) => {
         {
           let mut canvas = env.surface.canvas();
-          canvas.clear(Color::BLACK);
-          renderer::draw_page(&mut canvas, vec![], 2.2, true);
+          canvas.clear(renderer::get_bg_color());
+          if let Err(e) = renderer::draw_page(&mut canvas, vec![], 2.2, true) {
+            println!("Failed drawing: {:?}", e);
+          }
         }
         env.surface.canvas().flush();
         env.windowed_context.swap_buffers().unwrap();
@@ -323,18 +327,18 @@ pub fn launch_canvas(
   });
 }
 
-fn take_drawing_data() -> Result<Option<Vec<(Box<str>, Edn)>>, String> {
+fn take_drawing_data() -> Result<Vec<(Box<str>, Edn)>, String> {
   let mut m = NEXT_DRAWING_DATA.write().unwrap();
   let ret = m.to_owned();
   *m = vec![];
   if ret.is_empty() {
-    Ok(None)
+    Ok(vec![])
   } else {
     let mut ys: Vec<(Box<str>, Edn)> = vec![];
     for (op, data) in ret {
       ys.push((op.to_owned(), data.to_owned()));
     }
-    Ok(Some(ys))
+    Ok(ys)
   }
 }
 

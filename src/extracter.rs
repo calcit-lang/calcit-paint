@@ -1,13 +1,12 @@
-// use raqote::{Color, LineCap, LineJoin};
+// use raqote::{Color, Cap, LineJoin};
 
 use cirru_edn::Edn;
 use euclid::{Point2D, Vector2D};
 use std::collections::HashMap;
 
+use skia_safe::paint::{Cap, Join};
 use skia_safe::Color;
 
-use crate::primes::LineCap;
-use crate::primes::LineJoin;
 use crate::{
   color::extract_color,
   primes::{kwd, TextAlign, TouchAreaShape},
@@ -124,13 +123,13 @@ pub fn read_text_align(tree: &HashMap<Edn, Edn>, key: &str) -> Result<TextAlign,
   }
 }
 
-pub fn read_line_join(tree: &HashMap<Edn, Edn>, key: &str) -> Result<LineJoin, String> {
+pub fn read_line_join(tree: &HashMap<Edn, Edn>, key: &str) -> Result<Join, String> {
   match tree.get(&load_kwd(key)) {
     Some(Edn::Keyword(k)) => match &*k.to_str() {
-      "round" => Ok(LineJoin::Round),
-      "miter" => Ok(LineJoin::Miter),
-      // "miter-clip" => Ok(LineJoin::MiterClip),
-      "bevel" => Ok(LineJoin::Bevel),
+      "round" => Ok(Join::Round),
+      "miter" => Ok(Join::Miter),
+      // "miter-clip" => Ok(Join::MiterClip),
+      "bevel" => Ok(Join::Bevel),
       _ => Err(format!("unknown align value: {}", k)),
     },
     Some(a) => Err(format!("invalid text align: {}", a)),
@@ -138,12 +137,12 @@ pub fn read_line_join(tree: &HashMap<Edn, Edn>, key: &str) -> Result<LineJoin, S
   }
 }
 
-pub fn read_line_cap(tree: &HashMap<Edn, Edn>, key: &str) -> Result<LineCap, String> {
+pub fn read_line_cap(tree: &HashMap<Edn, Edn>, key: &str) -> Result<Cap, String> {
   match tree.get(&load_kwd(key)) {
     Some(Edn::Keyword(k)) => match &*k.to_str() {
-      "round" => Ok(LineCap::Round),
-      "butt" => Ok(LineCap::Butt),
-      "square" => Ok(LineCap::Square),
+      "round" => Ok(Cap::Round),
+      "butt" => Ok(Cap::Butt),
+      "square" => Ok(Cap::Square),
       _ => Err(format!("unknown align value: {}", k)),
     },
     Some(a) => Err(format!("invalid text align: {}", a)),
