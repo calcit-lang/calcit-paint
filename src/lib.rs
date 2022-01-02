@@ -176,9 +176,8 @@ pub fn launch_canvas(
         }
         WindowEvent::CursorMoved { position, .. } => {
           // let scale = track_scale.to_owned().into_inner();
-          let scale = 1.0;
           let event_info = handlers::handle_mouse_move(
-            Vector2D::new((position.x as f32) / scale, (position.y as f32) / scale),
+            Vector2D::new(position.x as f32 / scaled, position.y as f32 / scaled),
             &track_mouse,
           );
 
@@ -245,7 +244,7 @@ pub fn launch_canvas(
             canvas.clear(renderer::get_bg_color());
             canvas.reset_matrix();
             canvas.scale((scaled, scaled));
-            if let Err(e) = renderer::draw_page(&mut canvas, scaled, messages, 2.2, true) {
+            if let Err(e) = renderer::draw_page(&mut canvas, messages, 2.2, true) {
               println!("Failed drawing: {:?}", e);
             }
           }

@@ -1,7 +1,7 @@
 use crate::touches;
 use std::sync::RwLock;
 
-use euclid::{Angle, Point2D, Vector2D};
+use euclid::{Angle, Vector2D};
 
 use cirru_edn::Edn;
 
@@ -46,7 +46,6 @@ pub fn get_bg_color() -> Color {
 
 pub fn draw_page(
   canvas: &mut skia_safe::canvas::Canvas,
-  scale: f32,
   base_messages: Vec<(Box<str>, Edn)>,
   cost: f64,
   eager_render: bool,
@@ -71,7 +70,7 @@ pub fn draw_page(
         ("render-canvas!", tree) => {
           shown_shape = true;
           match extract_shape(&tree) {
-            Ok(shape) => draw_shape(canvas, &shape, &Transform::identity().then_scale(scale, scale))?,
+            Ok(shape) => draw_shape(canvas, &shape, &Transform::identity())?,
             Err(failure) => {
               println!("Failed to extract shape: {}", failure)
             }
@@ -170,11 +169,14 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
       }
     }
     Shape::Group { position, children } => {
+      canvas.save();
+      let pos = Vector2D::new(position.x, position.y);
+      canvas.translate((pos.x, pos.y));
       for child in children {
-        let pos = Vector2D::new(position.x, position.y);
         let t1 = Transform::identity().then_translate(pos);
         draw_shape(canvas, child, &t1.then(tr))?;
       }
+      canvas.restore();
     }
     Shape::Text {
       text,
@@ -187,7 +189,6 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
       // canvas.set_transform(tr);
       // https://github.com/jrmuizel/raqote/issues/179
       // for now we have to by pass bug in text rendering
-      let text_pos = tr.transform_point(Point2D::new(position.x, position.y));
       // canvas.set_transform(&Transform::identity());
 
       let font = Font::new(Typeface::default(), *size);
@@ -197,7 +198,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
       paint.set_anti_alias(true);
       paint.set_style(PaintStyle::Fill).set_color(*color);
 
-      canvas.draw_text_blob(text_blob, (text_pos.x, text_pos.y), &paint);
+      canvas.draw_text_blob(text_blob, (position.x, position.y), &paint);
     }
     Shape::Polyline {
       position,
