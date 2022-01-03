@@ -2,7 +2,7 @@
 {} (:package |calcit-paint)
   :configs $ {} (:init-fn |calcit-paint.main/main!) (:reload-fn |calcit-paint.main/reload!)
     :modules $ []
-    :version |0.0.3
+    :version |0.0.4-a1
   :entries $ {}
   :files $ {}
     |calcit-paint.core $ {}
@@ -41,13 +41,13 @@
                   :radius 40
                   :fill-color $ [] 0 80 70
                 {} (:type :text) (:text "\"Demo")
-                  :position $ [] 200 100
+                  :position $ [] 140 40
                   :color $ [] 0 80 100
                   :size 40
                   :weight "\"300"
                   :align :center
                 {} (:type :polyline)
-                  :position $ [] 400 200
+                  :position $ [] 480 200
                   :color $ [] 0 0 100 1
                   :skip-first? true
                   :width 2
@@ -67,8 +67,8 @@
                 {} (:type :ops)
                   :path $ [][]
                     :move-to $ [] 200 300
-                    :line-to $ [] 240 300
-                    :bezier3-to ([] 400 200) ([] 200 400) ([] 300 400)
+                    :line-to $ [] 240 340
+                    :bezier3-to ([] 400 260) ([] 200 400) ([] 300 400)
                   :line-color $ [] 200 80 80
                   :line-width 4
                 {} (:type :translate) (:x 200) (:y 200)

@@ -2,9 +2,10 @@ use std::sync::RwLock;
 
 use cirru_edn::Edn;
 use euclid::{Point2D, Vector2D};
-use raqote::Transform;
 
 use crate::primes::TouchAreaShape;
+
+pub type Transform = euclid::default::Transform2D<f32>;
 
 lazy_static! {
   static ref TOUCH_ITEMS_STACK: RwLock<Vec<TouchArea>> = RwLock::new(vec![]);

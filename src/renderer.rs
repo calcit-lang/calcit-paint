@@ -1,17 +1,21 @@
 use crate::touches;
 use std::sync::RwLock;
 
-use euclid::{Angle, Point2D, Vector2D};
-
-use font_kit::family_name::FamilyName;
-use font_kit::properties::Properties;
-use font_kit::source::SystemSource;
+use euclid::{Angle, Vector2D};
 
 use cirru_edn::Edn;
 
-use raqote::{
-  Color, DrawOptions, DrawTarget, LineCap, LineJoin, PathBuilder, Point, SolidSource, Source, StrokeStyle, Transform,
-};
+use lazy_static::lazy_static;
+
+type Transform = euclid::default::Transform2D<f32>;
+
+use skia_safe::paint::{Cap, Join};
+use skia_safe::{Color, Font, Paint, PaintStyle, Path, Rect, TextBlob, Typeface};
+
+lazy_static! {
+  static ref PREV_MESSAGES: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
+  static ref BG_COLOR: RwLock<Color> = RwLock::new(Color::BLACK);
+}
 
 use crate::{
   color::extract_color,
@@ -25,24 +29,23 @@ use crate::{
 
 // TODO Stack
 
-pub fn reset_page(draw_target: &mut DrawTarget, color: Color) -> Result<(), String> {
+pub fn reset_page(_canvas: &mut skia_safe::canvas::Canvas, color: Color) -> Result<(), String> {
   touches::reset_touches_stack();
   key_listener::reset_listeners_stack();
-  draw_target.clear(SolidSource {
-    r: color.r(),
-    g: color.g(),
-    b: color.b(),
-    a: color.a(),
-  });
+
+  let mut c = BG_COLOR.write().unwrap();
+  *c = color;
+
   Ok(())
 }
 
-lazy_static! {
-  static ref PREV_MESSAGES: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
+pub fn get_bg_color() -> Color {
+  let c = BG_COLOR.read().unwrap();
+  c.to_owned()
 }
 
 pub fn draw_page(
-  draw_target: &mut DrawTarget,
+  canvas: &mut skia_safe::canvas::Canvas,
   base_messages: Vec<(Box<str>, Edn)>,
   cost: f64,
   eager_render: bool,
@@ -67,20 +70,20 @@ pub fn draw_page(
         ("render-canvas!", tree) => {
           shown_shape = true;
           match extract_shape(&tree) {
-            Ok(shape) => draw_shape(draw_target, &shape, &Transform::identity())?,
+            Ok(shape) => draw_shape(canvas, &shape, &Transform::identity())?,
             Err(failure) => {
               println!("Failed to extract shape: {}", failure)
             }
           }
         }
         ("reset-canvas!", tree) => {
-          reset_page(draw_target, extract_color(&tree)?)?;
+          reset_page(canvas, extract_color(&tree)?)?;
         }
         _ => println!("Unknown op: {}", call_op),
       }
     }
     if shown_shape {
-      draw_cost(draw_target, cost)
+      draw_cost(canvas, cost)
     } else {
       Ok(())
     }
@@ -89,40 +92,21 @@ pub fn draw_page(
   }
 }
 
-fn draw_cost(draw_target: &mut DrawTarget, cost: f64) -> Result<(), String> {
-  let font = SystemSource::new()
-    .select_best_match(&[FamilyName::SansSerif], &Properties::new())
-    .unwrap()
-    .load()
-    .unwrap();
+fn draw_cost(canvas: &mut skia_safe::canvas::Canvas, cost: f64) -> Result<(), String> {
+  let text = format!("{}ms", cost);
+  let font = Font::new(Typeface::default(), Some(14.0));
+  let text_blob = TextBlob::new(text, &font).unwrap();
 
-  draw_target.draw_text(
-    &font,
-    14.,
-    &format!("{}ms", cost),
-    Point::new(10., 190.),
-    &Source::Solid(SolidSource {
-      r: 0xff,
-      g: 0xff,
-      b: 0xff,
-      a: 0xff,
-    }),
-    &DrawOptions::new(),
-  );
+  let mut paint = Paint::default();
+  paint.set_anti_alias(true);
+  paint.set_style(PaintStyle::Fill).set_color(Color::WHITE);
+
+  canvas.draw_text_blob(text_blob, (10, 190), &paint);
 
   Ok(())
 }
 
-fn turn_color_source(color: &Color) -> Source {
-  Source::Solid(SolidSource::from_unpremultiplied_argb(
-    color.a(),
-    color.r(),
-    color.g(),
-    color.b(),
-  ))
-}
-
-fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Result<(), String> {
+fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) -> Result<(), String> {
   match tree {
     Shape::Rectangle {
       position,
@@ -131,29 +115,28 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
       line_style,
       fill_style,
     } => {
-      let mut pb = PathBuilder::new();
-      pb.rect(position.x, position.y, *width, *height);
-      let path = pb.finish();
+      let rect_path = Rect::from_xywh(position.x, position.y, *width, *height);
 
-      draw_target.set_transform(tr);
+      // canvas.set_transform(tr);
 
       if let Some((color, width)) = line_style {
-        draw_target.stroke(
-          &path,
-          &turn_color_source(color),
-          &StrokeStyle {
-            cap: LineCap::Round,
-            join: LineJoin::Miter,
-            width: width.to_owned(),
-            miter_limit: 4.,
-            dash_array: Vec::new(),
-            dash_offset: 0.,
-          },
-          &DrawOptions::new(),
-        )
+        let mut paint = Paint::default();
+        paint.set_anti_alias(true);
+        paint
+          .set_style(PaintStyle::Stroke)
+          .set_stroke_width(*width)
+          .set_stroke_cap(Cap::Round)
+          .set_stroke_join(Join::Round)
+          .set_color(*color);
+
+        canvas.draw_rect(&rect_path, &paint);
       }
       if let Some(color) = fill_style {
-        draw_target.fill(&path, &turn_color_source(color), &DrawOptions::new());
+        let mut paint = Paint::default();
+        paint.set_anti_alias(true);
+        paint.set_style(PaintStyle::Fill).set_color(*color);
+
+        canvas.draw_rect(&rect_path, &paint);
       }
     }
     Shape::Circle {
@@ -162,43 +145,38 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
       line_style,
       fill_style,
     } => {
-      let mut pb = PathBuilder::new();
-      pb.arc(
-        position.x,
-        position.y,
-        radius.to_owned(),
-        0.0,
-        2.0 * std::f64::consts::PI as f32,
-      );
-      let path = pb.finish();
-
-      draw_target.set_transform(tr);
+      // canvas.set_transform(tr);
 
       if let Some((color, width)) = line_style {
-        draw_target.stroke(
-          &path,
-          &turn_color_source(color),
-          &StrokeStyle {
-            cap: LineCap::Round,
-            join: LineJoin::Miter,
-            width: width.to_owned(),
-            miter_limit: 4.,
-            dash_array: Vec::new(),
-            dash_offset: 0.,
-          },
-          &DrawOptions::new(),
-        )
+        let mut paint = Paint::default();
+        paint.set_anti_alias(true);
+
+        paint
+          .set_style(PaintStyle::Stroke)
+          .set_stroke_width(*width)
+          .set_stroke_cap(Cap::Round)
+          .set_stroke_join(Join::Round)
+          .set_color(*color);
+
+        canvas.draw_circle((position.x, position.y), *radius, &paint);
       }
       if let Some(color) = fill_style {
-        draw_target.fill(&path, &turn_color_source(color), &DrawOptions::new());
+        let mut paint = Paint::default();
+        paint.set_anti_alias(true);
+        paint.set_style(PaintStyle::Fill).set_color(*color);
+
+        canvas.draw_circle((position.x, position.y), *radius, &paint);
       }
     }
     Shape::Group { position, children } => {
+      canvas.save();
+      let pos = Vector2D::new(position.x, position.y);
+      canvas.translate((pos.x, pos.y));
       for child in children {
-        let pos = Vector2D::new(position.x, position.y);
         let t1 = Transform::identity().then_translate(pos);
-        draw_shape(draw_target, child, &t1.then(tr))?;
+        draw_shape(canvas, child, &t1.then(tr))?;
       }
+      canvas.restore();
     }
     Shape::Text {
       text,
@@ -208,26 +186,19 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
       // weight: _w,
       align: _a,
     } => {
-      // draw_target.set_transform(tr);
+      // canvas.set_transform(tr);
       // https://github.com/jrmuizel/raqote/issues/179
       // for now we have to by pass bug in text rendering
-      let text_pos = tr.transform_point(Point2D::new(position.x, position.y));
-      draw_target.set_transform(&Transform::identity());
+      // canvas.set_transform(&Transform::identity());
 
-      let font = SystemSource::new()
-        .select_best_match(&[FamilyName::SansSerif], &Properties::new())
-        .unwrap()
-        .load()
-        .unwrap();
+      let font = Font::new(Typeface::default(), *size);
+      let text_blob = TextBlob::new(text, &font).unwrap();
 
-      draw_target.draw_text(
-        &font,
-        size.to_owned(),
-        &text.to_owned(),
-        Point::new(text_pos.x, text_pos.y),
-        &turn_color_source(color),
-        &DrawOptions::new(),
-      );
+      let mut paint = Paint::default();
+      paint.set_anti_alias(true);
+      paint.set_style(PaintStyle::Fill).set_color(*color);
+
+      canvas.draw_text_blob(text_blob, (position.x, position.y), &paint);
     }
     Shape::Polyline {
       position,
@@ -238,32 +209,29 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
       cap,
       skip_first,
     } => {
-      let mut pb = PathBuilder::new();
-      draw_target.set_transform(tr);
+      let mut path = Path::default();
+      // canvas.set_transform(tr);
 
       if *skip_first && !stops.is_empty() {
-        pb.move_to(position.x + stops[0].x, position.y + stops[0].y);
+        path.move_to((position.x + stops[0].x, position.y + stops[0].y));
       } else {
-        pb.move_to(position.x, position.y);
+        path.move_to((position.x, position.y));
       }
       for stop in stops {
-        pb.line_to(position.x + stop.x, position.y + stop.y);
+        path.line_to((position.x + stop.x, position.y + stop.y));
       }
-      let path = pb.finish();
+      path.close();
 
-      draw_target.stroke(
-        &path,
-        &turn_color_source(color),
-        &StrokeStyle {
-          cap: cap.to_owned(),
-          join: join.to_owned(),
-          width: width.to_owned(),
-          miter_limit: 4.,
-          dash_array: Vec::new(),
-          dash_offset: 0.,
-        },
-        &DrawOptions::new(),
-      );
+      let mut paint = Paint::default();
+      paint.set_anti_alias(true);
+      paint
+        .set_style(PaintStyle::Stroke)
+        .set_stroke_width(*width)
+        .set_stroke_cap(*cap)
+        .set_stroke_join(*join)
+        .set_color(*color);
+
+      canvas.draw_path(&path, &paint);
     }
     Shape::TouchArea {
       position,
@@ -276,64 +244,56 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
     } => {
       match area {
         TouchAreaShape::Circle(r) => {
-          let mut pb = PathBuilder::new();
-          pb.arc(
-            position.x,
-            position.y,
-            r.to_owned(),
-            0.0,
-            2.0 * std::f64::consts::PI as f32,
-          );
-          let path = pb.finish();
-          draw_target.set_transform(tr);
+          // canvas.set_transform(tr);
 
           if let Some((color, width)) = line_style {
-            draw_target.stroke(
-              &path,
-              &turn_color_source(color),
-              &StrokeStyle {
-                cap: LineCap::Round,
-                join: LineJoin::Miter,
-                width: width.to_owned(),
-                miter_limit: 4.,
-                dash_array: Vec::new(),
-                dash_offset: 0.,
-              },
-              &DrawOptions::new(),
-            );
+            let mut paint = Paint::default();
+            paint.set_anti_alias(true);
+            paint
+              .set_style(PaintStyle::Stroke)
+              .set_stroke_width(*width)
+              .set_stroke_cap(Cap::Round)
+              .set_stroke_join(Join::Round)
+              .set_color(*color);
+
+            canvas.draw_circle((position.x, position.y), *r, &paint);
           }
           if let Some(color) = fill_style {
-            draw_target.fill(&path, &turn_color_source(color), &DrawOptions::new());
+            let mut paint = Paint::default();
+            paint.set_anti_alias(true);
+            paint.set_style(PaintStyle::Fill).set_color(*color);
+
+            canvas.draw_circle((position.x, position.y), *r, &paint);
           }
         }
         TouchAreaShape::Rect(dx, dy) => {
-          let mut pb = PathBuilder::new();
-          pb.rect(
+          let rect_path = Rect::from_xywh(
             position.x - *dx,
             position.y - *dy,
             2. * dx.to_owned(),
             2. * dy.to_owned(),
           );
-          let path = pb.finish();
-          draw_target.set_transform(tr);
+
+          // canvas.set_transform(tr);
 
           if let Some((color, width)) = line_style {
-            draw_target.stroke(
-              &path,
-              &turn_color_source(color),
-              &StrokeStyle {
-                cap: LineCap::Round,
-                join: LineJoin::Miter,
-                width: width.to_owned(),
-                miter_limit: 4.,
-                dash_array: Vec::new(),
-                dash_offset: 0.,
-              },
-              &DrawOptions::new(),
-            );
+            let mut paint = Paint::default();
+            paint.set_anti_alias(true);
+            paint
+              .set_style(PaintStyle::Stroke)
+              .set_stroke_width(*width)
+              .set_stroke_cap(Cap::Round)
+              .set_stroke_join(Join::Round)
+              .set_color(*color);
+
+            canvas.draw_rect(&rect_path, &paint);
           }
           if let Some(color) = fill_style {
-            draw_target.fill(&path, &turn_color_source(color), &DrawOptions::new());
+            let mut paint = Paint::default();
+            paint.set_anti_alias(true);
+            paint.set_style(PaintStyle::Fill).set_color(*color);
+
+            canvas.draw_rect(&rect_path, &paint);
           }
         }
       }
@@ -365,71 +325,82 @@ fn draw_shape(draw_target: &mut DrawTarget, tree: &Shape, tr: &Transform) -> Res
       fill_style,
       position,
     } => {
-      let mut pb = PathBuilder::new();
+      let mut path = Path::default();
       let x0 = position.x;
       let y0 = position.y;
-      pb.move_to(x0, y0);
-      draw_target.set_transform(tr);
+      path.move_to((x0, y0));
+      // canvas.set_transform(tr);
 
       for p in ops_path {
         match p {
           PaintPathTo::Move(a) => {
-            pb.move_to(x0 + a.x, y0 + a.y);
+            path.move_to((x0 + a.x, y0 + a.y));
           }
           PaintPathTo::Line(a) => {
-            pb.line_to(x0 + a.x, y0 + a.y);
+            path.line_to((x0 + a.x, y0 + a.y));
           }
           PaintPathTo::QuadraticBezier(a, b) => {
-            pb.quad_to(x0 + a.x, y0 + a.y, x0 + b.x, y0 + b.y);
+            path.quad_to((x0 + a.x, y0 + a.y), (x0 + b.x, y0 + b.y));
           }
-          PaintPathTo::CubicBezier(a, b, c) => pb.cubic_to(x0 + a.x, y0 + a.y, x0 + b.x, y0 + b.y, x0 + c.x, y0 + c.y),
+          PaintPathTo::CubicBezier(a, b, c) => {
+            path.cubic_to((x0 + a.x, y0 + a.y), (x0 + b.x, y0 + b.y), (x0 + c.x, y0 + c.y));
+          }
         }
       }
       if fill_style.is_some() {
-        pb.close();
+        path.close();
       }
-      let path = pb.finish();
 
       if let Some((color, width)) = line_style {
-        draw_target.stroke(
-          &path,
-          &turn_color_source(color),
-          &StrokeStyle {
-            cap: LineCap::Round,
-            join: LineJoin::Miter,
-            width: width.to_owned(),
-            miter_limit: 4.,
-            dash_array: Vec::new(),
-            dash_offset: 0.,
-          },
-          &DrawOptions::new(),
-        );
+        let mut paint = Paint::default();
+        paint.set_anti_alias(true);
+        paint
+          .set_style(PaintStyle::Stroke)
+          .set_stroke_width(*width)
+          .set_stroke_cap(Cap::Round)
+          .set_stroke_join(Join::Round)
+          .set_color(*color);
+
+        canvas.draw_path(&path, &paint);
       }
 
       if let Some(color) = fill_style {
-        draw_target.fill(&path, &turn_color_source(color), &DrawOptions::new());
+        let mut paint = Paint::default();
+        paint.set_anti_alias(true);
+        paint.set_style(PaintStyle::Fill).set_color(*color);
+
+        canvas.draw_path(&path, &paint);
       }
     }
     Shape::Scale { factor, children } => {
+      canvas.save();
+      canvas.scale((*factor, *factor));
       let t1 = Transform::identity().then_scale(factor.to_owned(), factor.to_owned());
       for child in children {
-        draw_shape(draw_target, child, &t1.then(tr))?;
+        draw_shape(canvas, child, &t1.then(tr))?;
       }
+      canvas.restore();
     }
     Shape::Rotate { radius, children } => {
+      canvas.save();
+      canvas.rotate(*radius, None);
       let t1 = Transform::identity().then_rotate(Angle {
         radians: radius.to_owned(),
       });
       for child in children {
-        draw_shape(draw_target, child, &t1.then(tr))?;
+        draw_shape(canvas, child, &t1.then(tr))?;
       }
+      canvas.restore();
     }
     Shape::Translate { x, y, children } => {
+      canvas.save();
+      canvas.translate((*x, *y));
       let v = Vector2D::new(x.to_owned(), y.to_owned());
       let t1 = Transform::identity().then_translate(v);
       for child in children {
-        draw_shape(draw_target, child, &t1.then(tr))?;
+        draw_shape(canvas, child, &t1.then(tr))?;
       }
+      canvas.restore();
     }
   }
   Ok(())

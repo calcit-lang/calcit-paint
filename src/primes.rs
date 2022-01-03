@@ -1,7 +1,10 @@
 use cirru_edn::Edn;
 use euclid::{Point2D, Vector2D};
 
-use raqote::{Color, LineCap, LineJoin};
+use skia_safe::{
+  paint::{Cap, Join},
+  Color,
+};
 
 use crate::extracter::load_kwd;
 
@@ -68,8 +71,8 @@ pub enum Shape {
     skip_first: bool,
     color: Color,
     width: f32,
-    join: LineJoin,
-    cap: LineCap,
+    join: Join,
+    cap: Cap,
   },
   TouchArea {
     path: Box<Edn>,

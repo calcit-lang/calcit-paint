@@ -168,7 +168,7 @@
                                                 :data $ {}
                                                   |T $ {} (:type :leaf) (:by |u0) (:at 1621914697774) (:text |[])
                                                   |j $ {} (:type :leaf) (:by |u0) (:at 1621914904932) (:text |240)
-                                                  |r $ {} (:type :leaf) (:by |u0) (:at 1621914902710) (:text |300)
+                                                  |r $ {} (:type :leaf) (:by |u0) (:at 1641034904407) (:text |340)
                                           |v $ {} (:type :expr) (:by |u0) (:at 1621914705308)
                                             :data $ {}
                                               |T $ {} (:type :leaf) (:by |u0) (:at 1621915493849) (:text |:bezier3-to)
@@ -176,7 +176,7 @@
                                                 :data $ {}
                                                   |T $ {} (:type :leaf) (:by |u0) (:at 1621914783939) (:text |[])
                                                   |j $ {} (:type :leaf) (:by |u0) (:at 1621914790342) (:text |400)
-                                                  |r $ {} (:type :leaf) (:by |u0) (:at 1621914791691) (:text |200)
+                                                  |r $ {} (:type :leaf) (:by |u0) (:at 1641034892456) (:text |260)
                                               |r $ {} (:type :expr) (:by |u0) (:at 1621914782122)
                                                 :data $ {}
                                                   |T $ {} (:type :leaf) (:by |u0) (:at 1621914783939) (:text |[])
@@ -297,7 +297,7 @@
                                   |n $ {} (:type :expr) (:by |u0) (:at 1631126601482)
                                     :data $ {}
                                       |T $ {} (:type :leaf) (:by |u0) (:at 1631126603973) (:text |:factor)
-                                      |j $ {} (:type :leaf) (:by |u0) (:at 1631126615436) (:text |2.5)
+                                      |j $ {} (:type :leaf) (:by |u0) (:at 1641034796765) (:text |2.5)
                                   |r $ {} (:type :expr) (:by |u0) (:at 1631126593446)
                                     :data $ {}
                                       |T $ {} (:type :leaf) (:by |u0) (:at 1631126594816) (:text |:children)
@@ -426,8 +426,8 @@
                                       |j $ {} (:type :expr) (:by |u0) (:at 1620746959648)
                                         :data $ {}
                                           |T $ {} (:type :leaf) (:by |u0) (:at 1620746959648) (:text |[])
-                                          |j $ {} (:type :leaf) (:by |u0) (:at 1620746959648) (:text |200)
-                                          |r $ {} (:type :leaf) (:by |u0) (:at 1620748323021) (:text |100)
+                                          |j $ {} (:type :leaf) (:by |u0) (:at 1641034843348) (:text |140)
+                                          |r $ {} (:type :leaf) (:by |u0) (:at 1641034835392) (:text |40)
                                   |v $ {} (:type :expr) (:by |u0) (:at 1620746959648)
                                     :data $ {}
                                       |T $ {} (:type :leaf) (:by |u0) (:at 1620746959648) (:text |:color)
@@ -512,7 +512,7 @@
                                       |j $ {} (:type :expr) (:by |u0) (:at 1620749102892)
                                         :data $ {}
                                           |T $ {} (:type :leaf) (:by |u0) (:at 1620749103596) (:text |[])
-                                          |j $ {} (:type :leaf) (:by |u0) (:at 1620750512326) (:text |400)
+                                          |j $ {} (:type :leaf) (:by |u0) (:at 1641034811987) (:text |480)
                                           |r $ {} (:type :leaf) (:by |u0) (:at 1620749279337) (:text |200)
                                   |v $ {} (:type :expr) (:by |u0) (:at 1620749108089)
                                     :data $ {}
@@ -701,7 +701,7 @@
                   |v $ {} (:type :leaf) (:by |u0) (:at 1635409770042) (:text |p)
   :configs $ {} (:port 6001) (:init-fn |calcit-paint.main/main!) (:reload-fn |calcit-paint.main/reload!)
     :modules $ []
-    :version |0.0.3
+    :version |0.0.4-a1
     :output |src
     :compact-output? true
     :local-ui? false
