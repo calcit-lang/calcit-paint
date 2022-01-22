@@ -22,12 +22,7 @@ pub fn handle_mouse_down(mouse: &RefCell<Vector2D<f32, f32>>) -> Edn {
     info.insert(kwd("action"), target.action.to_owned());
     info.insert(kwd("path"), target.path.to_owned());
     info.insert(kwd("data"), target.data.to_owned());
-    touches::track_mouse_drag(
-      position,
-      target.action.to_owned(),
-      target.path.to_owned(),
-      target.data.to_owned(),
-    );
+    touches::track_mouse_drag(position, target.action.to_owned(), target.path.to_owned(), target.data);
   }
 
   Edn::Map(info)
