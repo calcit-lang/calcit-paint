@@ -46,11 +46,11 @@ pub fn add_touch_area(
   let mut stack = TOUCH_ITEMS_STACK.write().unwrap();
 
   let item = TouchArea {
-    action: action.to_owned(),
-    path: path.to_owned(),
-    data: data.to_owned(),
+    action,
+    path,
+    data,
     position: position.to_owned(),
-    area: area.to_owned(),
+    area,
     transform: transform.to_owned(),
   };
   stack.push(item);
@@ -89,12 +89,12 @@ pub fn find_touch_area(p0: Vector2D<f32, f32>) -> Option<TouchArea> {
       TouchAreaShape::Rect(w, h) => {
         // half of width height
         if (p.x - item.position.x).abs() < w && (p.y - item.position.y).abs() <= h {
-          return Some(item.to_owned());
+          return Some(item);
         }
       }
       TouchAreaShape::Circle(r) => {
         if (p.x - item.position.x).powf(2.0) + (p.y - item.position.y).powf(2.0) <= r.powf(2.0) {
-          return Some(item.to_owned());
+          return Some(item);
         }
       }
     }

@@ -11,11 +11,24 @@ jobs:
   build_and_test:
     name: Test
     runs-on: ubuntu-latest
+
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: write
+
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          components: clippy
+          override: true
 
       - run: cargo build --release
       - run: mkdir -p dylibs/ && ls target/release/ && cp -v target/release/*.* dylibs/
+
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
