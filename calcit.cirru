@@ -701,7 +701,7 @@
                   |v $ {} (:type :leaf) (:by |u0) (:at 1635409770042) (:text |p)
   :configs $ {} (:port 6001) (:init-fn |calcit-paint.main/main!) (:reload-fn |calcit-paint.main/reload!)
     :modules $ []
-    :version |0.0.4
+    :version |0.0.5
     :output |src
     :compact-output? true
     :local-ui? false

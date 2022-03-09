@@ -47,7 +47,6 @@ pub fn get_bg_color() -> Color {
 pub fn draw_page(
   canvas: &mut skia_safe::canvas::Canvas,
   base_messages: Vec<(Box<str>, Edn)>,
-  cost: f64,
   eager_render: bool,
 ) -> Result<(), String> {
   let mut messages = base_messages;
@@ -83,28 +82,25 @@ pub fn draw_page(
       }
     }
     if shown_shape {
-      draw_cost(canvas, cost)
-    } else {
-      Ok(())
+      // draw_cost(canvas, cost)
     }
-  } else {
-    Ok(())
   }
-}
-
-fn draw_cost(canvas: &mut skia_safe::canvas::Canvas, cost: f64) -> Result<(), String> {
-  let text = format!("{}ms", cost);
-  let font = Font::new(Typeface::default(), Some(14.0));
-  let text_blob = TextBlob::new(text, &font).unwrap();
-
-  let mut paint = Paint::default();
-  paint.set_anti_alias(true);
-  paint.set_style(PaintStyle::Fill).set_color(Color::WHITE);
-
-  canvas.draw_text_blob(text_blob, (10, 190), &paint);
-
   Ok(())
 }
+
+// fn draw_cost(canvas: &mut skia_safe::canvas::Canvas, cost: f64) -> Result<(), String> {
+//   let text = format!("{}ms", cost);
+//   let font = Font::new(Typeface::default(), Some(14.0));
+//   let text_blob = TextBlob::new(text, &font).unwrap();
+
+//   let mut paint = Paint::default();
+//   paint.set_anti_alias(true);
+//   paint.set_style(PaintStyle::Fill).set_color(Color::WHITE);
+
+//   canvas.draw_text_blob(text_blob, (10, 190), &paint);
+
+//   Ok(())
+// }
 
 fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) -> Result<(), String> {
   match tree {

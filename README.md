@@ -1,12 +1,17 @@
-## Calcit Paint
+## (Toy)Calcit Paint
 
-> 2D renderer for calcit_runner.
-
-Previous work: https://github.com/calcit-lang/edn-paint .
-
-_TODO_ not stable yet...
+> 2D renderer for Calcit.
 
 ### Usages
+
+It runs [Calcit](https://github.com/calcit-lang/calcit) and is supposed to be driven by `compact.cirru` code.
+
+```bash
+./build.sh
+cr -1 compact.cirru
+```
+
+Available APIs:
 
 ```cirru
 calcit-paint.core/push-drawing-data! |reset-canvas! nil
@@ -16,10 +21,10 @@ calcit-paint.core/launch-canvas! $ fn (event)
   println "|rendering to canvas..."
 ```
 
-It runs [calcit_runner](https://github.com/calcit-lang/calcit_runner.rs) and is supposed to be driven by `compact.cirru` code.
+Maybe we will need a mirror URL for skia binaries like https://cdn.tiye.me/skia-binaries/ :
 
 ```bash
-cr -1 compact.cirru
+export SKIA_BINARIES_URL=https://cdn.tiye.me/skia-binaries/{tag}/skia-binaries-{key}.tar.gz
 ```
 
 ### Shapes

@@ -145,26 +145,13 @@ pub fn launch_canvas(
           let scale = track_scale.to_owned().into_inner();
           let w = physical_size.width as f32 / scale;
           let h = physical_size.height as f32 / scale;
-          let _e = handlers::handle_resize(w as f64, h as f64).unwrap();
+          let e = handlers::handle_resize(w as f64, h as f64).unwrap();
 
-          // if let Err(err) = handler(vec![e]) {
-          //   println!("error in handling event: {}", err);
-          // } else {
-          //   match take_drawing_data() {
-          //     Ok(None) => {
-          //       // nothing
-          //     }
-          //     Ok(Some(messages)) => {
-          //       if let Err(e) = renderer::draw_page(&mut draw_target, messages, 2.2, true) {
-          //         println!("Failed drawing: {:?}", e);
-          //       }
-          //     }
-          //     Err(e) => {
-          //       println!("failed extracting messages: {}", e)
-          //     }
-          //   }
-          //   window.request_redraw();
-          // }
+          if let Err(err) = handler(vec![e]) {
+            eprintln!("error in handling event: {}", err);
+          } else {
+            window.request_redraw();
+          }
         }
         WindowEvent::ScaleFactorChanged {
           scale_factor: factor,
@@ -218,7 +205,7 @@ pub fn launch_canvas(
             let event_infos = handlers::handle_keyboard(keycode, key_state);
             for event_info in event_infos {
               if let Err(err) = handler(vec![event_info]) {
-                println!("error in handling event: {}", err);
+                eprintln!("error in handling event: {}", err);
               }
             }
             window.request_redraw();
@@ -240,11 +227,11 @@ pub fn launch_canvas(
       Event::RedrawRequested(_wid) => {
         match take_drawing_data() {
           Ok(messages) => {
-            let mut canvas = env.surface.canvas();
+            let canvas = env.surface.canvas();
             canvas.clear(renderer::get_bg_color());
             canvas.reset_matrix();
             canvas.scale((scaled, scaled));
-            if let Err(e) = renderer::draw_page(&mut canvas, messages, 2.2, true) {
+            if let Err(e) = renderer::draw_page(canvas, messages, true) {
               println!("Failed drawing: {:?}", e);
             }
           }
@@ -269,7 +256,7 @@ pub fn launch_canvas(
         // println!("New events fired: {:?}", e);
       }
       e => {
-        println!("unknown event: {:?}", e)
+        eprintln!("unknown event: {:?}", e)
       }
     }
   });
