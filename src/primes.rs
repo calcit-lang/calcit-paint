@@ -3,7 +3,7 @@ use euclid::{Point2D, Vector2D};
 
 use skia_safe::{
   paint::{Cap, Join},
-  Color,
+  Color, Rect,
 };
 
 use crate::extracter::load_kwd;
@@ -104,6 +104,14 @@ pub enum Shape {
     factor: f32,
     children: Vec<Shape>,
   },
+  Image {
+    file_path: String,
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+    crop: Option<Rect>,
+  },
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -114,4 +122,12 @@ pub enum TouchAreaShape {
 
 pub fn kwd(s: &str) -> Edn {
   load_kwd(s)
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CropArea {
+  x: f32,
+  y: f32,
+  w: f32,
+  h: f32,
 }

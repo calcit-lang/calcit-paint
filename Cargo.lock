@@ -98,7 +98,7 @@ checksum = "d9df67f7bf9ef8498769f994239c45613ef0c5899415fb58e9add412d2c1a538"
 
 [[package]]
 name = "calcit_paint"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "cirru_edn",
  "env_logger",
