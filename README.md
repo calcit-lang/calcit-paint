@@ -119,6 +119,18 @@ Polyline {
 },
 ```
 
+- Image, using `image`, and `Rect` from Skia
+
+```rust
+Image {
+  file_path: String,
+  x: f32, y: f32, w: f32, h: f32,
+  crop: Rect {
+    x: f32, y: f32, w: f32, h: f32
+  }
+}
+```
+
 - Touch Area, using `touch-area`
 
 For handling events:

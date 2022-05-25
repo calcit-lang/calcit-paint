@@ -1,15 +1,10 @@
 
 {} (:package |calcit-paint)
-  :configs $ {} (:init-fn |calcit-paint.main/main!) (:reload-fn |calcit-paint.main/reload!)
+  :configs $ {} (:init-fn |calcit-paint.main/main!) (:reload-fn |calcit-paint.main/reload!) (:version |0.0.6)
     :modules $ []
-    :version |0.0.5
   :entries $ {}
   :files $ {}
     |calcit-paint.core $ {}
-      :ns $ quote
-        ns calcit-paint.core $ :require
-          calcit-paint.$meta :refer $ calcit-dirname
-          calcit-paint.util :refer $ get-dylib-path
       :defs $ {}
         |launch-canvas! $ quote
           defn launch-canvas! (cb)
@@ -17,10 +12,11 @@
         |push-drawing-data! $ quote
           defn push-drawing-data! (op data)
             &call-dylib-edn (get-dylib-path "\"/dylibs/libcalcit_paint") "\"push_drawing_data" op data
-    |calcit-paint.main $ {}
       :ns $ quote
-        ns calcit-paint.main $ :require
-          calcit-paint.core :refer $ launch-canvas! push-drawing-data!
+        ns calcit-paint.core $ :require
+          calcit-paint.$meta :refer $ calcit-dirname
+          calcit-paint.util :refer $ get-dylib-path
+    |calcit-paint.main $ {}
       :defs $ {}
         |main! $ quote
           defn main! () (println "\"started") (render!)
@@ -87,13 +83,15 @@
                     {} (:type :touch-area) (:radius 10) (:action nil) (:path nil) (:data nil)
                       :position $ [] 200 200
                       :fill-color $ [] 40 80 80
+                {} (:type :image) (:file-path "\"resources/calcit.png") (:x 400) (:y 40) (:w 80) (:h 80)
+                  ; :crop $ {} (:x 0) (:y 0) (:w 200) (:h 200)
             launch-canvas! $ fn (event)
               case-default (:type event) (println "\"event:" event)
                 :redraw $ render!
-    |calcit-paint.util $ {}
       :ns $ quote
-        ns calcit-paint.util $ :require
-          calcit-paint.$meta :refer $ calcit-dirname calcit-filename
+        ns calcit-paint.main $ :require
+          calcit-paint.core :refer $ launch-canvas! push-drawing-data!
+    |calcit-paint.util $ {}
       :defs $ {}
         |get-dylib-ext $ quote
           defmacro get-dylib-ext () $ case-default (&get-os) "\".so" (:macos "\".dylib") (:windows "\".dll")
@@ -103,3 +101,6 @@
         |or-current-path $ quote
           defn or-current-path (p)
             if (blank? p) "\"." p
+      :ns $ quote
+        ns calcit-paint.util $ :require
+          calcit-paint.$meta :refer $ calcit-dirname calcit-filename

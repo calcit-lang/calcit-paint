@@ -1,4 +1,5 @@
 use crate::touches;
+use std::fs;
 use std::sync::RwLock;
 
 use euclid::{Angle, Vector2D};
@@ -9,8 +10,9 @@ use lazy_static::lazy_static;
 
 type Transform = euclid::default::Transform2D<f32>;
 
+use skia_safe::canvas::SrcRectConstraint;
 use skia_safe::paint::{Cap, Join};
-use skia_safe::{Color, Font, Paint, PaintStyle, Path, Rect, TextBlob, Typeface};
+use skia_safe::{Color, Data, Font, Image, Paint, PaintStyle, Path, Rect, TextBlob, Typeface};
 
 lazy_static! {
   static ref PREV_MESSAGES: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
@@ -228,6 +230,44 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
         .set_color(*color);
 
       canvas.draw_path(&path, &paint);
+    }
+    Shape::Image {
+      file_path,
+      x,
+      y,
+      w,
+      h,
+      crop,
+    } => {
+      println!("loading image: {}", file_path);
+      let paint = Paint::default();
+      let file_data = match fs::read(file_path) {
+        Ok(data) => data,
+        Err(e) => {
+          eprintln!("[Paint Error] failed to load {}: {}", file_path, e);
+          // don't take down whole program
+          return Ok(());
+        }
+      };
+      let image = match Image::from_encoded(&Data::new_copy(&file_data)) {
+        Some(v) => v,
+        None => {
+          return Err(format!(
+            "[Paint Error] failed to convert data of {} into image",
+            file_path
+          ));
+        }
+      };
+      let area = Rect::from_xywh(*x, *y, *w, *h);
+      match crop {
+        Some(crop) => {
+          let c = crop.to_owned();
+          canvas.draw_image_rect(image, Some((&c, SrcRectConstraint::Fast)), area, &paint);
+        }
+        None => {
+          canvas.draw_image_rect(image, None, area, &paint);
+        }
+      }
     }
     Shape::TouchArea {
       position,
@@ -503,6 +543,25 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
             x: read_f32(m, "x")?,
             y: read_f32(m, "y")?,
             children,
+          })
+        }
+        "image" => {
+          let crop = match m.get(&load_kwd("crop")) {
+            Some(Edn::Map(m)) => Some(Rect::from_xywh(
+              read_f32(m, "x")?,
+              read_f32(m, "y")?,
+              read_f32(m, "w")?,
+              read_f32(m, "h")?,
+            )),
+            _ => None,
+          };
+          Ok(Shape::Image {
+            file_path: read_string(m, "file-path")?,
+            x: read_f32(m, "x")?,
+            y: read_f32(m, "y")?,
+            w: read_f32(m, "w")?,
+            h: read_f32(m, "h")?,
+            crop,
           })
         }
         _ => Err(format!("unknown kind: {}", name)),
