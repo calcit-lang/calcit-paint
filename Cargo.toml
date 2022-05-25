@@ -5,20 +5,20 @@ resolver = "2"
 name = "calcit_paint"
 version = "0.0.5"
 authors = ["jiyinyiyong <jiyinyiyong@gmail.com>"]
-edition = "2018"
+edition = "2021"
 exclude = ["resources", "!SourceCodePro-Medium.ttf"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cirru_edn = "0.2.14"
+cirru_edn = "0.2.17"
 lazy_static = "1.4.0"
 env_logger = "0.9"
-euclid = "0.22.6"
-log = "0.4"
+euclid = "0.22.7"
+log = "0.4.17"
 winit = "0.26.0"
 libloading = "0.7.3"
-skia-safe = { version = "0.47.0", features = ["gl"] }
+skia-safe = { version = "0.50.0", features = ["gl"] }
 glutin = "0.28.0"
 gl-rs = { package = "gl", version = "0.14.0" }
 
