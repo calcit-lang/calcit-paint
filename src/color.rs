@@ -52,7 +52,7 @@ pub fn extract_color(x: &Edn) -> Result<Color, String> {
     Edn::List(xs) if xs.len() == 3 || xs.len() == 4 => match (&xs[0], &xs[1], &xs[2]) {
       (Edn::Number(hue), Edn::Number(s), Edn::Number(light)) => match xs.get(3) {
         Some(Edn::Number(alpha)) => Ok(hsl_to_rgb(*hue as f32, *s as f32, *light as f32, *alpha as f32)),
-        Some(a) => return Err(format!("invalid alpha: {}", a)),
+        Some(a) => Err(format!("invalid alpha: {}", a)),
         None => Ok(hsl_to_rgb(*hue as f32, *s as f32, *light as f32, 1.0)),
       },
       (a, b, c) => Err(format!("unknown color values: {} {} {}", a, b, c)),

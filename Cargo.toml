@@ -18,14 +18,14 @@ euclid = "0.22.7"
 log = "0.4.17"
 winit = "0.26.0"
 libloading = "0.7.3"
-skia-safe = { version = "0.50.0", features = ["gl"] }
+skia-safe = { version = "0.70.0", features = ["gl"] }
 glutin = "0.28.0"
 gl-rs = { package = "gl", version = "0.14.0" }
 
 [lib]
 name = "calcit_paint"
 path = "src/lib.rs"
-crate-type = ["dylib"] # Creates dynamic lib
+crate-type = ["cdylib", "rlib"]
 
 
 # [profile.release]
