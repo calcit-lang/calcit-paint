@@ -4,11 +4,11 @@
 
 ### Usages
 
-It runs [Calcit](https://github.com/calcit-lang/calcit) and is supposed to be driven by `compact.cirru` code.
+It runs [Calcit](https://github.com/calcit-lang/calcit) and is driven by the canonical `calcit.cirru` Snapshot source.
 
 ```bash
 ./build.sh
-cr -1 compact.cirru
+calcit ./calcit.cirru
 ```
 
 Available APIs:

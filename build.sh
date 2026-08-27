@@ -1,9 +1,14 @@
-
-rm -rfv dylibs/*
+#!/usr/bin/env sh
+set -eu
 
 cargo build --release
-mkdir -p dylibs/ && ls target/release/ && cp -v target/release/*.* dylibs/
+mkdir -p dylibs
 
+case "$(uname -s)" in
+  Darwin) artifact=target/release/libcalcit_paint.dylib ;;
+  Linux) artifact=target/release/libcalcit_paint.so ;;
+  MINGW*|MSYS*|CYGWIN*) artifact=target/release/calcit_paint.dll ;;
+  *) echo "unsupported platform: $(uname -s)" >&2; exit 1 ;;
+esac
 
-# cargo build
-# mkdir -p dylibs/ && ls target/debug/ && cp -v target/debug/*.* dylibs/
+cp -v "$artifact" dylibs/

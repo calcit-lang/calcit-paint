@@ -8,15 +8,14 @@ use euclid::Vector2D;
 
 mod color;
 mod extracter;
+mod ffi;
 mod handlers;
 mod key_listener;
 mod primes;
 mod renderer;
 mod touches;
 
-use std::sync::Arc;
 use std::sync::RwLock;
-// use std::time::Duration;
 use std::{thread, time};
 
 use cirru_edn::Edn;
@@ -25,13 +24,15 @@ use winit::dpi::LogicalSize;
 use winit::event::Event;
 use winit::event::WindowEvent;
 use winit::event_loop::{ControlFlow, EventLoop};
+use winit::platform::run_return::EventLoopExtRunReturn;
+#[cfg(target_os = "linux")]
+use winit::platform::unix::EventLoopExtUnix;
 use winit::window::WindowBuilder;
 
 use gl::types::*;
 use gl_rs as gl;
-use glutin::GlProfile;
 use skia_safe::{
-  gpu::{gl::FramebufferInfo, BackendRenderTarget, SurfaceOrigin},
+  gpu::{backend_render_targets, gl::FramebufferInfo, surfaces, SurfaceOrigin},
   ColorType, Surface,
 };
 
@@ -50,20 +51,23 @@ lazy_static! {
   static ref NEXT_DRAWING_DATA: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
 }
 
-#[no_mangle]
-pub fn launch_canvas(
-  _args: Vec<Edn>,
-  handler: Arc<dyn Fn(Vec<Edn>) -> Result<Edn, String> + Send + Sync + 'static>,
-  _finish: Box<dyn FnOnce() + Send + Sync + 'static>,
-) -> Result<Edn, String> {
-  env_logger::init();
+fn create_event_loop() -> EventLoop<()> {
+  #[cfg(target_os = "linux")]
+  {
+    EventLoop::new_any_thread()
+  }
+  #[cfg(not(target_os = "linux"))]
+  {
+    EventLoop::new()
+  }
+}
 
-  // let duration = Instant::now().duration_since(started_time);
-  // let initial_cost: f64 = duration.as_micros() as f64 / 1000.0; // in ms
+fn launch_canvas_impl(handler: impl Fn(Vec<Edn>) -> Result<Edn, String>) -> Result<Edn, String> {
+  let _ = env_logger::try_init();
 
-  println!("\nRunner: in watch mode...\n");
+  println!("\nCalcit Paint event loop started.\n");
 
-  let el = EventLoop::new();
+  let mut event_loop = create_event_loop();
 
   let area_size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
 
@@ -71,15 +75,14 @@ pub fn launch_canvas(
     .with_inner_size(area_size)
     .with_title("Calcit Paint");
 
-  let cb = glutin::ContextBuilder::new()
-    .with_depth_buffer(0)
-    .with_stencil_buffer(8)
-    .with_pixel_format(24, 8)
-    .with_gl_profile(GlProfile::Core);
+  let cb = glutin::ContextBuilder::new().with_vsync(true);
 
-  let cb = cb.with_double_buffer(Some(true));
-
-  let windowed_context = unsafe { cb.build_windowed(wb, &el).unwrap().make_current().unwrap() };
+  let windowed_context = unsafe {
+    cb.build_windowed(wb, &event_loop)
+      .map_err(|error| format!("failed to create paint window: {error}"))?
+      .make_current()
+      .map_err(|(_, error)| format!("failed to activate OpenGL context: {error}"))?
+  };
 
   let window = windowed_context.window();
   let pixel_format = windowed_context.get_pixel_format();
@@ -88,7 +91,10 @@ pub fn launch_canvas(
 
   gl::load_with(|s| windowed_context.get_proc_address(s));
 
-  let mut gr_context = skia_safe::gpu::DirectContext::new_gl(None, None).unwrap();
+  let skia_interface = skia_safe::gpu::gl::Interface::new_load_with(|name| windowed_context.get_proc_address(name))
+    .ok_or_else(|| "failed to load Skia OpenGL interface from the active window context".to_owned())?;
+  let mut gr_context = skia_safe::gpu::DirectContext::new_gl(skia_interface, None)
+    .ok_or_else(|| "failed to create Skia OpenGL context".to_owned())?;
 
   let fb_info = {
     let mut fboid: GLint = 0;
@@ -97,12 +103,13 @@ pub fn launch_canvas(
     FramebufferInfo {
       fboid: fboid as u32,
       format: skia_safe::gpu::gl::Format::RGBA8.into(),
+      ..Default::default()
     }
   };
 
   window.set_inner_size(glutin::dpi::Size::new(glutin::dpi::LogicalSize::new(WIDTH, HEIGHT)));
 
-  let surface = create_surface(&windowed_context, &fb_info, &mut gr_context);
+  let surface = create_surface(&windowed_context, &fb_info, &mut gr_context)?;
   let scale_factor = window.scale_factor() as f32;
 
   let mut env = Env {
@@ -114,13 +121,12 @@ pub fn launch_canvas(
   let canvas = env.surface.canvas();
   canvas.scale((scale_factor, scale_factor));
 
-  let event_loop = EventLoop::new();
-
   let mut first_paint = true;
   let track_mouse = RefCell::new(Vector2D::new(0.0, 0.0));
   let track_scale: RefCell<f32> = RefCell::new(scale_factor);
+  let smoke_once = std::env::var_os("CALCIT_PAINT_SMOKE_ONCE").is_some();
   // Handle events. Refer to `winit` docs for more information.
-  event_loop.run(move |event, _window_target, control_flow| {
+  event_loop.run_return(move |event, _window_target, control_flow| {
     // println!("Event: {:?}", event);
     *control_flow = ControlFlow::Wait;
     let scaled = track_scale.clone().into_inner();
@@ -139,8 +145,17 @@ pub fn launch_canvas(
     match event {
       Event::WindowEvent { event, .. } => match event {
         WindowEvent::Resized(physical_size) => {
-          env.surface = create_surface(&env.windowed_context, &fb_info, &mut env.gr_context);
           env.windowed_context.resize(physical_size);
+          if physical_size.width > 0 && physical_size.height > 0 {
+            match create_surface(&env.windowed_context, &fb_info, &mut env.gr_context) {
+              Ok(surface) => env.surface = surface,
+              Err(error) => {
+                eprintln!("failed to resize paint surface: {error}");
+                *control_flow = ControlFlow::Exit;
+                return;
+              }
+            }
+          }
           // println!("Window size changed: {:?}", size);
           let scale = track_scale.to_owned().into_inner();
           let w = physical_size.width as f32 / scale;
@@ -176,7 +191,7 @@ pub fn launch_canvas(
             }
           }
         }
-        WindowEvent::MouseInput { state, button: _, .. } => {
+        WindowEvent::MouseInput { state, .. } => {
           // println!("mouse button: {:?}", button);
           let event_info = match state {
             winit::event::ElementState::Pressed => handlers::handle_mouse_down(&track_mouse),
@@ -214,7 +229,6 @@ pub fn launch_canvas(
         WindowEvent::CloseRequested => {
           *control_flow = ControlFlow::Exit;
           println!("User Close.");
-          std::process::exit(0)
         }
         // `CloseRequested` and `KeyboardInput` events won't appear here.
         x => println!("Other window event fired: {:?}", x),
@@ -240,13 +254,19 @@ pub fn launch_canvas(
           }
         }
 
-        env.surface.flush();
-        env.windowed_context.swap_buffers().unwrap();
+        env.gr_context.flush_and_submit();
+        if let Err(error) = env.windowed_context.swap_buffers() {
+          eprintln!("failed to swap OpenGL buffers: {error}");
+          *control_flow = ControlFlow::Exit;
+        }
+        if smoke_once {
+          *control_flow = ControlFlow::Exit;
+        }
       }
       Event::RedrawEventsCleared => {
         // println!("redraw events cleared");
       }
-      Event::NewEvents(e) if e == winit::event::StartCause::Poll => {
+      Event::NewEvents(winit::event::StartCause::Poll) => {
         // nothing
       }
       Event::DeviceEvent { event: _event, .. } => {
@@ -260,55 +280,81 @@ pub fn launch_canvas(
       }
     }
   });
-}
 
-fn take_drawing_data() -> Result<Vec<(Box<str>, Edn)>, String> {
-  let mut m = NEXT_DRAWING_DATA.write().unwrap();
-  let ret = m.to_owned();
-  *m = vec![];
-  if ret.is_empty() {
-    Ok(vec![])
-  } else {
-    let mut ys: Vec<(Box<str>, Edn)> = vec![];
-    for (op, data) in ret {
-      ys.push((op.to_owned(), data.to_owned()));
-    }
-    Ok(ys)
-  }
-}
-
-#[no_mangle]
-pub fn push_drawing_data(args: Vec<Edn>) -> Result<Edn, String> {
-  if args.len() == 2 {
-    if let Edn::Str(s) = &args[0] {
-      let mut m = NEXT_DRAWING_DATA.write().unwrap();
-      m.push((s.to_owned(), args[1].to_owned()));
-    }
-  } else {
-    return Err(format!("expected 2 arguments, got: {:?}", args));
-  }
   Ok(Edn::Nil)
 }
 
+fn take_drawing_data() -> Result<Vec<(Box<str>, Edn)>, String> {
+  let mut pending = NEXT_DRAWING_DATA
+    .write()
+    .map_err(|_| "drawing-data queue lock is poisoned".to_owned())?;
+  Ok(std::mem::take(&mut *pending))
+}
+
+fn push_drawing_data(args: Vec<Edn>) -> Result<Edn, String> {
+  let [Edn::Str(op), data] = args.as_slice() else {
+    return Err(format!(
+      "push-drawing-data expected an operation string and data, got: {args:?}"
+    ));
+  };
+  let mut pending = NEXT_DRAWING_DATA
+    .write()
+    .map_err(|_| "drawing-data queue lock is poisoned".to_owned())?;
+  pending.push((op.to_owned(), data.to_owned()));
+  Ok(Edn::Nil)
+}
+
+/// Push one drawing command through C-safe buffer protocol v1.
+///
+/// # Safety
+///
+/// Request bytes must remain readable and `output` writable for this call.
 #[no_mangle]
-pub fn abi_version() -> String {
-  String::from("0.0.6")
+pub unsafe extern "C" fn push_drawing_data_calcit_ffi_v1(
+  request_ptr: *const u8,
+  request_len: usize,
+  output: *mut ffi::CalcitFfiBuffer,
+) -> i32 {
+  // SAFETY: the shared adapter validates and copies all call-scoped inputs.
+  unsafe { ffi::run_buffer_adapter(request_ptr, request_len, output, push_drawing_data) }
+}
+
+/// Own the host thread while the paint event loop is running.
+///
+/// # Safety
+///
+/// Request bytes and descriptors must remain readable and `output` writable
+/// for this call. Host function pointers must follow blocking protocol v1.
+#[no_mangle]
+pub unsafe extern "C" fn launch_canvas_calcit_ffi_blocking_v1(
+  request_ptr: *const u8,
+  request_len: usize,
+  task: *const ffi::CalcitFfiAsyncTaskV1,
+  host: *const ffi::CalcitFfiBlockingHostV1,
+  output: *mut ffi::CalcitFfiBuffer,
+) -> i32 {
+  // SAFETY: the adapter validates descriptors and owns the call until the event loop returns.
+  unsafe {
+    ffi::run_blocking_adapter(request_ptr, request_len, task, host, output, |_args, task, host| {
+      launch_canvas_impl(|args| ffi::invoke_blocking_callback(host, task, args))
+    })
+  }
 }
 
 fn create_surface(
   windowed_context: &WindowedContext,
   fb_info: &FramebufferInfo,
   gr_context: &mut skia_safe::gpu::DirectContext,
-) -> skia_safe::Surface {
+) -> Result<skia_safe::Surface, String> {
   let pixel_format = windowed_context.get_pixel_format();
   let size = windowed_context.window().inner_size();
-  let backend_render_target = BackendRenderTarget::new_gl(
+  let backend_render_target = backend_render_targets::make_gl(
     (size.width as i32, size.height as i32),
     pixel_format.multisampling.map(|s| s as usize),
     pixel_format.stencil_bits as usize,
     *fb_info,
   );
-  Surface::from_backend_render_target(
+  surfaces::wrap_backend_render_target(
     gr_context,
     &backend_render_target,
     SurfaceOrigin::BottomLeft,
@@ -316,5 +362,23 @@ fn create_surface(
     None,
     None,
   )
-  .unwrap()
+  .ok_or_else(|| format!("failed to wrap a {}x{} Skia backend surface", size.width, size.height))
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn drawing_queue_validates_and_drains_commands() {
+    assert!(push_drawing_data(vec![Edn::Nil]).is_err());
+    assert!(push_drawing_data(vec![Edn::Number(1.0), Edn::Nil]).is_err());
+
+    push_drawing_data(vec![Edn::Str("render-canvas!".into()), Edn::Number(3.0)]).unwrap();
+    assert_eq!(
+      take_drawing_data().unwrap(),
+      vec![(Box::<str>::from("render-canvas!"), Edn::Number(3.0))]
+    );
+    assert!(take_drawing_data().unwrap().is_empty());
+  }
 }

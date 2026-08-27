@@ -123,11 +123,3 @@ pub enum TouchAreaShape {
 pub fn kwd(s: &str) -> Edn {
   load_kwd(s)
 }
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct CropArea {
-  x: f32,
-  y: f32,
-  w: f32,
-  h: f32,
-}

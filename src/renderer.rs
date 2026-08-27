@@ -12,7 +12,7 @@ type Transform = euclid::default::Transform2D<f32>;
 
 use skia_safe::canvas::SrcRectConstraint;
 use skia_safe::paint::{Cap, Join};
-use skia_safe::{Color, Data, Font, Image, Paint, PaintStyle, Path, Rect, TextBlob, Typeface};
+use skia_safe::{Color, Data, Font, Image, Paint, PaintStyle, Path, Rect, TextBlob};
 
 lazy_static! {
   static ref PREV_MESSAGES: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
@@ -31,7 +31,7 @@ use crate::{
 
 // TODO Stack
 
-pub fn reset_page(_canvas: &mut skia_safe::canvas::Canvas, color: Color) -> Result<(), String> {
+pub fn reset_page(_canvas: &skia_safe::canvas::Canvas, color: Color) -> Result<(), String> {
   touches::reset_touches_stack();
   key_listener::reset_listeners_stack();
 
@@ -47,7 +47,7 @@ pub fn get_bg_color() -> Color {
 }
 
 pub fn draw_page(
-  canvas: &mut skia_safe::canvas::Canvas,
+  canvas: &skia_safe::canvas::Canvas,
   base_messages: Vec<(Box<str>, Edn)>,
   eager_render: bool,
 ) -> Result<(), String> {
@@ -104,7 +104,7 @@ pub fn draw_page(
 //   Ok(())
 // }
 
-fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) -> Result<(), String> {
+fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) -> Result<(), String> {
   match tree {
     Shape::Rectangle {
       position,
@@ -127,14 +127,14 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
           .set_stroke_join(Join::Round)
           .set_color(*color);
 
-        canvas.draw_rect(&rect_path, &paint);
+        canvas.draw_rect(rect_path, &paint);
       }
       if let Some(color) = fill_style {
         let mut paint = Paint::default();
         paint.set_anti_alias(true);
         paint.set_style(PaintStyle::Fill).set_color(*color);
 
-        canvas.draw_rect(&rect_path, &paint);
+        canvas.draw_rect(rect_path, &paint);
       }
     }
     Shape::Circle {
@@ -189,7 +189,8 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
       // for now we have to by pass bug in text rendering
       // canvas.set_transform(&Transform::identity());
 
-      let font = Font::new(Typeface::default(), *size);
+      let mut font = Font::default();
+      font.set_size(*size);
       let text_blob = TextBlob::new(text, &font).unwrap();
 
       let mut paint = Paint::default();
@@ -249,7 +250,7 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
           return Ok(());
         }
       };
-      let image = match Image::from_encoded(&Data::new_copy(&file_data)) {
+      let image = match Image::from_encoded(Data::new_copy(&file_data)) {
         Some(v) => v,
         None => {
           return Err(format!(
@@ -322,14 +323,14 @@ fn draw_shape(canvas: &mut skia_safe::canvas::Canvas, tree: &Shape, tr: &Transfo
               .set_stroke_join(Join::Round)
               .set_color(*color);
 
-            canvas.draw_rect(&rect_path, &paint);
+            canvas.draw_rect(rect_path, &paint);
           }
           if let Some(color) = fill_style {
             let mut paint = Paint::default();
             paint.set_anti_alias(true);
             paint.set_style(PaintStyle::Fill).set_color(*color);
 
-            canvas.draw_rect(&rect_path, &paint);
+            canvas.draw_rect(rect_path, &paint);
           }
         }
       }
@@ -596,7 +597,7 @@ fn extract_children(children: Option<&Edn>) -> Result<Vec<Shape>, String> {
       }
       Ok(ys)
     }
-    Some(a) => return Err(format!("invalid children: {}", a)),
+    Some(a) => Err(format!("invalid children: {}", a)),
     None => Ok(vec![]),
   }
 }

@@ -1,34 +1,41 @@
-on:
-  push:
-    branches:
-      - master
-      - main
-  pull_request: {}
-
 name: Test
 
+on:
+  push:
+    branches: [main]
+  pull_request:
+
 jobs:
-  build_and_test:
-    name: Test
+  test:
     runs-on: ubuntu-latest
-
-    permissions:
-      checks: write
-      contents: read
-      pull-requests: write
-
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          components: clippy
-          override: true
-
-      - run: cargo build --release
-      - run: mkdir -p dylibs/ && ls target/release/ && cp -v target/release/*.* dylibs/
-
-      - uses: actions-rs/clippy-check@v1
+          components: clippy,rustfmt
+      - uses: calcit-lang/setup-calcit@v1.3.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
+          version: 0.13.56
+      - name: Install native test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends xvfb xauth libgl1-mesa-dev libgl1-mesa-dri libfontconfig1-dev libfreetype6-dev
+      - run: calcit ./calcit.cirru --check-only
+      - run: cargo fmt --check
+      - run: cargo test
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: ./build.sh
+      - name: Audit C-safe exports
+        run: |
+          symbols=$(nm -D --defined-only dylibs/libcalcit_paint.so | awk '{print $3}')
+          for symbol in calcit_ffi_buffer_version calcit_ffi_async_version calcit_ffi_buffer_free push_drawing_data_calcit_ffi_v1 launch_canvas_calcit_ffi_blocking_v1; do
+            echo "$symbols" | grep -Fx "$symbol"
+          done
+          for legacy in launch_canvas push_drawing_data abi_version; do
+            if echo "$symbols" | grep -Fx "$legacy"; then
+              echo "legacy Rust ABI export remains: $legacy" >&2
+              exit 1
+            fi
+          done
+      - name: Run blocking canvas smoke
+        run: xvfb-run -a env CALCIT_PAINT_SMOKE_ONCE=1 calcit ./calcit.cirru
