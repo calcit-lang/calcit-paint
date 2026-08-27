@@ -6,6 +6,9 @@ name = "calcit_paint"
 version = "0.0.7"
 authors = ["jiyinyiyong <jiyinyiyong@gmail.com>"]
 edition = "2021"
+description = "Native Skia canvas bindings for the Calcit language"
+license = "MIT"
+repository = "https://github.com/calcit-lang/calcit-paint"
 exclude = ["resources", "!SourceCodePro-Medium.ttf"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
