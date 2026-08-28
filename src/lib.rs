@@ -278,6 +278,9 @@ fn launch_canvas_impl(handler: impl Fn(Vec<Edn>) -> Result<Edn, String>) -> Resu
       Event::NewEvents(_e) => {
         // println!("New events fired: {:?}", e);
       }
+      Event::LoopDestroyed => {
+        // Normal winit shutdown lifecycle; no application callback is needed.
+      }
       e => {
         eprintln!("unknown event: {:?}", e)
       }
