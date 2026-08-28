@@ -19,7 +19,7 @@ jobs:
       - name: Install native test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends xvfb xauth libgl1-mesa-dev libgl1-mesa-dri libfontconfig1-dev libfreetype6-dev
+          sudo apt-get install --no-install-recommends xvfb xauth libgl1-mesa-dev libgl1-mesa-dri libfontconfig1-dev libfreetype6-dev libxkbcommon-x11-0
       - run: calcit ./calcit.cirru --check-only
       - run: cargo fmt --check
       - run: cargo test
