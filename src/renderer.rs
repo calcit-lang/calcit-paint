@@ -4,7 +4,7 @@ use std::sync::RwLock;
 
 use euclid::{Angle, Vector2D};
 
-use cirru_edn::{Edn, EdnListView, EdnMapView};
+use cirru_edn::{Edn, EdnListView};
 
 use lazy_static::lazy_static;
 
@@ -446,7 +446,7 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
 fn extract_shape(tree: &Edn) -> Result<Shape, String> {
   // println!("extracting shape: {:?} -- {:?}", load_kwd("type"), tree);
   match tree {
-    Edn::Map(EdnMapView(m)) => match m.get(&load_kwd("type")) {
+    Edn::Map(m) => match m.get(&load_kwd("type")) {
       Some(Edn::Tag(name)) => match name.ref_str() {
         "rectangle" | "rect" => Ok(Shape::Rectangle {
           position: read_position(m, "position")?,
@@ -548,7 +548,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
         }
         "image" => {
           let crop = match m.get(&load_kwd("crop")) {
-            Some(Edn::Map(EdnMapView(m))) => Some(Rect::from_xywh(
+            Some(Edn::Map(m)) => Some(Rect::from_xywh(
               read_f32(m, "x")?,
               read_f32(m, "y")?,
               read_f32(m, "w")?,
