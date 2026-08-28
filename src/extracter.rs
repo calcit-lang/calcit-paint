@@ -8,15 +8,15 @@ use skia_safe::Color;
 
 use crate::{
   color::extract_color,
-  primes::{kwd, TextAlign, TouchAreaShape},
+  primes::{TextAlign, TouchAreaShape},
 };
 
-pub fn load_kwd(s: &str) -> Edn {
+pub fn tag(s: &str) -> Edn {
   Edn::tag(s)
 }
 
 pub fn read_f32(tree: &EdnMapView, key: &str) -> Result<f32, String> {
-  match tree.get(&load_kwd(key)) {
+  match tree.get(&tag(key)) {
     Some(Edn::Number(n)) => Ok(*n as f32),
     Some(a) => Err(format!("cannot be used as f32: {}", a)),
     None => Err(format!(
@@ -28,7 +28,7 @@ pub fn read_f32(tree: &EdnMapView, key: &str) -> Result<f32, String> {
 }
 
 pub fn read_optional_f32(tree: &EdnMapView, key: &str) -> Result<Option<f32>, String> {
-  match tree.get(&load_kwd(key)) {
+  match tree.get(&tag(key)) {
     Some(Edn::Number(n)) => Ok(Some(*n as f32)),
     Some(a) => Err(format!("cannot be used as f32: {a}")),
     None => Ok(None),
@@ -36,7 +36,7 @@ pub fn read_optional_f32(tree: &EdnMapView, key: &str) -> Result<Option<f32>, St
 }
 
 pub fn read_bool(tree: &EdnMapView, key: &str) -> Result<bool, String> {
-  match tree.get(&load_kwd(key)) {
+  match tree.get(&tag(key)) {
     Some(Edn::Bool(b)) => Ok(*b),
     Some(a) => Err(format!("cannot be used as bool: {}", a)),
     None => Ok(false),
@@ -44,7 +44,7 @@ pub fn read_bool(tree: &EdnMapView, key: &str) -> Result<bool, String> {
 }
 
 pub fn read_string(tree: &EdnMapView, key: &str) -> Result<String, String> {
-  match tree.get(&load_kwd(key)) {
+  match tree.get(&tag(key)) {
     Some(Edn::Str(s)) => Ok(s.to_string()),
     Some(Edn::Tag(s)) => Ok(s.to_string()),
     Some(a) => Err(format!(
@@ -57,7 +57,7 @@ pub fn read_string(tree: &EdnMapView, key: &str) -> Result<String, String> {
 }
 
 pub fn read_position(tree: &EdnMapView, key: &str) -> Result<Vector2D<f32, f32>, String> {
-  match tree.get(&load_kwd(key)) {
+  match tree.get(&tag(key)) {
     Some(Edn::List(EdnListView(xs))) if xs.len() == 2 => match (&xs[0], &xs[1]) {
       (Edn::Number(x), Edn::Number(y)) => Ok(Vector2D::new(*x as f32, *y as f32)),
       (a, b) => Err(format!("invalid positon values: {} {}", a, b)),
@@ -85,14 +85,14 @@ pub fn extract_position(x: &Edn) -> Result<Point2D<f32, f32>, String> {
 }
 
 pub fn read_color(tree: &EdnMapView, key: &str) -> Result<Color, String> {
-  match tree.get(&load_kwd(key)) {
+  match tree.get(&tag(key)) {
     Some(a) => extract_color(a),
     None => Err(format!("cannot read color from empty from: {}", key)),
   }
 }
 
 pub fn read_some_color(tree: &EdnMapView, key: &str) -> Result<Option<Color>, String> {
-  match tree.get(&load_kwd(key)) {
+  match tree.get(&tag(key)) {
     Some(a) => match extract_color(a) {
       Ok(c) => Ok(Some(c)),
       Err(e) => Err(e),
@@ -102,7 +102,7 @@ pub fn read_some_color(tree: &EdnMapView, key: &str) -> Result<Option<Color>, St
 }
 
 pub fn extract_line_style(tree: &EdnMapView) -> Result<Option<(Color, f32)>, String> {
-  match (tree.get(&kwd("line-color")), tree.get(&kwd("line-width"))) {
+  match (tree.get(&tag("line-color")), tree.get(&tag("line-width"))) {
     (Some(color_field), Some(width_field)) => match (extract_color(color_field), width_field) {
       (Ok(color), Edn::Number(n)) => Ok(Some((color, *n as f32))),
       (Ok(_), _) => Err(format!("failed to extract line-width from: {}", width_field)),
@@ -118,7 +118,7 @@ pub fn extract_line_style(tree: &EdnMapView) -> Result<Option<(Color, f32)>, Str
 }
 
 pub fn read_text_align(tree: &EdnMapView, key: &str) -> Result<TextAlign, String> {
-  match tree.get(&load_kwd(key)) {
+  match tree.get(&tag(key)) {
     Some(Edn::Tag(k)) => match k.ref_str() {
       "left" => Ok(TextAlign::Left),
       "center" => Ok(TextAlign::Center),
@@ -131,7 +131,7 @@ pub fn read_text_align(tree: &EdnMapView, key: &str) -> Result<TextAlign, String
 }
 
 pub fn read_line_join(tree: &EdnMapView, key: &str) -> Result<Join, String> {
-  match tree.get(&load_kwd(key)) {
+  match tree.get(&tag(key)) {
     Some(Edn::Tag(k)) => match k.ref_str() {
       "round" => Ok(Join::Round),
       "miter" => Ok(Join::Miter),
@@ -145,7 +145,7 @@ pub fn read_line_join(tree: &EdnMapView, key: &str) -> Result<Join, String> {
 }
 
 pub fn read_line_cap(tree: &EdnMapView, key: &str) -> Result<Cap, String> {
-  match tree.get(&load_kwd(key)) {
+  match tree.get(&tag(key)) {
     Some(Edn::Tag(k)) => match k.ref_str() {
       "round" => Ok(Cap::Round),
       "butt" => Ok(Cap::Butt),
@@ -158,7 +158,7 @@ pub fn read_line_cap(tree: &EdnMapView, key: &str) -> Result<Cap, String> {
 }
 
 pub fn read_points(tree: &EdnMapView, key: &str) -> Result<Vec<Point2D<f32, f32>>, String> {
-  match tree.get(&load_kwd(key)) {
+  match tree.get(&tag(key)) {
     Some(Edn::List(EdnListView(xs))) => {
       let mut ys: Vec<Point2D<f32, f32>> = vec![];
       for x in xs {
@@ -179,10 +179,10 @@ pub fn read_points(tree: &EdnMapView, key: &str) -> Result<Vec<Point2D<f32, f32>
 }
 
 pub fn extract_touch_area_shape(m: &EdnMapView) -> Result<TouchAreaShape, String> {
-  if let Some(Edn::Number(n)) = m.get(&load_kwd("radius")) {
+  if let Some(Edn::Number(n)) = m.get(&tag("radius")) {
     Ok(TouchAreaShape::Circle(*n as f32))
   } else {
-    match (m.get(&load_kwd("dx")), m.get(&load_kwd("dy"))) {
+    match (m.get(&tag("dx")), m.get(&tag("dy"))) {
       (Some(Edn::Number(dx)), Some(Edn::Number(dy))) => Ok(TouchAreaShape::Rect(*dx as f32, *dy as f32)),
       (a, b) => Err(format!("invalid touch area shape: {:?} {:?}", a, b)),
     }

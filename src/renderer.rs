@@ -32,9 +32,8 @@ lazy_static! {
 use crate::{
   color::extract_color,
   extracter::{
-    extract_line_style, extract_position, extract_touch_area_shape, load_kwd, read_bool, read_color, read_f32,
-    read_line_cap, read_line_join, read_optional_f32, read_points, read_position, read_some_color, read_string,
-    read_text_align,
+    extract_line_style, extract_position, extract_touch_area_shape, read_bool, read_color, read_f32, read_line_cap,
+    read_line_join, read_optional_f32, read_points, read_position, read_some_color, read_string, read_text_align, tag,
   },
   key_listener,
   primes::{PaintPathTo, Shape, TouchAreaShape},
@@ -591,9 +590,9 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
 }
 
 fn extract_shape(tree: &Edn) -> Result<Shape, String> {
-  // println!("extracting shape: {:?} -- {:?}", load_kwd("type"), tree);
+  // println!("extracting shape: {:?} -- {:?}", tag("type"), tree);
   match tree {
-    Edn::Map(m) => match m.get(&load_kwd("type")) {
+    Edn::Map(m) => match m.get(&tag("type")) {
       Some(Edn::Tag(name)) => match name.ref_str() {
         "rectangle" | "rect" => Ok(Shape::Rectangle {
           position: read_position(m, "position")?,
@@ -644,7 +643,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           line_style: extract_line_style(m)?,
         }),
         "group" => {
-          let c = m.get(&load_kwd("children"));
+          let c = m.get(&tag("children"));
           let children = extract_children(c)?;
 
           Ok(Shape::Group {
@@ -662,7 +661,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
         // }),
         "ops" => Ok(Shape::PaintOps {
           position: read_position(m, "position")?,
-          path: extract_paint_path(m.get(&load_kwd("path")).unwrap_or(&Edn::Nil))?,
+          path: extract_paint_path(m.get(&tag("path")).unwrap_or(&Edn::Nil))?,
           fill_style: read_some_color(m, "fill-color")?,
           line_style: extract_line_style(m)?,
         }),
@@ -686,9 +685,9 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           width: read_f32(m, "width")?,
         }),
         "touch-area" => Ok(Shape::TouchArea {
-          path: Box::new(m.get(&load_kwd("path")).unwrap_or(&Edn::Nil).to_owned()),
-          action: Box::new(m.get(&load_kwd("action")).unwrap_or(&Edn::Nil).to_owned()),
-          data: Box::new(m.get(&load_kwd("data")).unwrap_or(&Edn::Nil).to_owned()),
+          path: Box::new(m.get(&tag("path")).unwrap_or(&Edn::Nil).to_owned()),
+          action: Box::new(m.get(&tag("action")).unwrap_or(&Edn::Nil).to_owned()),
+          data: Box::new(m.get(&tag("data")).unwrap_or(&Edn::Nil).to_owned()),
           position: read_position(m, "position")?,
           area: extract_touch_area_shape(m)?,
           fill_style: read_some_color(m, "fill-color")?,
@@ -696,12 +695,12 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
         }),
         "key-listener" => Ok(Shape::KeyListener {
           key: read_string(m, "key")?,
-          path: Box::new(m.get(&load_kwd("path")).unwrap_or(&Edn::Nil).to_owned()),
-          action: Box::new(m.get(&load_kwd("action")).unwrap_or(&Edn::Nil).to_owned()),
-          data: Box::new(m.get(&load_kwd("data")).unwrap_or(&Edn::Nil).to_owned()),
+          path: Box::new(m.get(&tag("path")).unwrap_or(&Edn::Nil).to_owned()),
+          action: Box::new(m.get(&tag("action")).unwrap_or(&Edn::Nil).to_owned()),
+          data: Box::new(m.get(&tag("data")).unwrap_or(&Edn::Nil).to_owned()),
         }),
         "rotate" => {
-          let c = m.get(&load_kwd("children"));
+          let c = m.get(&tag("children"));
           let children = extract_children(c)?;
 
           Ok(Shape::Rotate {
@@ -710,7 +709,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           })
         }
         "scale" => {
-          let c = m.get(&load_kwd("children"));
+          let c = m.get(&tag("children"));
           let children = extract_children(c)?;
 
           Ok(Shape::Scale {
@@ -719,7 +718,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           })
         }
         "translate" => {
-          let c = m.get(&load_kwd("children"));
+          let c = m.get(&tag("children"));
           let children = extract_children(c)?;
 
           Ok(Shape::Translate {
@@ -732,7 +731,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           position: read_position(m, "position")?,
           width: read_non_negative_f32(m, "width")?,
           height: read_non_negative_f32(m, "height")?,
-          children: extract_children(m.get(&load_kwd("children")))?,
+          children: extract_children(m.get(&tag("children")))?,
         }),
         "opacity" => {
           let alpha = read_f32(m, "alpha")?;
@@ -741,11 +740,11 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           }
           Ok(Shape::Opacity {
             alpha,
-            children: extract_children(m.get(&load_kwd("children")))?,
+            children: extract_children(m.get(&tag("children")))?,
           })
         }
         "image" => {
-          let crop = match m.get(&load_kwd("crop")) {
+          let crop = match m.get(&tag("crop")) {
             Some(Edn::Map(m)) => Some(Rect::from_xywh(
               read_f32(m, "x")?,
               read_f32(m, "y")?,
@@ -885,7 +884,7 @@ mod tests {
   fn map(fields: impl IntoIterator<Item = (&'static str, Edn)>) -> Edn {
     let mut values = EdnMapView::default();
     for (key, value) in fields {
-      values.insert(load_kwd(key), value);
+      values.insert(tag(key), value);
     }
     Edn::Map(values)
   }
