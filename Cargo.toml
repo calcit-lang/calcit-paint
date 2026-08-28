@@ -3,7 +3,7 @@ resolver = "2"
 
 [package]
 name = "calcit_paint"
-version = "0.0.7"
+version = "0.0.8"
 authors = ["jiyinyiyong <jiyinyiyong@gmail.com>"]
 edition = "2021"
 description = "Native Skia canvas bindings for the Calcit language"
