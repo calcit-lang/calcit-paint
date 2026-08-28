@@ -21,11 +21,31 @@ calcit-paint.core/launch-canvas! $ fn (event)
   println "|rendering to canvas..."
 ```
 
-Maybe we will need a mirror URL for skia binaries like https://cdn.tiye.me/skia-binaries/ :
+### Native FFI / 原生 FFI
+
+The C-safe buffer-v1 and blocking-callback descriptors, ownership rules, Cirru
+EDN transport, and adapters are provided by
+[`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi). Paint
+keeps ownership of the Skia/winit event loop, rendering state, shape decoding,
+and callback scheduling. The module requires Calcit 0.13.57.
+
+C-safe buffer-v1/blocking-callback descriptor、ownership 规则、Cirru EDN
+transport 与 adapter 由
+[`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi) 统一维护。
+Paint 仍负责 Skia/winit 事件循环、绘制状态、shape 解析和回调调度；
+模块要求 Calcit 0.13.57。
+
+A custom mirror may be used for Skia binaries when it is known to be healthy:
 
 ```bash
 export SKIA_BINARIES_URL=https://cdn.tiye.me/skia-binaries/{tag}/skia-binaries-{key}.tar.gz
 ```
+
+If the mirror is unavailable, unset `SKIA_BINARIES_URL` to use rust-skia's
+official GitHub release assets. CI deliberately leaves this variable unset.
+
+只在镜像站可用时设置 `SKIA_BINARIES_URL`；镜像异常时取消该变量，
+回退到 rust-skia 的 GitHub Release 产物。CI 不设置该变量。
 
 ### Shapes
 

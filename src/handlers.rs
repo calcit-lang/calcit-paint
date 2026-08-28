@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use cirru_edn::Edn;
+use cirru_edn::{Edn, EdnMapView};
 use euclid::Vector2D;
 use std::collections::HashMap;
 
@@ -28,7 +28,7 @@ pub fn handle_mouse_down(mouse: &RefCell<Vector2D<f32, f32>>) -> Edn {
     touches::track_mouse_drag(position, target.action.to_owned(), target.path.to_owned(), target.data);
   }
 
-  Edn::Map(info)
+  Edn::Map(EdnMapView(info))
 }
 
 pub fn handle_mouse_up(mouse: &RefCell<Vector2D<f32, f32>>) -> Edn {
@@ -55,7 +55,7 @@ pub fn handle_mouse_up(mouse: &RefCell<Vector2D<f32, f32>>) -> Edn {
     touches::release_mouse_drag();
   }
 
-  Edn::Map(info)
+  Edn::Map(EdnMapView(info))
 }
 
 pub fn handle_mouse_move(position: Vector2D<f32, f32>, mouse: &RefCell<Vector2D<f32, f32>>) -> Option<Edn> {
@@ -83,7 +83,7 @@ pub fn handle_mouse_move(position: Vector2D<f32, f32>, mouse: &RefCell<Vector2D<
       ]);
     }
 
-    Some(Edn::Map(info))
+    Some(Edn::Map(EdnMapView(info)))
   }
 }
 
@@ -99,9 +99,9 @@ pub fn handle_keyboard(keycode: winit::event::VirtualKeyCode, key_state: winit::
         },
       ),
       (kwd("key-code"), Edn::Number(keycode as usize as f64)),
-      (kwd("name"), Edn::Str(name_key(keycode).into_boxed_str())),
+      (kwd("name"), Edn::str(name_key(keycode))),
     ]);
-    vec![Edn::Map(info)]
+    vec![Edn::Map(EdnMapView(info))]
   } else {
     let mut hits: Vec<Edn> = vec![];
     for target in targets {
@@ -114,12 +114,12 @@ pub fn handle_keyboard(keycode: winit::event::VirtualKeyCode, key_state: winit::
           },
         ),
         (kwd("key-code"), Edn::Number(keycode as usize as f64)),
-        (kwd("name"), Edn::Str(name_key(keycode).into_boxed_str())),
+        (kwd("name"), Edn::str(name_key(keycode))),
         (kwd("action"), target.action),
         (kwd("path"), target.path),
         (kwd("data"), target.data),
       ]);
-      hits.push(Edn::Map(info));
+      hits.push(Edn::Map(EdnMapView(info)));
     }
     hits
   }
@@ -136,5 +136,5 @@ pub fn handle_resize(w: f64, h: f64) -> Option<Edn> {
     (kwd("height"), Edn::Number(h)),
   ]);
 
-  Some(Edn::Map(info))
+  Some(Edn::Map(EdnMapView(info)))
 }

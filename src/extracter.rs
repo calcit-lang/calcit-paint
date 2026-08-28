@@ -1,6 +1,6 @@
 // use raqote::{Color, Cap, LineJoin};
 
-use cirru_edn::Edn;
+use cirru_edn::{Edn, EdnListView, EdnMapView};
 use euclid::{Point2D, Vector2D};
 use std::collections::HashMap;
 
@@ -13,7 +13,7 @@ use crate::{
 };
 
 pub fn load_kwd(s: &str) -> Edn {
-  Edn::kwd(s)
+  Edn::tag(s)
 }
 
 pub fn read_f32(tree: &HashMap<Edn, Edn>, key: &str) -> Result<f32, String> {
@@ -23,7 +23,7 @@ pub fn read_f32(tree: &HashMap<Edn, Edn>, key: &str) -> Result<f32, String> {
     None => Err(format!(
       "cannot read f32 {} from empty from: {}",
       key,
-      Edn::Map(tree.to_owned())
+      Edn::Map(EdnMapView(tree.to_owned()))
     )),
   }
 }
@@ -39,11 +39,11 @@ pub fn read_bool(tree: &HashMap<Edn, Edn>, key: &str) -> Result<bool, String> {
 pub fn read_string(tree: &HashMap<Edn, Edn>, key: &str) -> Result<String, String> {
   match tree.get(&load_kwd(key)) {
     Some(Edn::Str(s)) => Ok(s.to_string()),
-    Some(Edn::Keyword(s)) => Ok(s.to_string()),
+    Some(Edn::Tag(s)) => Ok(s.to_string()),
     Some(a) => Err(format!(
       "cannot be used as string {} in {}",
       a,
-      Edn::Map(tree.to_owned())
+      Edn::Map(EdnMapView(tree.to_owned()))
     )),
     None => Err(format!("cannot read string from empty from: {}", key)),
   }
@@ -51,16 +51,16 @@ pub fn read_string(tree: &HashMap<Edn, Edn>, key: &str) -> Result<String, String
 
 pub fn read_position(tree: &HashMap<Edn, Edn>, key: &str) -> Result<Vector2D<f32, f32>, String> {
   match tree.get(&load_kwd(key)) {
-    Some(Edn::List(xs)) if xs.len() == 2 => match (&xs[0], &xs[1]) {
+    Some(Edn::List(EdnListView(xs))) if xs.len() == 2 => match (&xs[0], &xs[1]) {
       (Edn::Number(x), Edn::Number(y)) => Ok(Vector2D::new(*x as f32, *y as f32)),
       (a, b) => Err(format!("invalid positon values: {} {}", a, b)),
     },
-    Some(Edn::List(xs)) => Err(format!("invalid position length: {:?}", xs)),
+    Some(Edn::List(EdnListView(xs))) => Err(format!("invalid position length: {:?}", xs)),
     Some(Edn::Nil) => Ok(Vector2D::new(0.0, 0.0)),
     Some(a) => Err(format!(
       "cannot be used as position: {} in {}",
       a,
-      Edn::Map(tree.to_owned())
+      Edn::Map(EdnMapView(tree.to_owned()))
     )),
     None => Ok(Vector2D::new(0.0, 0.0)),
   }
@@ -69,7 +69,7 @@ pub fn read_position(tree: &HashMap<Edn, Edn>, key: &str) -> Result<Vector2D<f32
 // get position from a value
 pub fn extract_position(x: &Edn) -> Result<Point2D<f32, f32>, String> {
   match x {
-    Edn::List(xs) if xs.len() == 2 => match (&xs[0], &xs[1]) {
+    Edn::List(EdnListView(xs)) if xs.len() == 2 => match (&xs[0], &xs[1]) {
       (Edn::Number(x), Edn::Number(y)) => Ok(Point2D::new(*x as f32, *y as f32)),
       (a, b) => Err(format!("invalid positon values: {} {}", a, b)),
     },
@@ -112,7 +112,7 @@ pub fn extract_line_style(tree: &HashMap<Edn, Edn>) -> Result<Option<(Color, f32
 
 pub fn read_text_align(tree: &HashMap<Edn, Edn>, key: &str) -> Result<TextAlign, String> {
   match tree.get(&load_kwd(key)) {
-    Some(Edn::Keyword(k)) => match &*k.to_str() {
+    Some(Edn::Tag(k)) => match k.ref_str() {
       "left" => Ok(TextAlign::Left),
       "center" => Ok(TextAlign::Center),
       "right" => Ok(TextAlign::Right),
@@ -125,7 +125,7 @@ pub fn read_text_align(tree: &HashMap<Edn, Edn>, key: &str) -> Result<TextAlign,
 
 pub fn read_line_join(tree: &HashMap<Edn, Edn>, key: &str) -> Result<Join, String> {
   match tree.get(&load_kwd(key)) {
-    Some(Edn::Keyword(k)) => match &*k.to_str() {
+    Some(Edn::Tag(k)) => match k.ref_str() {
       "round" => Ok(Join::Round),
       "miter" => Ok(Join::Miter),
       // "miter-clip" => Ok(Join::MiterClip),
@@ -139,7 +139,7 @@ pub fn read_line_join(tree: &HashMap<Edn, Edn>, key: &str) -> Result<Join, Strin
 
 pub fn read_line_cap(tree: &HashMap<Edn, Edn>, key: &str) -> Result<Cap, String> {
   match tree.get(&load_kwd(key)) {
-    Some(Edn::Keyword(k)) => match &*k.to_str() {
+    Some(Edn::Tag(k)) => match k.ref_str() {
       "round" => Ok(Cap::Round),
       "butt" => Ok(Cap::Butt),
       "square" => Ok(Cap::Square),
@@ -152,15 +152,15 @@ pub fn read_line_cap(tree: &HashMap<Edn, Edn>, key: &str) -> Result<Cap, String>
 
 pub fn read_points(tree: &HashMap<Edn, Edn>, key: &str) -> Result<Vec<Point2D<f32, f32>>, String> {
   match tree.get(&load_kwd(key)) {
-    Some(Edn::List(xs)) => {
+    Some(Edn::List(EdnListView(xs))) => {
       let mut ys: Vec<Point2D<f32, f32>> = vec![];
       for x in xs {
         match x {
-          Edn::List(pair) if pair.len() == 2 => match (&pair[0], &pair[1]) {
+          Edn::List(EdnListView(pair)) if pair.len() == 2 => match (&pair[0], &pair[1]) {
             (Edn::Number(x), Edn::Number(y)) => ys.push(Point2D::new(*x as f32, *y as f32)),
             (a, b) => return Err(format!("invalid point: {} {}", a, b)),
           },
-          Edn::List(ps) => return Err(format!("invalid point position: {:?}", ps)),
+          Edn::List(EdnListView(ps)) => return Err(format!("invalid point position: {:?}", ps)),
           _ => return Err(format!("invalid position value: {}", x)),
         }
       }
