@@ -21,7 +21,7 @@ pub enum PaintPathTo {
   Line(Point2D<f32, f32>),
   QuadraticBezier(Point2D<f32, f32>, Point2D<f32, f32>),
   CubicBezier(Point2D<f32, f32>, Point2D<f32, f32>, Point2D<f32, f32>),
-  // ClosePath,
+  Close,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -33,6 +33,15 @@ pub enum Shape {
     line_style: Option<(Color, f32)>,
     fill_style: Option<Color>,
   },
+  RoundedRectangle {
+    position: Vector2D<f32, f32>,
+    width: f32,
+    height: f32,
+    radius_x: f32,
+    radius_y: f32,
+    line_style: Option<(Color, f32)>,
+    fill_style: Option<Color>,
+  },
   Group {
     position: Vector2D<f32, f32>,
     children: Vec<Shape>,
@@ -40,6 +49,23 @@ pub enum Shape {
   Circle {
     position: Vector2D<f32, f32>,
     radius: f32,
+    line_style: Option<(Color, f32)>,
+    fill_style: Option<Color>,
+  },
+  Ellipse {
+    position: Vector2D<f32, f32>,
+    radius_x: f32,
+    radius_y: f32,
+    line_style: Option<(Color, f32)>,
+    fill_style: Option<Color>,
+  },
+  Arc {
+    position: Vector2D<f32, f32>,
+    radius_x: f32,
+    radius_y: f32,
+    start_angle: f32,
+    sweep_angle: f32,
+    use_center: bool,
     line_style: Option<(Color, f32)>,
     fill_style: Option<Color>,
   },
@@ -102,6 +128,16 @@ pub enum Shape {
   },
   Scale {
     factor: f32,
+    children: Vec<Shape>,
+  },
+  ClipRect {
+    position: Vector2D<f32, f32>,
+    width: f32,
+    height: f32,
+    children: Vec<Shape>,
+  },
+  Opacity {
+    alpha: f32,
     children: Vec<Shape>,
   },
   Image {
