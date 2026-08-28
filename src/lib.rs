@@ -307,20 +307,7 @@ fn push_drawing_data(args: Vec<Edn>) -> Result<Edn, String> {
   Ok(Edn::Nil)
 }
 
-/// Push one drawing command through C-safe buffer protocol v1.
-///
-/// # Safety
-///
-/// Request bytes must remain readable and `output` writable for this call.
-#[no_mangle]
-pub unsafe extern "C" fn push_drawing_data_calcit_ffi_v1(
-  request_ptr: *const u8,
-  request_len: usize,
-  output: *mut ffi::CalcitFfiBuffer,
-) -> i32 {
-  // SAFETY: the shared adapter validates and copies all call-scoped inputs.
-  unsafe { ffi::run_buffer_adapter(request_ptr, request_len, output, push_drawing_data) }
-}
+calcit_native_ffi::export_edn_buffer_method_v1!(push_drawing_data_calcit_ffi_v1, push_drawing_data);
 
 /// Own the host thread while the paint event loop is running.
 ///
