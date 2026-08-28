@@ -13,7 +13,7 @@ calcit ./calcit.cirru
 
 Available APIs:
 
-```cirru
+```cirru.no-check
 calcit-paint.core/push-drawing-data! |reset-canvas! nil
 calcit-paint.core/push-drawing-data! |render-canvas! shape-data
 
@@ -28,14 +28,14 @@ EDN transport, and adapters are provided by
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi). Paint
 keeps ownership of the Skia/winit event loop, rendering state, shape decoding,
 and callback scheduling. The module tracks `calcit_native_ffi 0.1.2`; buffer
-and blocking-callback protocols remain at v1. It requires Calcit 0.13.57.
+and blocking-callback protocols remain at v1. It requires Calcit 0.13.58.
 
 C-safe buffer-v1/blocking-callback descriptor、ownership 规则、Cirru EDN
 transport 与 adapter 由
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi) 统一维护。
 Paint 仍负责 Skia/winit 事件循环、绘制状态、shape 解析和回调调度；
 模块当前使用 `calcit_native_ffi 0.1.2`，buffer 与 blocking-callback protocol
-均继续保持 v1；模块要求 Calcit 0.13.57。
+均继续保持 v1；模块要求 Calcit 0.13.58。
 
 A custom mirror may be used for Skia binaries when it is known to be healthy:
 
@@ -53,7 +53,8 @@ official GitHub release assets. CI deliberately leaves this variable unset.
 
 Position represented with `[] x y`. Color with `[] h s l a?`
 
-Drawing with lyon `0.17.5`:
+Drawing is backed by Skia and uses logical pixels. Shape maps support the
+following primitives and containers:
 
 - Rect, using `rect` or `rectangle`:
 
@@ -87,7 +88,32 @@ Circle {
 },
 ```
 
-_Arc is not supported at current._
+- Rounded rect, using `rounded-rect` or `rounded-rectangle`. Use `radius` for
+  both axes, or `radius-x` and `radius-y` independently:
+
+```cirru
+{} (:type :rounded-rect) (:position ([] 20 20))
+  :width 120
+  :height 60
+  :radius 16
+  :fill-color $ [] 210 70 55
+```
+
+- Ellipse, using `ellipse`, with `radius-x` and `radius-y`.
+
+- Arc, using `arc`. Angles are in degrees; positive sweep is clockwise.
+  `use-center? true` draws a wedge:
+
+```cirru
+{} (:type :arc) (:position ([] 200 120))
+  :radius-x 80
+  :radius-y 40
+  :start-angle 190
+  :sweep-angle 160
+  :use-center? false
+  :line-color $ [] 120 80 70
+  :line-width 4
+```
 
 - Text, using `text`
 
@@ -113,7 +139,7 @@ PaintOps {
 },
 ```
 
-It's rendered based on lyon SVG path builder. Only small subset:
+Paths use Skia's path builder with this compact operation subset:
 
 ```cirru
 []
@@ -121,9 +147,10 @@ It's rendered based on lyon SVG path builder. Only small subset:
   [] :line-to ([] 3 4)
   [] :quadratic-bezier-to ([] 5 6) ([] 7 8)
   [] :cubic-bezier-to ([] 1 2) ([] 3 4) ([] 5 6)
+  [] :close-path
 ```
 
-Since then name is too long, I also use alies:
+The shorter aliases are also supported:
 `bezier2-to` -> `quadratic-bezier-to`, and
 `bezier3-to` -> `cubic-bezier-to`.
 
@@ -153,7 +180,26 @@ Image {
 }
 ```
 
+Decoded images are cached and automatically reloaded when file size or
+modification time changes.
+
+- Clip rect, using `clip-rect`, clips all children to its rectangular bounds.
+
+- Opacity, using `opacity`, composites all children as one layer. `alpha` must
+  be between `0` and `1`:
+
+```cirru
+{} (:type :opacity) (:alpha 0.6)
+  :children $ []
+    {} (:type :circle) (:position ([] 80 80)) (:radius 40)
+      :fill-color $ [] 20 80 60
+```
+
 - Touch Area, using `touch-area`
+
+Window callbacks also emit `:mouse-wheel` events with `:dx`, `:dy`, and a
+`:unit` of either `:line` or `:pixel`. Pixel deltas are normalized to logical
+pixels, consistently with drawing coordinates.
 
 For handling events:
 

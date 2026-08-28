@@ -27,6 +27,14 @@ pub fn read_f32(tree: &EdnMapView, key: &str) -> Result<f32, String> {
   }
 }
 
+pub fn read_optional_f32(tree: &EdnMapView, key: &str) -> Result<Option<f32>, String> {
+  match tree.get(&load_kwd(key)) {
+    Some(Edn::Number(n)) => Ok(Some(*n as f32)),
+    Some(a) => Err(format!("cannot be used as f32: {a}")),
+    None => Ok(None),
+  }
+}
+
 pub fn read_bool(tree: &EdnMapView, key: &str) -> Result<bool, String> {
   match tree.get(&load_kwd(key)) {
     Some(Edn::Bool(b)) => Ok(*b),

@@ -62,6 +62,33 @@
                     :position $ [] 120 300
                     :radius 40
                     :fill-color $ [] 0 80 70
+                  {} (:type :clip-rect)
+                    :position $ [] 220 80
+                    :width 260
+                    :height 160
+                    :children $ []
+                      {} (:type :opacity) (:alpha 0.85)
+                        :children $ []
+                          {} (:type :rounded-rect)
+                            :position $ [] 230 90
+                            :width 120
+                            :height 70
+                            :radius 16
+                            :fill-color $ [] 45 80 60
+                          {} (:type :ellipse)
+                            :position $ [] 400 125
+                            :radius-x 48
+                            :radius-y 30
+                            :line-color $ [] 200 80 80
+                            :line-width 4
+                          {} (:type :arc)
+                            :position $ [] 350 205
+                            :radius-x 70
+                            :radius-y 32
+                            :start-angle 190
+                            :sweep-angle 160
+                            :line-color $ [] 120 80 70
+                            :line-width 5
                   {} (:type :text) (:text |Demo)
                     :position $ [] 140 40
                     :color $ [] 0 80 100

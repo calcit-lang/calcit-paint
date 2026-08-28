@@ -1,10 +1,12 @@
 use crate::touches;
+use std::collections::HashMap;
 use std::fs;
 use std::sync::RwLock;
+use std::time::SystemTime;
 
 use euclid::{Angle, Vector2D};
 
-use cirru_edn::{Edn, EdnListView};
+use cirru_edn::{Edn, EdnListView, EdnMapView};
 
 use lazy_static::lazy_static;
 
@@ -12,18 +14,27 @@ type Transform = euclid::default::Transform2D<f32>;
 
 use skia_safe::canvas::SrcRectConstraint;
 use skia_safe::paint::{Cap, Join};
-use skia_safe::{Color, Data, Font, Image, Paint, PaintStyle, Path, Rect, TextBlob};
+use skia_safe::{Color, Data, Font, Image, Paint, PaintStyle, PathBuilder, RRect, Rect, TextBlob};
+
+#[derive(Clone)]
+struct CachedImage {
+  modified: Option<SystemTime>,
+  len: u64,
+  image: Image,
+}
 
 lazy_static! {
   static ref PREV_MESSAGES: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
   static ref BG_COLOR: RwLock<Color> = RwLock::new(Color::BLACK);
+  static ref IMAGE_CACHE: RwLock<HashMap<String, CachedImage>> = RwLock::new(HashMap::new());
 }
 
 use crate::{
   color::extract_color,
   extracter::{
     extract_line_style, extract_position, extract_touch_area_shape, load_kwd, read_bool, read_color, read_f32,
-    read_line_cap, read_line_join, read_points, read_position, read_some_color, read_string, read_text_align,
+    read_line_cap, read_line_join, read_optional_f32, read_points, read_position, read_some_color, read_string,
+    read_text_align,
   },
   key_listener,
   primes::{PaintPathTo, Shape, TouchAreaShape},
@@ -44,6 +55,60 @@ pub fn reset_page(_canvas: &skia_safe::canvas::Canvas, color: Color) -> Result<(
 pub fn get_bg_color() -> Color {
   let c = BG_COLOR.read().unwrap();
   c.to_owned()
+}
+
+fn load_image(file_path: &str) -> Result<Option<Image>, String> {
+  let metadata = match fs::metadata(file_path) {
+    Ok(metadata) => metadata,
+    Err(error) => {
+      eprintln!("[Paint Error] failed to load {file_path}: {error}");
+      return Ok(None);
+    }
+  };
+  let modified = metadata.modified().ok();
+  let len = metadata.len();
+  if let Some(cached) = IMAGE_CACHE
+    .read()
+    .map_err(|_| "image cache lock is poisoned".to_owned())?
+    .get(file_path)
+    .filter(|cached| cached.modified == modified && cached.len == len)
+  {
+    return Ok(Some(cached.image.clone()));
+  }
+
+  let file_data = fs::read(file_path).map_err(|error| format!("[Paint Error] failed to load {file_path}: {error}"))?;
+  let image = Image::from_encoded(Data::new_copy(&file_data))
+    .ok_or_else(|| format!("[Paint Error] failed to decode image: {file_path}"))?;
+  IMAGE_CACHE
+    .write()
+    .map_err(|_| "image cache lock is poisoned".to_owned())?
+    .insert(
+      file_path.to_owned(),
+      CachedImage {
+        modified,
+        len,
+        image: image.clone(),
+      },
+    );
+  Ok(Some(image))
+}
+
+fn stroke_paint(color: Color, width: f32) -> Paint {
+  let mut paint = Paint::default();
+  paint
+    .set_anti_alias(true)
+    .set_style(PaintStyle::Stroke)
+    .set_stroke_width(width)
+    .set_stroke_cap(Cap::Round)
+    .set_stroke_join(Join::Round)
+    .set_color(color);
+  paint
+}
+
+fn fill_paint(color: Color) -> Paint {
+  let mut paint = Paint::default();
+  paint.set_anti_alias(true).set_style(PaintStyle::Fill).set_color(color);
+  paint
 }
 
 pub fn draw_page(
@@ -137,6 +202,24 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
         canvas.draw_rect(rect_path, &paint);
       }
     }
+    Shape::RoundedRectangle {
+      position,
+      width,
+      height,
+      radius_x,
+      radius_y,
+      line_style,
+      fill_style,
+    } => {
+      let rect = Rect::from_xywh(position.x, position.y, *width, *height);
+      let rounded = RRect::new_rect_xy(rect, *radius_x, *radius_y);
+      if let Some((color, width)) = line_style {
+        canvas.draw_rrect(rounded, &stroke_paint(*color, *width));
+      }
+      if let Some(color) = fill_style {
+        canvas.draw_rrect(rounded, &fill_paint(*color));
+      }
+    }
     Shape::Circle {
       position,
       radius,
@@ -166,6 +249,55 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
         canvas.draw_circle((position.x, position.y), *radius, &paint);
       }
     }
+    Shape::Ellipse {
+      position,
+      radius_x,
+      radius_y,
+      line_style,
+      fill_style,
+    } => {
+      let oval = Rect::from_xywh(
+        position.x - radius_x,
+        position.y - radius_y,
+        2.0 * radius_x,
+        2.0 * radius_y,
+      );
+      if let Some((color, width)) = line_style {
+        canvas.draw_oval(oval, &stroke_paint(*color, *width));
+      }
+      if let Some(color) = fill_style {
+        canvas.draw_oval(oval, &fill_paint(*color));
+      }
+    }
+    Shape::Arc {
+      position,
+      radius_x,
+      radius_y,
+      start_angle,
+      sweep_angle,
+      use_center,
+      line_style,
+      fill_style,
+    } => {
+      let oval = Rect::from_xywh(
+        position.x - radius_x,
+        position.y - radius_y,
+        2.0 * radius_x,
+        2.0 * radius_y,
+      );
+      if let Some((color, width)) = line_style {
+        canvas.draw_arc(
+          oval,
+          *start_angle,
+          *sweep_angle,
+          *use_center,
+          &stroke_paint(*color, *width),
+        );
+      }
+      if let Some(color) = fill_style {
+        canvas.draw_arc(oval, *start_angle, *sweep_angle, *use_center, &fill_paint(*color));
+      }
+    }
     Shape::Group { position, children } => {
       canvas.save();
       let pos = Vector2D::new(position.x, position.y);
@@ -182,7 +314,7 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       size,
       color,
       // weight: _w,
-      align: _a,
+      align,
     } => {
       // canvas.set_transform(tr);
       // https://github.com/jrmuizel/raqote/issues/179
@@ -197,7 +329,12 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       paint.set_anti_alias(true);
       paint.set_style(PaintStyle::Fill).set_color(*color);
 
-      canvas.draw_text_blob(text_blob, (position.x, position.y), &paint);
+      let x_offset = match align {
+        crate::primes::TextAlign::Left => 0.0,
+        crate::primes::TextAlign::Center => -0.5 * text_blob.bounds().width(),
+        crate::primes::TextAlign::Right => -text_blob.bounds().width(),
+      };
+      canvas.draw_text_blob(text_blob, (position.x + x_offset, position.y), &paint);
     }
     Shape::Polyline {
       position,
@@ -208,7 +345,7 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       cap,
       skip_first,
     } => {
-      let mut path = Path::default();
+      let mut path = PathBuilder::new();
       // canvas.set_transform(tr);
 
       if *skip_first && !stops.is_empty() {
@@ -220,6 +357,7 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
         path.line_to((position.x + stop.x, position.y + stop.y));
       }
       path.close();
+      let path = path.detach();
 
       let mut paint = Paint::default();
       paint.set_anti_alias(true);
@@ -240,24 +378,9 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       h,
       crop,
     } => {
-      println!("loading image: {}", file_path);
       let paint = Paint::default();
-      let file_data = match fs::read(file_path) {
-        Ok(data) => data,
-        Err(e) => {
-          eprintln!("[Paint Error] failed to load {}: {}", file_path, e);
-          // don't take down whole program
-          return Ok(());
-        }
-      };
-      let image = match Image::from_encoded(Data::new_copy(&file_data)) {
-        Some(v) => v,
-        None => {
-          return Err(format!(
-            "[Paint Error] failed to convert data of {} into image",
-            file_path
-          ));
-        }
+      let Some(image) = load_image(file_path)? else {
+        return Ok(());
       };
       let area = Rect::from_xywh(*x, *y, *w, *h);
       match crop {
@@ -362,7 +485,7 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       fill_style,
       position,
     } => {
-      let mut path = Path::default();
+      let mut path = PathBuilder::new();
       let x0 = position.x;
       let y0 = position.y;
       path.move_to((x0, y0));
@@ -382,11 +505,15 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
           PaintPathTo::CubicBezier(a, b, c) => {
             path.cubic_to((x0 + a.x, y0 + a.y), (x0 + b.x, y0 + b.y), (x0 + c.x, y0 + c.y));
           }
+          PaintPathTo::Close => {
+            path.close();
+          }
         }
       }
       if fill_style.is_some() {
         path.close();
       }
+      let path = path.detach();
 
       if let Some((color, width)) = line_style {
         let mut paint = Paint::default();
@@ -439,6 +566,26 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       }
       canvas.restore();
     }
+    Shape::ClipRect {
+      position,
+      width,
+      height,
+      children,
+    } => {
+      canvas.save();
+      canvas.clip_rect(Rect::from_xywh(position.x, position.y, *width, *height), None, true);
+      for child in children {
+        draw_shape(canvas, child, tr)?;
+      }
+      canvas.restore();
+    }
+    Shape::Opacity { alpha, children } => {
+      canvas.save_layer_alpha_f(None, alpha.clamp(0.0, 1.0));
+      for child in children {
+        draw_shape(canvas, child, tr)?;
+      }
+      canvas.restore();
+    }
   }
   Ok(())
 }
@@ -455,9 +602,44 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           fill_style: read_some_color(m, "fill-color")?,
           line_style: extract_line_style(m)?,
         }),
+        "rounded-rectangle" | "rounded-rect" => {
+          let radius = read_optional_f32(m, "radius")?;
+          let radius_x = read_optional_f32(m, "radius-x")?
+            .or(radius)
+            .ok_or_else(|| "rounded-rectangle requires :radius or :radius-x".to_owned())?;
+          let radius_y = read_optional_f32(m, "radius-y")?.unwrap_or(radius_x);
+          validate_non_negative("rounded-rectangle radius-x", radius_x)?;
+          validate_non_negative("rounded-rectangle radius-y", radius_y)?;
+          Ok(Shape::RoundedRectangle {
+            position: read_position(m, "position")?,
+            width: read_non_negative_f32(m, "width")?,
+            height: read_non_negative_f32(m, "height")?,
+            radius_x,
+            radius_y,
+            fill_style: read_some_color(m, "fill-color")?,
+            line_style: extract_line_style(m)?,
+          })
+        }
         "circle" => Ok(Shape::Circle {
           position: read_position(m, "position")?,
           radius: read_f32(m, "radius")?,
+          fill_style: read_some_color(m, "fill-color")?,
+          line_style: extract_line_style(m)?,
+        }),
+        "ellipse" => Ok(Shape::Ellipse {
+          position: read_position(m, "position")?,
+          radius_x: read_non_negative_f32(m, "radius-x")?,
+          radius_y: read_non_negative_f32(m, "radius-y")?,
+          fill_style: read_some_color(m, "fill-color")?,
+          line_style: extract_line_style(m)?,
+        }),
+        "arc" => Ok(Shape::Arc {
+          position: read_position(m, "position")?,
+          radius_x: read_non_negative_f32(m, "radius-x")?,
+          radius_y: read_non_negative_f32(m, "radius-y")?,
+          start_angle: read_f32(m, "start-angle")?,
+          sweep_angle: read_f32(m, "sweep-angle")?,
+          use_center: read_bool(m, "use-center?")?,
           fill_style: read_some_color(m, "fill-color")?,
           line_style: extract_line_style(m)?,
         }),
@@ -546,6 +728,22 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
             children,
           })
         }
+        "clip-rect" => Ok(Shape::ClipRect {
+          position: read_position(m, "position")?,
+          width: read_non_negative_f32(m, "width")?,
+          height: read_non_negative_f32(m, "height")?,
+          children: extract_children(m.get(&load_kwd("children")))?,
+        }),
+        "opacity" => {
+          let alpha = read_f32(m, "alpha")?;
+          if !(0.0..=1.0).contains(&alpha) {
+            return Err(format!("opacity alpha must be between 0 and 1, got {alpha}"));
+          }
+          Ok(Shape::Opacity {
+            alpha,
+            children: extract_children(m.get(&load_kwd("children")))?,
+          })
+        }
         "image" => {
           let crop = match m.get(&load_kwd("crop")) {
             Some(Edn::Map(m)) => Some(Rect::from_xywh(
@@ -576,6 +774,18 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
     }),
     _ => Err(format!("expected a map, got {}", tree)),
   }
+}
+
+fn validate_non_negative(name: &str, value: f32) -> Result<f32, String> {
+  if value.is_finite() && value >= 0.0 {
+    Ok(value)
+  } else {
+    Err(format!("{name} must be a finite non-negative number, got {value}"))
+  }
+}
+
+fn read_non_negative_f32(tree: &EdnMapView, key: &str) -> Result<f32, String> {
+  validate_non_negative(key, read_f32(tree, key)?)
 }
 
 fn extract_children(children: Option<&Edn>) -> Result<Vec<Shape>, String> {
@@ -653,10 +863,92 @@ fn extract_paint_op(xs: &[Edn]) -> Result<PaintPathTo, String> {
         },
         (a, b, c) => Err(format!("missing quadratic points {:?} {:?} {:?}", a, b, c)),
       },
-      // "close-path" => Ok(PaintPathTo::ClosePath),
+      "close" | "close-path" => {
+        if xs.len() == 1 {
+          Ok(PaintPathTo::Close)
+        } else {
+          Err(format!("close-path does not accept arguments: {xs:?}"))
+        }
+      }
       _ => Err(format!("unknown paint op: {}", op)),
     }
   } else {
     Err(String::from("empty is not paint op"))
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use cirru_edn::EdnMapView;
+
+  fn map(fields: impl IntoIterator<Item = (&'static str, Edn)>) -> Edn {
+    let mut values = EdnMapView::default();
+    for (key, value) in fields {
+      values.insert(load_kwd(key), value);
+    }
+    Edn::Map(values)
+  }
+
+  fn list(values: impl IntoIterator<Item = Edn>) -> Edn {
+    Edn::List(EdnListView(values.into_iter().collect()))
+  }
+
+  #[test]
+  fn extracts_new_skia_shapes() {
+    let rounded = map([
+      ("type", Edn::tag("rounded-rect")),
+      ("position", list([Edn::Number(10.0), Edn::Number(20.0)])),
+      ("width", Edn::Number(80.0)),
+      ("height", Edn::Number(40.0)),
+      ("radius", Edn::Number(6.0)),
+    ]);
+    assert!(matches!(
+      extract_shape(&rounded),
+      Ok(Shape::RoundedRectangle {
+        radius_x: 6.0,
+        radius_y: 6.0,
+        ..
+      })
+    ));
+
+    let ellipse = map([
+      ("type", Edn::tag("ellipse")),
+      ("radius-x", Edn::Number(30.0)),
+      ("radius-y", Edn::Number(20.0)),
+    ]);
+    assert!(matches!(extract_shape(&ellipse), Ok(Shape::Ellipse { .. })));
+  }
+
+  #[test]
+  fn validates_new_shape_arguments() {
+    let rounded = map([
+      ("type", Edn::tag("rounded-rect")),
+      ("width", Edn::Number(80.0)),
+      ("height", Edn::Number(40.0)),
+    ]);
+    assert!(extract_shape(&rounded).unwrap_err().contains("requires :radius"));
+
+    let opacity = map([
+      ("type", Edn::tag("opacity")),
+      ("alpha", Edn::Number(1.5)),
+      ("children", list([])),
+    ]);
+    assert!(extract_shape(&opacity).unwrap_err().contains("between 0 and 1"));
+
+    let ellipse = map([
+      ("type", Edn::tag("ellipse")),
+      ("radius-x", Edn::Number(-1.0)),
+      ("radius-y", Edn::Number(20.0)),
+    ]);
+    assert!(extract_shape(&ellipse)
+      .unwrap_err()
+      .contains("radius-x must be a finite non-negative number"));
+  }
+
+  #[test]
+  fn supports_explicit_path_close() {
+    assert_eq!(extract_paint_op(&[Edn::tag("close-path")]), Ok(PaintPathTo::Close));
+    assert!(extract_paint_op(&[Edn::tag("close"), Edn::Nil]).is_err());
   }
 }
