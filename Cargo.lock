@@ -88,9 +88,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9df67f7bf9ef8498769f994239c45613ef0c5899415fb58e9add412d2c1a538"
 
 [[package]]
+name = "calcit_native_ffi"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a985b8b73c1025a00f7e03bfc673c8e44e5671be78af4783b856b8f85464cc66"
+dependencies = [
+ "cirru_edn",
+]
+
+[[package]]
 name = "calcit_paint"
 version = "0.0.7"
 dependencies = [
+ "calcit_native_ffi",
  "cirru_edn",
  "env_logger",
  "euclid",
@@ -151,20 +161,36 @@ dependencies = [
 
 [[package]]
 name = "cirru_edn"
-version = "0.2.17"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9eeae0f1e55252f1446f5dc6cb75005bf6e1dc45d55411017a75182e2fa84237"
+checksum = "7f9a574a5164698fdd0881368444c47fad4b3188f82898386b9f28b83d9626d7"
 dependencies = [
  "cirru_parser",
+ "cjk",
  "hex",
- "lazy_static",
+ "serde",
 ]
 
 [[package]]
 name = "cirru_parser"
-version = "0.1.18"
+version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4818f8cbad45841e6e0166ae5f1bad3051f63ad398a1e47586fa61fb9fba6ce"
+checksum = "91044eb215dc0a2a75af6d3955f0074a4e7024ed4608a3be812024a950bb4e73"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "cjk"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c5581b1ff873217332789ccc8956c1c68bcf9d693e7e5c6bcc677897fda5257"
+dependencies = [
+ "hex",
+ "lazy_static",
+ "unicode-blocks",
+ "widestring",
+]
 
 [[package]]
 name = "clang-sys"
@@ -1055,6 +1081,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"
 dependencies = [
  "serde_core",
+ "serde_derive",
 ]
 
 [[package]]
@@ -1296,6 +1323,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
 
 [[package]]
+name = "unicode-blocks"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "328edfd6d0bb91a22e592bed3a3b54c7b1f5c92a517f5a7aca24a2caef10c363"
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1470,6 +1503,12 @@ dependencies = [
  "lazy_static",
  "libc",
 ]
+
+[[package]]
+name = "widestring"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c168940144dd21fd8046987c16a46a33d5fc84eec29ef9dcddc2ac9e31526b7c"
 
 [[package]]
 name = "winapi"

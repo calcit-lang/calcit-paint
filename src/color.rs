@@ -1,4 +1,4 @@
-use cirru_edn::Edn;
+use cirru_edn::{Edn, EdnListView};
 use skia_safe::Color;
 
 fn hsl_helper(p: f32, q: f32, t0: f32) -> f32 {
@@ -49,7 +49,7 @@ fn hsl_to_rgb(h0: f32, s0: f32, l0: f32, alpha: f32) -> Color {
 
 pub fn extract_color(x: &Edn) -> Result<Color, String> {
   match x {
-    Edn::List(xs) if xs.len() == 3 || xs.len() == 4 => match (&xs[0], &xs[1], &xs[2]) {
+    Edn::List(EdnListView(xs)) if xs.len() == 3 || xs.len() == 4 => match (&xs[0], &xs[1], &xs[2]) {
       (Edn::Number(hue), Edn::Number(s), Edn::Number(light)) => match xs.get(3) {
         Some(Edn::Number(alpha)) => Ok(hsl_to_rgb(*hue as f32, *s as f32, *light as f32, *alpha as f32)),
         Some(a) => Err(format!("invalid alpha: {}", a)),
@@ -57,7 +57,7 @@ pub fn extract_color(x: &Edn) -> Result<Color, String> {
       },
       (a, b, c) => Err(format!("unknown color values: {} {} {}", a, b, c)),
     },
-    Edn::List(xs) => Err(format!("unknown length of color: {}", xs.len())),
+    Edn::List(EdnListView(xs)) => Err(format!("unknown length of color: {}", xs.len())),
     _ => Err(String::from("unknown type for color")),
   }
 }

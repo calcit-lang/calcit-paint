@@ -15,6 +15,9 @@ mod primes;
 mod renderer;
 mod touches;
 
+calcit_native_ffi::export_buffer_abi_v1!();
+calcit_native_ffi::export_async_abi_v1!();
+
 use std::sync::RwLock;
 use std::{thread, time};
 
@@ -300,7 +303,7 @@ fn push_drawing_data(args: Vec<Edn>) -> Result<Edn, String> {
   let mut pending = NEXT_DRAWING_DATA
     .write()
     .map_err(|_| "drawing-data queue lock is poisoned".to_owned())?;
-  pending.push((op.to_owned(), data.to_owned()));
+  pending.push((op.to_string().into_boxed_str(), data.to_owned()));
   Ok(Edn::Nil)
 }
 

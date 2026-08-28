@@ -4,7 +4,7 @@ use std::sync::RwLock;
 
 use euclid::{Angle, Vector2D};
 
-use cirru_edn::Edn;
+use cirru_edn::{Edn, EdnListView};
 
 use lazy_static::lazy_static;
 
@@ -447,7 +447,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
   // println!("extracting shape: {:?} -- {:?}", load_kwd("type"), tree);
   match tree {
     Edn::Map(m) => match m.get(&load_kwd("type")) {
-      Some(Edn::Keyword(name)) => match &*name.to_str() {
+      Some(Edn::Tag(name)) => match name.ref_str() {
         "rectangle" | "rect" => Ok(Shape::Rectangle {
           position: read_position(m, "position")?,
           width: read_f32(m, "width")?,
@@ -584,7 +584,7 @@ fn extract_children(children: Option<&Edn>) -> Result<Vec<Shape>, String> {
     children: vec![],
   };
   match children {
-    Some(Edn::List(xs)) => {
+    Some(Edn::List(EdnListView(xs))) => {
       let mut ys = vec![];
       for x in xs {
         match extract_shape(x) {
@@ -603,11 +603,11 @@ fn extract_children(children: Option<&Edn>) -> Result<Vec<Shape>, String> {
 }
 
 fn extract_paint_path(data: &Edn) -> Result<Vec<PaintPathTo>, String> {
-  if let Edn::List(xs) = data {
+  if let Edn::List(EdnListView(xs)) = data {
     let mut ys = vec![];
     for x in xs {
       match x {
-        Edn::List(zs) => ys.push(extract_paint_op(zs)?),
+        Edn::List(EdnListView(zs)) => ys.push(extract_paint_op(zs)?),
         _ => return Err(format!("expected single op in list, for {}", x)),
       }
     }
@@ -619,12 +619,12 @@ fn extract_paint_path(data: &Edn) -> Result<Vec<PaintPathTo>, String> {
 
 fn extract_paint_op(xs: &[Edn]) -> Result<PaintPathTo, String> {
   if !xs.is_empty() {
-    let op: Box<str> = match &xs[0] {
-      Edn::Keyword(s) => s.to_str(),
-      Edn::Str(s) => s.to_owned(),
+    let op: &str = match &xs[0] {
+      Edn::Tag(s) => s.ref_str(),
+      Edn::Str(s) => s,
       _ => return Err(format!("unknown paint op value: {}", xs[0])),
     };
-    match &*op {
+    match op {
       "move-to" => match xs.get(1) {
         Some(v) => match extract_position(v) {
           Ok(p) => Ok(PaintPathTo::Move(p)),
