@@ -6,8 +6,6 @@ use skia_safe::{
   Color, Rect,
 };
 
-use crate::extracter::load_kwd;
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum TextAlign {
   Left,
@@ -154,8 +152,4 @@ pub enum Shape {
 pub enum TouchAreaShape {
   Circle(f32),
   Rect(f32, f32),
-}
-
-pub fn kwd(s: &str) -> Edn {
-  load_kwd(s)
 }

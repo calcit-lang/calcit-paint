@@ -4,7 +4,7 @@ use cirru_edn::{Edn, EdnMapView};
 use euclid::Vector2D;
 use winit::{event::ElementState, keyboard::Key};
 
-use crate::{key_listener, primes::kwd, touches};
+use crate::{extracter::tag, key_listener, touches};
 
 fn map_view(pairs: impl IntoIterator<Item = (Edn, Edn)>) -> EdnMapView {
   let mut map = EdnMapView::default();
@@ -27,19 +27,19 @@ pub fn handle_mouse_down(mouse: &RefCell<Vector2D<f32, f32>>) -> Edn {
   let position = mouse.to_owned().into_inner();
 
   let mut info = map_view([
-    (kwd("type"), kwd("mouse-down")),
-    (kwd("clicks"), Edn::Number(1.0)), // TODO
-    (kwd("x"), Edn::Number(position.x as f64)),
-    (kwd("y"), Edn::Number(position.y as f64)),
+    (tag("type"), tag("mouse-down")),
+    (tag("clicks"), Edn::Number(1.0)), // TODO
+    (tag("x"), Edn::Number(position.x as f64)),
+    (tag("y"), Edn::Number(position.y as f64)),
   ]);
 
   if let Some(target) = touches::find_touch_area(position) {
     extend_map(
       &mut info,
       [
-        (kwd("action"), target.action.to_owned()),
-        (kwd("path"), target.path.to_owned()),
-        (kwd("data"), target.data.to_owned()),
+        (tag("action"), target.action.to_owned()),
+        (tag("path"), target.path.to_owned()),
+        (tag("data"), target.data.to_owned()),
       ],
     );
     touches::track_mouse_drag(position, target.action.to_owned(), target.path.to_owned(), target.data);
@@ -53,10 +53,10 @@ pub fn handle_mouse_up(mouse: &RefCell<Vector2D<f32, f32>>) -> Edn {
   let position = mouse.to_owned().into_inner();
 
   let mut info = map_view([
-    (kwd("type"), kwd("mouse-up")),
-    (kwd("x"), Edn::Number(position.x as f64)),
-    (kwd("y"), Edn::Number(position.y as f64)),
-    (kwd("clicks"), Edn::Number(1.0)), // TODO
+    (tag("type"), tag("mouse-up")),
+    (tag("x"), Edn::Number(position.x as f64)),
+    (tag("y"), Edn::Number(position.y as f64)),
+    (tag("clicks"), Edn::Number(1.0)), // TODO
   ]);
 
   if let Some(tracked_state) = touches::read_mouse_tracked_state() {
@@ -64,11 +64,11 @@ pub fn handle_mouse_up(mouse: &RefCell<Vector2D<f32, f32>>) -> Edn {
     extend_map(
       &mut info,
       [
-        (kwd("action"), tracked_state.action),
-        (kwd("path"), tracked_state.path),
-        (kwd("data"), tracked_state.data),
-        (kwd("dx"), Edn::Number((position.x - p0.x) as f64)),
-        (kwd("dy"), Edn::Number((position.y - p0.y) as f64)),
+        (tag("action"), tracked_state.action),
+        (tag("path"), tracked_state.path),
+        (tag("data"), tracked_state.data),
+        (tag("dx"), Edn::Number((position.x - p0.x) as f64)),
+        (tag("dy"), Edn::Number((position.y - p0.y) as f64)),
       ],
     );
 
@@ -86,10 +86,10 @@ pub fn handle_mouse_move(position: Vector2D<f32, f32>, mouse: &RefCell<Vector2D<
     mouse.replace(position);
     // println!("mouse move: {:?}", position);
     let mut info = map_view([
-      (kwd("type"), kwd("mouse-move")),
-      (kwd("clicks"), Edn::Number(1.0)), // TODO
-      (kwd("x"), Edn::Number(position.x as f64)),
-      (kwd("y"), Edn::Number(position.y as f64)),
+      (tag("type"), tag("mouse-move")),
+      (tag("clicks"), Edn::Number(1.0)), // TODO
+      (tag("x"), Edn::Number(position.x as f64)),
+      (tag("y"), Edn::Number(position.y as f64)),
     ]);
 
     if let Some(tracked_state) = touches::read_mouse_tracked_state() {
@@ -97,11 +97,11 @@ pub fn handle_mouse_move(position: Vector2D<f32, f32>, mouse: &RefCell<Vector2D<
       extend_map(
         &mut info,
         [
-          (kwd("action"), tracked_state.action),
-          (kwd("path"), tracked_state.path),
-          (kwd("data"), tracked_state.data),
-          (kwd("dx"), Edn::Number((position.x - p0.x) as f64)),
-          (kwd("dy"), Edn::Number((position.y - p0.y) as f64)),
+          (tag("action"), tracked_state.action),
+          (tag("path"), tracked_state.path),
+          (tag("data"), tracked_state.data),
+          (tag("dx"), Edn::Number((position.x - p0.x) as f64)),
+          (tag("dy"), Edn::Number((position.y - p0.y) as f64)),
         ],
       );
     }
@@ -115,14 +115,14 @@ pub fn handle_keyboard(key_name: &str, key_code: f64, key_state: ElementState) -
   if targets.is_empty() {
     let info = map_view([
       (
-        kwd("type"),
+        tag("type"),
         match key_state {
-          ElementState::Pressed => kwd("key-down"),
-          ElementState::Released => kwd("key-up"),
+          ElementState::Pressed => tag("key-down"),
+          ElementState::Released => tag("key-up"),
         },
       ),
-      (kwd("key-code"), Edn::Number(key_code)),
-      (kwd("name"), Edn::str(key_name)),
+      (tag("key-code"), Edn::Number(key_code)),
+      (tag("name"), Edn::str(key_name)),
     ]);
     vec![Edn::Map(info)]
   } else {
@@ -130,17 +130,17 @@ pub fn handle_keyboard(key_name: &str, key_code: f64, key_state: ElementState) -
     for target in targets {
       let info = map_view([
         (
-          kwd("type"),
+          tag("type"),
           match key_state {
-            ElementState::Pressed => kwd("key-down"),
-            ElementState::Released => kwd("key-up"),
+            ElementState::Pressed => tag("key-down"),
+            ElementState::Released => tag("key-up"),
           },
         ),
-        (kwd("key-code"), Edn::Number(key_code)),
-        (kwd("name"), Edn::str(key_name)),
-        (kwd("action"), target.action),
-        (kwd("path"), target.path),
-        (kwd("data"), target.data),
+        (tag("key-code"), Edn::Number(key_code)),
+        (tag("name"), Edn::str(key_name)),
+        (tag("action"), target.action),
+        (tag("path"), target.path),
+        (tag("data"), target.data),
       ]);
       hits.push(Edn::Map(info));
     }
@@ -160,9 +160,9 @@ pub fn name_key(key: &Key) -> String {
 
 pub fn handle_resize(w: f64, h: f64) -> Edn {
   let info = map_view([
-    (kwd("type"), kwd("resize")),
-    (kwd("width"), Edn::Number(w)),
-    (kwd("height"), Edn::Number(h)),
+    (tag("type"), tag("resize")),
+    (tag("width"), Edn::Number(w)),
+    (tag("height"), Edn::Number(h)),
   ]);
 
   Edn::Map(info)
@@ -170,10 +170,10 @@ pub fn handle_resize(w: f64, h: f64) -> Edn {
 
 pub fn handle_mouse_wheel(dx: f64, dy: f64, unit: &str) -> Edn {
   Edn::Map(map_view([
-    (kwd("type"), kwd("mouse-wheel")),
-    (kwd("dx"), Edn::Number(dx)),
-    (kwd("dy"), Edn::Number(dy)),
-    (kwd("unit"), kwd(unit)),
+    (tag("type"), tag("mouse-wheel")),
+    (tag("dx"), Edn::Number(dx)),
+    (tag("dy"), Edn::Number(dy)),
+    (tag("unit"), tag(unit)),
   ]))
 }
 
@@ -193,8 +193,8 @@ mod tests {
     let Edn::Map(event) = handle_resize(640.0, 480.0) else {
       panic!("resize must be an event map");
     };
-    assert_eq!(event.get(&kwd("type")), Some(&kwd("resize")));
-    assert_eq!(event.get(&kwd("width")), Some(&Edn::Number(640.0)));
+    assert_eq!(event.get(&tag("type")), Some(&tag("resize")));
+    assert_eq!(event.get(&tag("width")), Some(&Edn::Number(640.0)));
   }
 
   #[test]
@@ -202,6 +202,6 @@ mod tests {
     let Edn::Map(event) = handle_mouse_wheel(1.0, -2.0, "line") else {
       panic!("wheel must be an event map");
     };
-    assert_eq!(event.get(&kwd("unit")), Some(&kwd("line")));
+    assert_eq!(event.get(&tag("unit")), Some(&tag("line")));
   }
 }
