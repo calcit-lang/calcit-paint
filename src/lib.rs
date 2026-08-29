@@ -29,7 +29,7 @@ use winit::{
   event::{ElementState, KeyEvent, MouseScrollDelta, WindowEvent},
   event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
   keyboard::{Key, ModifiersState, NamedKey, PhysicalKey},
-  window::{Window, WindowAttributes, WindowId},
+  window::{CursorIcon, Window, WindowAttributes, WindowId},
 };
 
 mod color;
@@ -92,6 +92,7 @@ struct PaintApplication<F> {
   first_paint: bool,
   smoke_once: bool,
   ime_allowed: bool,
+  cursor_icon: CursorIcon,
   occluded: bool,
   minimized: bool,
   suspended: bool,
@@ -114,6 +115,20 @@ where
     }
     self.sync_ime();
     self.schedule_requested_frame();
+  }
+
+  fn dispatch_all(&mut self, events: Vec<Edn>) {
+    for event in events {
+      self.dispatch(event);
+    }
+  }
+
+  fn sync_cursor(&mut self) {
+    let cursor = touches::pointer_cursor();
+    if self.cursor_icon != cursor {
+      self.env.window.set_cursor(cursor);
+      self.cursor_icon = cursor;
+    }
   }
 
   fn sync_ime(&mut self) {
@@ -198,6 +213,13 @@ where
       Err(error) => eprintln!("failed extracting paint messages: {error}"),
     }
 
+    let pointer_events = handlers::handle_pointer_scene_change(&self.input);
+    if !pointer_events.is_empty() {
+      self.dispatch_all(pointer_events);
+      self.env.window.request_redraw();
+    }
+    self.sync_cursor();
+
     if let Some(transition) = focus::finish_frame() {
       for event in handlers::handle_focus_transition(transition) {
         self.dispatch(event);
@@ -269,33 +291,35 @@ where
         self.env.window.request_redraw();
       }
       WindowEvent::CursorMoved { position, .. } => {
-        let event = handlers::handle_mouse_move(
+        let events = handlers::handle_mouse_move(
           Vector2D::new(
             position.x as f32 / self.scale_factor,
             position.y as f32 / self.scale_factor,
           ),
           &mut self.input,
         );
-        if let Some(event) = event {
-          self.dispatch(event);
+        if !events.is_empty() {
+          self.dispatch_all(events);
+          self.sync_cursor();
           self.env.window.request_redraw();
         }
       }
       WindowEvent::CursorLeft { .. } => {
-        self.dispatch(handlers::handle_mouse_leave(&self.input));
+        let events = handlers::handle_mouse_leave(&mut self.input);
+        self.dispatch_all(events);
+        self.sync_cursor();
         self.env.window.request_redraw();
       }
       WindowEvent::MouseInput { state, button, .. } => {
-        let event = match state {
+        let events = match state {
           ElementState::Pressed => handlers::handle_mouse_down(&mut self.input, button, self.started_at.elapsed()),
           ElementState::Released => handlers::handle_mouse_up(&self.input, button),
         };
-        self.dispatch(event);
+        self.dispatch_all(events);
         if state == ElementState::Pressed {
-          for event in handlers::handle_pointer_focus(self.input.position(), button) {
-            self.dispatch(event);
-          }
+          self.dispatch_all(handlers::handle_pointer_focus(self.input.position(), button));
         }
+        self.sync_cursor();
         self.env.window.request_redraw();
       }
       WindowEvent::MouseWheel { delta, .. } => {
@@ -326,9 +350,11 @@ where
         }
       }
       WindowEvent::Focused(focused) => {
-        for event in handlers::handle_window_focus(focused) {
-          self.dispatch(event);
+        if !focused {
+          self.dispatch_all(handlers::handle_pointer_blur(&self.input));
+          self.sync_cursor();
         }
+        self.dispatch_all(handlers::handle_window_focus(focused));
         self.env.window.request_redraw();
       }
       WindowEvent::Ime(ime) => {
@@ -485,10 +511,12 @@ fn launch_canvas_impl(handler: impl Fn(Vec<Edn>) -> Result<Edn, String>) -> Resu
     first_paint: true,
     smoke_once: std::env::var_os("CALCIT_PAINT_SMOKE_ONCE").is_some(),
     ime_allowed: false,
+    cursor_icon: CursorIcon::default(),
     occluded: false,
     minimized: false,
     suspended: false,
   };
+  touches::reset_pointer_state();
   let _active_frame_loop = frame::activate()?;
   event_loop
     .run_app(&mut application)

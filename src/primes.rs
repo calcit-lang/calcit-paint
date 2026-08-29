@@ -5,6 +5,7 @@ use skia_safe::{
   paint::{Cap, Join},
   BlendMode, Color, Rect,
 };
+use winit::window::CursorIcon;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TextAlign {
@@ -202,10 +203,12 @@ pub enum Shape {
     line_style: StrokeStyle,
   },
   TouchArea {
+    id: String,
     target: EventTarget,
     position: Vector2D<f32, f32>,
     // children: Vec<Shape>, // TODO
     area: TouchAreaShape,
+    cursor: Option<CursorIcon>,
     line_style: Option<StrokeStyle>,
     fill_style: Option<PaintSource>,
   },

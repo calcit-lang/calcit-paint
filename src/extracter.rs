@@ -5,6 +5,7 @@ use euclid::{Point2D, Vector2D};
 
 use skia_safe::paint::{Cap, Join};
 use skia_safe::{BlendMode, Color};
+use winit::window::CursorIcon;
 
 use crate::{
   color::extract_color,
@@ -576,6 +577,26 @@ pub fn extract_touch_area_shape(m: &EdnMapView) -> Result<TouchAreaShape, String
   }
 }
 
+pub fn read_optional_cursor_icon(tree: &EdnMapView) -> Result<Option<CursorIcon>, String> {
+  match tree.get(&tag("cursor")) {
+    None | Some(Edn::Nil) => Ok(None),
+    Some(Edn::Tag(name)) => {
+      let name = name.ref_str();
+      let cursor = match name {
+        "dnd-ask" => CursorIcon::DndAsk,
+        "all-resize" => CursorIcon::AllResize,
+        _ => name.parse().map_err(|_| {
+          format!(
+            "invalid cursor :{name}; expected a W3C cursor tag such as :default, :pointer, :text, :grab, or :crosshair"
+          )
+        })?,
+      };
+      Ok(Some(cursor))
+    }
+    Some(value) => Err(format!("cursor must be a tag or nil, got {value}")),
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -607,6 +628,25 @@ mod tests {
   fn map_view(value: &Edn) -> &EdnMapView {
     let Edn::Map(value) = value else { panic!("expected map") };
     value
+  }
+
+  #[test]
+  fn reads_strict_optional_cursor_tags() {
+    assert_eq!(read_optional_cursor_icon(&EdnMapView::default()).unwrap(), None);
+    assert_eq!(
+      read_optional_cursor_icon(map_view(&map([("cursor", Edn::Nil)]))).unwrap(),
+      None
+    );
+    assert_eq!(
+      read_optional_cursor_icon(map_view(&map([("cursor", tag("pointer"))]))).unwrap(),
+      Some(CursorIcon::Pointer)
+    );
+    assert_eq!(
+      read_optional_cursor_icon(map_view(&map([("cursor", tag("all-resize"))]))).unwrap(),
+      Some(CursorIcon::AllResize)
+    );
+    assert!(read_optional_cursor_icon(map_view(&map([("cursor", Edn::str("pointer"))]))).is_err());
+    assert!(read_optional_cursor_icon(map_view(&map([("cursor", tag("unknown-cursor"))]))).is_err());
   }
 
   #[test]

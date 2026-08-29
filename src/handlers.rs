@@ -37,6 +37,7 @@ struct ClickRecord {
 #[derive(Debug, Clone)]
 pub struct InputState {
   position: Vector2D<f32, f32>,
+  inside_window: bool,
   modifiers: ModifiersState,
   latest_click_count: u32,
   clicks: BTreeMap<MouseButton, ClickRecord>,
@@ -46,6 +47,7 @@ impl InputState {
   pub fn new(position: Vector2D<f32, f32>, modifiers: ModifiersState) -> Self {
     Self {
       position,
+      inside_window: false,
       modifiers,
       latest_click_count: 0,
       clicks: BTreeMap::new(),
@@ -58,6 +60,15 @@ impl InputState {
 
   pub fn position(&self) -> Vector2D<f32, f32> {
     self.position
+  }
+
+  fn move_pointer(&mut self, position: Vector2D<f32, f32>) {
+    self.position = position;
+    self.inside_window = true;
+  }
+
+  fn leave_window(&mut self) {
+    self.inside_window = false;
   }
 
   pub fn set_modifiers(&mut self, modifiers: ModifiersState) {
@@ -141,6 +152,61 @@ fn add_target_fields(info: &mut EdnMapView, target: &EventTarget) {
       (tag("data"), target.data.clone().unwrap_or(Edn::Nil)),
     ],
   );
+}
+
+fn hover_event(kind: &str, input: &InputState, area: &touches::TouchArea) -> Edn {
+  let mut info = pointer_event(kind, input);
+  add_target_fields(&mut info, &area.target);
+  info.insert(tag("cursor"), tag(area.cursor.unwrap_or_default().name()));
+  info.insert(tag("captured?"), Edn::Bool(false));
+  Edn::Map(info)
+}
+
+fn hover_transition_events(transition: Option<touches::HoverTransition>, input: &InputState) -> Vec<Edn> {
+  let Some(transition) = transition else {
+    return vec![];
+  };
+  let mut events = vec![];
+  if let Some(from) = transition.from {
+    events.push(hover_event("pointer-leave", input, &from));
+  }
+  if let Some(to) = transition.to {
+    events.push(hover_event("pointer-enter", input, &to));
+  }
+  events
+}
+
+fn pointer_cancel_event(input: &InputState, capture: &touches::PointerCapture, reason: &str) -> Edn {
+  let mut info = pointer_event("pointer-cancel", input);
+  add_button_fields(&mut info, capture.button);
+  add_target_fields(&mut info, &capture.area.target);
+  extend_map(
+    &mut info,
+    [
+      (tag("captured?"), Edn::Bool(true)),
+      (tag("cancelled?"), Edn::Bool(true)),
+      (tag("reason"), tag(reason)),
+      (
+        tag("dx"),
+        Edn::Number((input.position.x - capture.down_position.x) as f64),
+      ),
+      (
+        tag("dy"),
+        Edn::Number((input.position.y - capture.down_position.y) as f64),
+      ),
+    ],
+  );
+  Edn::Map(info)
+}
+
+fn reconcile_events(input: &InputState, cancellation_reason: &str) -> Vec<Edn> {
+  let change = touches::reconcile_pointer(input.position, input.inside_window);
+  let mut events = vec![];
+  if let Some(capture) = change.cancelled {
+    events.push(pointer_cancel_event(input, &capture, cancellation_reason));
+  }
+  events.extend(hover_transition_events(change.hover, input));
+  events
 }
 
 fn focus_id_value(area: Option<&focus::FocusArea>) -> Edn {
@@ -284,59 +350,72 @@ pub fn handle_ime(ime: Ime) -> Vec<Edn> {
   }
 }
 
-pub fn handle_mouse_down(input: &mut InputState, button: MouseButton, at: Duration) -> Edn {
+pub fn handle_mouse_down(input: &mut InputState, button: MouseButton, at: Duration) -> Vec<Edn> {
+  input.inside_window = true;
+  let mut events = reconcile_events(input, "target-removed");
   let clicks = input.click_count(button, at);
   let position = input.position;
   let mut info = pointer_event("mouse-down", input);
   info.insert(tag("clicks"), Edn::Number(clicks as f64));
   add_button_fields(&mut info, button);
 
-  if let Some(target) = touches::find_touch_area(position) {
-    add_target_fields(&mut info, &target.target);
-    touches::track_mouse_drag(position, button, target.target);
+  let capture = touches::read_pointer_capture().or_else(|| touches::begin_pointer_capture(position, button));
+  if let Some(capture) = capture {
+    add_target_fields(&mut info, &capture.area.target);
+    info.insert(tag("captured?"), Edn::Bool(true));
+  } else {
+    info.insert(tag("captured?"), Edn::Bool(false));
   }
 
-  Edn::Map(info)
+  events.push(Edn::Map(info));
+  events
 }
 
-pub fn handle_mouse_up(input: &InputState, button: MouseButton) -> Edn {
+pub fn handle_mouse_up(input: &InputState, button: MouseButton) -> Vec<Edn> {
   let position = input.position;
   let mut info = pointer_event("mouse-up", input);
   info.insert(tag("clicks"), Edn::Number(input.click_count_for(button) as f64));
   add_button_fields(&mut info, button);
 
-  if let Some(tracked_state) = touches::read_mouse_tracked_state().filter(|state| state.button == button) {
-    let p0 = tracked_state.position;
-    add_target_fields(&mut info, &tracked_state.target);
+  let capture = touches::read_pointer_capture().filter(|capture| capture.button == button);
+  if let Some(capture) = &capture {
+    let p0 = capture.down_position;
+    add_target_fields(&mut info, &capture.area.target);
     extend_map(
       &mut info,
       [
+        (tag("captured?"), Edn::Bool(true)),
         (tag("dx"), Edn::Number((position.x - p0.x) as f64)),
         (tag("dy"), Edn::Number((position.y - p0.y) as f64)),
       ],
     );
-
-    touches::release_mouse_drag();
+  } else {
+    info.insert(tag("captured?"), Edn::Bool(false));
   }
 
-  Edn::Map(info)
+  let mut events = vec![Edn::Map(info)];
+  if capture.is_some() {
+    touches::release_pointer_capture(button);
+    events.extend(reconcile_events(input, "target-removed"));
+  }
+  events
 }
 
-pub fn handle_mouse_move(position: Vector2D<f32, f32>, input: &mut InputState) -> Option<Edn> {
-  if position == input.position {
-    // triggered a same position, ignored
-    None
-  } else {
-    input.position = position;
+pub fn handle_mouse_move(position: Vector2D<f32, f32>, input: &mut InputState) -> Vec<Edn> {
+  let moved = position != input.position;
+  input.move_pointer(position);
+  let mut events = reconcile_events(input, "target-removed");
+  if moved {
     let mut info = pointer_event("mouse-move", input);
 
-    if let Some(tracked_state) = touches::read_mouse_tracked_state() {
-      let p0 = tracked_state.position;
-      let button = tracked_state.button;
-      add_target_fields(&mut info, &tracked_state.target);
+    if let Some(capture) = touches::read_pointer_capture() {
+      let p0 = capture.down_position;
+      let button = capture.button;
+      add_target_fields(&mut info, &capture.area.target);
       extend_map(
         &mut info,
         [
+          (tag("captured?"), Edn::Bool(true)),
           (tag("button"), tag(mouse_button_name(button))),
           (tag("dx"), Edn::Number((position.x - p0.x) as f64)),
           (tag("dy"), Edn::Number((position.y - p0.y) as f64)),
@@ -345,18 +424,23 @@ pub fn handle_mouse_move(position: Vector2D<f32, f32>, input: &mut InputState) -
       if let MouseButton::Other(id) = button {
         info.insert(tag("button-id"), Edn::Number(id as f64));
       }
+    } else {
+      info.insert(tag("captured?"), Edn::Bool(false));
     }
 
-    Some(Edn::Map(info))
+    events.push(Edn::Map(info));
   }
+  events
 }
 
-pub fn handle_mouse_leave(input: &InputState) -> Edn {
+pub fn handle_mouse_leave(input: &mut InputState) -> Vec<Edn> {
+  input.leave_window();
+  let exit = touches::leave_window();
   let mut info = pointer_event("mouse-leave", input);
-  if let Some(tracked_state) = touches::take_mouse_drag() {
-    let p0 = tracked_state.position;
-    let button = tracked_state.button;
-    add_target_fields(&mut info, &tracked_state.target);
+  if let Some(capture) = &exit.capture {
+    let p0 = capture.down_position;
+    let button = capture.button;
+    add_target_fields(&mut info, &capture.area.target);
     extend_map(
       &mut info,
       [
@@ -370,7 +454,28 @@ pub fn handle_mouse_leave(input: &InputState) -> Edn {
       info.insert(tag("button-id"), Edn::Number(id as f64));
     }
   }
-  Edn::Map(info)
+
+  let mut events = vec![Edn::Map(info)];
+  if let Some(capture) = exit.capture {
+    events.push(pointer_cancel_event(input, &capture, "window-leave"));
+  }
+  if let Some(hovered) = exit.hovered {
+    events.push(hover_event("pointer-leave", input, &hovered));
+  }
+  events
+}
+
+pub fn handle_pointer_blur(input: &InputState) -> Vec<Edn> {
+  let mut events = vec![];
+  if let Some(capture) = touches::cancel_pointer_capture() {
+    events.push(pointer_cancel_event(input, &capture, "window-blur"));
+  }
+  events.extend(reconcile_events(input, "target-removed"));
+  events
+}
+
+pub fn handle_pointer_scene_change(input: &InputState) -> Vec<Edn> {
+  reconcile_events(input, "target-removed")
 }
 
 pub fn handle_keyboard(
@@ -469,15 +574,37 @@ pub fn handle_mouse_wheel(input: &InputState, dx: f64, dy: f64, unit: &str) -> E
 mod tests {
   use super::*;
   use std::sync::Mutex;
-  use winit::keyboard::{KeyCode, NamedKey, NativeKeyCode};
+  use winit::{
+    keyboard::{KeyCode, NamedKey, NativeKeyCode},
+    window::CursorIcon,
+  };
 
   static POINTER_TEST_LOCK: Mutex<()> = Mutex::new(());
 
   fn input(position: Vector2D<f32, f32>) -> InputState {
+    touches::reset_pointer_state();
+    touches::reset_touches_stack();
     InputState::new(position, ModifiersState::empty())
   }
 
-  fn event_map(event: Edn) -> EdnMapView {
+  trait IntoTestEvent {
+    fn into_test_event(self) -> Edn;
+  }
+
+  impl IntoTestEvent for Edn {
+    fn into_test_event(self) -> Edn {
+      self
+    }
+  }
+
+  impl IntoTestEvent for Vec<Edn> {
+    fn into_test_event(mut self) -> Edn {
+      self.pop().expect("expected at least one event")
+    }
+  }
+
+  fn event_map(event: impl IntoTestEvent) -> EdnMapView {
+    let event = event.into_test_event();
     let Edn::Map(event) = event else {
       panic!("event must be a map")
     };
@@ -598,10 +725,11 @@ mod tests {
   #[test]
   fn cancels_drag_when_pointer_leaves_window() {
     let _guard = POINTER_TEST_LOCK.lock().unwrap();
-    touches::release_mouse_drag();
+    touches::reset_pointer_state();
     touches::reset_touches_stack();
     let mut state = input(Vector2D::new(20.0, 30.0));
     touches::add_touch_area(
+      "test-area",
       Vector2D::new(20.0, 30.0),
       crate::primes::TouchAreaShape::Circle(10.0),
       EventTarget {
@@ -609,28 +737,40 @@ mod tests {
         path: Some(tag("path")),
         data: Some(tag("data")),
       },
+      None,
       &crate::touches::Transform::identity(),
     );
     handle_mouse_down(&mut state, MouseButton::Left, Duration::ZERO);
     handle_mouse_move(Vector2D::new(50.0, 40.0), &mut state);
-    let leave = event_map(handle_mouse_leave(&state));
+    let events = handle_mouse_leave(&mut state);
+    assert_eq!(
+      event_types(events.clone()),
+      vec![tag("mouse-leave"), tag("pointer-cancel"), tag("pointer-leave")]
+    );
+    let leave = event_map(events[0].clone());
     assert_eq!(leave.get(&tag("type")), Some(&tag("mouse-leave")));
+    assert_eq!(
+      event_map(events[1].clone()).get(&tag("reason")),
+      Some(&tag("window-leave"))
+    );
     assert_eq!(leave.get(&tag("cancelled?")), Some(&Edn::Bool(true)));
     assert_eq!(leave.get(&tag("dx")), Some(&Edn::Number(30.0)));
-    assert!(touches::read_mouse_tracked_state().is_none());
+    assert!(touches::read_pointer_capture().is_none());
     touches::reset_touches_stack();
   }
 
   #[test]
   fn preserves_nil_fields_for_optional_event_targets() {
     let _guard = POINTER_TEST_LOCK.lock().unwrap();
-    touches::release_mouse_drag();
+    touches::reset_pointer_state();
     touches::reset_touches_stack();
     let mut state = input(Vector2D::new(20.0, 30.0));
     touches::add_touch_area(
+      "test-area",
       Vector2D::new(20.0, 30.0),
       crate::primes::TouchAreaShape::Circle(10.0),
       EventTarget::default(),
+      None,
       &crate::touches::Transform::identity(),
     );
 
@@ -639,8 +779,128 @@ mod tests {
     assert_eq!(down.get(&tag("path")), Some(&Edn::Nil));
     assert_eq!(down.get(&tag("data")), Some(&Edn::Nil));
 
-    touches::release_mouse_drag();
+    touches::reset_pointer_state();
     touches::reset_touches_stack();
+  }
+
+  fn add_pointer_area(id: &str, action: &str, position: Vector2D<f32, f32>, cursor: CursorIcon) {
+    touches::add_touch_area(
+      id,
+      position,
+      crate::primes::TouchAreaShape::Rect(20.0, 15.0),
+      EventTarget {
+        action: Some(tag(action)),
+        path: Some(Edn::str(id)),
+        data: None,
+      },
+      Some(cursor),
+      &crate::touches::Transform::identity(),
+    );
+  }
+
+  #[test]
+  fn hover_uses_topmost_area_and_reconciles_scene_removal() {
+    let _guard = POINTER_TEST_LOCK.lock().unwrap();
+    let mut state = input(Vector2D::new(-100.0, -100.0));
+    add_pointer_area("base", "base-hover", Vector2D::new(20.0, 20.0), CursorIcon::Pointer);
+    add_pointer_area(
+      "overlay",
+      "overlay-hover",
+      Vector2D::new(20.0, 20.0),
+      CursorIcon::Crosshair,
+    );
+
+    let entered = handle_mouse_move(Vector2D::new(20.0, 20.0), &mut state);
+    assert_eq!(
+      event_types(entered.clone()),
+      vec![tag("pointer-enter"), tag("mouse-move")]
+    );
+    let enter = event_map(entered.into_iter().next().unwrap());
+    assert_eq!(enter.get(&tag("action")), Some(&tag("overlay-hover")));
+    assert_eq!(enter.get(&tag("cursor")), Some(&tag("crosshair")));
+    assert_eq!(touches::pointer_cursor(), CursorIcon::Crosshair);
+
+    touches::reset_touches_stack();
+    add_pointer_area("base", "base-hover", Vector2D::new(20.0, 20.0), CursorIcon::Pointer);
+    let changed = handle_pointer_scene_change(&state);
+    assert_eq!(
+      event_types(changed.clone()),
+      vec![tag("pointer-leave"), tag("pointer-enter")]
+    );
+    assert_eq!(
+      event_map(changed.into_iter().last().unwrap()).get(&tag("action")),
+      Some(&tag("base-hover"))
+    );
+    assert_eq!(touches::pointer_cursor(), CursorIcon::Pointer);
+
+    touches::reset_touches_stack();
+    assert_eq!(
+      event_types(handle_pointer_scene_change(&state)),
+      vec![tag("pointer-leave")]
+    );
+    assert_eq!(touches::pointer_cursor(), CursorIcon::Default);
+  }
+
+  #[test]
+  fn capture_routes_drag_until_matching_release() {
+    let _guard = POINTER_TEST_LOCK.lock().unwrap();
+    let mut state = input(Vector2D::new(-100.0, -100.0));
+    add_pointer_area("drag", "drag-demo", Vector2D::new(20.0, 20.0), CursorIcon::Grab);
+    handle_mouse_move(Vector2D::new(20.0, 20.0), &mut state);
+
+    let down = event_map(handle_mouse_down(&mut state, MouseButton::Left, Duration::ZERO));
+    assert_eq!(down.get(&tag("captured?")), Some(&Edn::Bool(true)));
+    assert_eq!(touches::pointer_cursor(), CursorIcon::Grab);
+
+    let moved = handle_mouse_move(Vector2D::new(90.0, 70.0), &mut state);
+    assert_eq!(event_types(moved.clone()), vec![tag("mouse-move")]);
+    let moved = event_map(moved);
+    assert_eq!(moved.get(&tag("action")), Some(&tag("drag-demo")));
+    assert_eq!(moved.get(&tag("captured?")), Some(&Edn::Bool(true)));
+    assert_eq!(moved.get(&tag("dx")), Some(&Edn::Number(70.0)));
+
+    let released = handle_mouse_up(&state, MouseButton::Left);
+    assert_eq!(
+      event_types(released.clone()),
+      vec![tag("mouse-up"), tag("pointer-leave")]
+    );
+    assert_eq!(
+      event_map(released.into_iter().next().unwrap()).get(&tag("captured?")),
+      Some(&Edn::Bool(true))
+    );
+    assert!(touches::read_pointer_capture().is_none());
+    assert_eq!(touches::pointer_cursor(), CursorIcon::Default);
+  }
+
+  #[test]
+  fn capture_cancels_on_removal_and_window_blur() {
+    let _guard = POINTER_TEST_LOCK.lock().unwrap();
+    let mut state = input(Vector2D::new(-100.0, -100.0));
+    add_pointer_area("drag", "drag-demo", Vector2D::new(20.0, 20.0), CursorIcon::Grab);
+    handle_mouse_move(Vector2D::new(20.0, 20.0), &mut state);
+    handle_mouse_down(&mut state, MouseButton::Left, Duration::ZERO);
+
+    touches::reset_touches_stack();
+    let removed = handle_pointer_scene_change(&state);
+    assert_eq!(
+      event_types(removed.clone()),
+      vec![tag("pointer-cancel"), tag("pointer-leave")]
+    );
+    assert_eq!(
+      event_map(removed.into_iter().next().unwrap()).get(&tag("reason")),
+      Some(&tag("target-removed"))
+    );
+
+    add_pointer_area("drag", "drag-demo", Vector2D::new(20.0, 20.0), CursorIcon::Grab);
+    handle_pointer_scene_change(&state);
+    handle_mouse_down(&mut state, MouseButton::Left, Duration::ZERO);
+    let blurred = handle_pointer_blur(&state);
+    assert_eq!(event_types(blurred.clone()), vec![tag("pointer-cancel")]);
+    assert_eq!(
+      event_map(blurred.into_iter().next().unwrap()).get(&tag("reason")),
+      Some(&tag("window-blur"))
+    );
+    assert!(touches::read_pointer_capture().is_none());
   }
 
   #[test]
