@@ -3,7 +3,7 @@ use euclid::{Point2D, Vector2D};
 
 use skia_safe::{
   paint::{Cap, Join},
-  Color, Rect,
+  BlendMode, Color, Rect,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -23,13 +23,50 @@ pub enum PaintPathTo {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub struct GradientStop {
+  pub offset: f32,
+  pub color: Color,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum PaintSource {
+  Solid(Color),
+  LinearGradient {
+    from: Point2D<f32, f32>,
+    to: Point2D<f32, f32>,
+    stops: Vec<GradientStop>,
+  },
+  RadialGradient {
+    center: Point2D<f32, f32>,
+    radius: f32,
+    stops: Vec<GradientStop>,
+  },
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct DashPattern {
+  pub intervals: Vec<f32>,
+  pub offset: f32,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct StrokeStyle {
+  pub paint: PaintSource,
+  pub width: f32,
+  pub cap: Cap,
+  pub join: Join,
+  pub miter_limit: f32,
+  pub dash: Option<DashPattern>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum Shape {
   Rectangle {
     position: Vector2D<f32, f32>,
     width: f32,
     height: f32,
-    line_style: Option<(Color, f32)>,
-    fill_style: Option<Color>,
+    line_style: Option<StrokeStyle>,
+    fill_style: Option<PaintSource>,
   },
   RoundedRectangle {
     position: Vector2D<f32, f32>,
@@ -37,8 +74,8 @@ pub enum Shape {
     height: f32,
     radius_x: f32,
     radius_y: f32,
-    line_style: Option<(Color, f32)>,
-    fill_style: Option<Color>,
+    line_style: Option<StrokeStyle>,
+    fill_style: Option<PaintSource>,
   },
   Group {
     position: Vector2D<f32, f32>,
@@ -47,15 +84,15 @@ pub enum Shape {
   Circle {
     position: Vector2D<f32, f32>,
     radius: f32,
-    line_style: Option<(Color, f32)>,
-    fill_style: Option<Color>,
+    line_style: Option<StrokeStyle>,
+    fill_style: Option<PaintSource>,
   },
   Ellipse {
     position: Vector2D<f32, f32>,
     radius_x: f32,
     radius_y: f32,
-    line_style: Option<(Color, f32)>,
-    fill_style: Option<Color>,
+    line_style: Option<StrokeStyle>,
+    fill_style: Option<PaintSource>,
   },
   Arc {
     position: Vector2D<f32, f32>,
@@ -64,8 +101,8 @@ pub enum Shape {
     start_angle: f32,
     sweep_angle: f32,
     use_center: bool,
-    line_style: Option<(Color, f32)>,
-    fill_style: Option<Color>,
+    line_style: Option<StrokeStyle>,
+    fill_style: Option<PaintSource>,
   },
   Text {
     text: String,
@@ -86,17 +123,14 @@ pub enum Shape {
   PaintOps {
     position: Vector2D<f32, f32>,
     path: Vec<PaintPathTo>,
-    line_style: Option<(Color, f32)>,
-    fill_style: Option<Color>,
+    line_style: Option<StrokeStyle>,
+    fill_style: Option<PaintSource>,
   },
   Polyline {
     position: Vector2D<f32, f32>,
     stops: Vec<Point2D<f32, f32>>,
     skip_first: bool,
-    color: Color,
-    width: f32,
-    join: Join,
-    cap: Cap,
+    line_style: StrokeStyle,
   },
   TouchArea {
     path: Box<Edn>,
@@ -105,8 +139,8 @@ pub enum Shape {
     position: Vector2D<f32, f32>,
     // children: Vec<Shape>, // TODO
     area: TouchAreaShape,
-    line_style: Option<(Color, f32)>,
-    fill_style: Option<Color>,
+    line_style: Option<StrokeStyle>,
+    fill_style: Option<PaintSource>,
   },
   KeyListener {
     key: String, // TODO modifier
@@ -136,6 +170,10 @@ pub enum Shape {
   },
   Opacity {
     alpha: f32,
+    children: Vec<Shape>,
+  },
+  Blend {
+    mode: BlendMode,
     children: Vec<Shape>,
   },
   Image {
