@@ -4,11 +4,11 @@ use cirru_edn::{Edn, EdnListView, EdnMapView};
 use euclid::{Point2D, Vector2D};
 
 use skia_safe::paint::{Cap, Join};
-use skia_safe::Color;
+use skia_safe::{BlendMode, Color};
 
 use crate::{
   color::extract_color,
-  primes::{TextAlign, TouchAreaShape},
+  primes::{DashPattern, GradientStop, PaintSource, StrokeStyle, TextAlign, TouchAreaShape},
 };
 
 pub fn tag(s: &str) -> Edn {
@@ -91,29 +91,254 @@ pub fn read_color(tree: &EdnMapView, key: &str) -> Result<Color, String> {
   }
 }
 
-pub fn read_some_color(tree: &EdnMapView, key: &str) -> Result<Option<Color>, String> {
-  match tree.get(&tag(key)) {
-    Some(a) => match extract_color(a) {
-      Ok(c) => Ok(Some(c)),
-      Err(e) => Err(e),
+pub fn extract_fill_style(tree: &EdnMapView) -> Result<Option<PaintSource>, String> {
+  match (tree.get(&tag("fill")), tree.get(&tag("fill-color"))) {
+    (Some(_), Some(_)) => Err("shape cannot use both :fill and :fill-color".to_owned()),
+    (Some(fill), None) => extract_paint_source(fill).map(Some),
+    (None, Some(color)) => extract_color(color).map(PaintSource::Solid).map(Some),
+    (None, None) => Ok(None),
+  }
+}
+
+pub fn extract_stroke_style(tree: &EdnMapView) -> Result<Option<StrokeStyle>, String> {
+  let stroke = tree.get(&tag("stroke"));
+  let line_color = tree.get(&tag("line-color"));
+  let line_width = tree.get(&tag("line-width"));
+  if stroke.is_some() && (line_color.is_some() || line_width.is_some()) {
+    return Err("shape cannot combine :stroke with :line-color or :line-width".to_owned());
+  }
+  match stroke {
+    Some(Edn::Map(stroke)) => extract_stroke_map(stroke).map(Some),
+    Some(value) => Err(format!(":stroke must be a map, got {value}")),
+    None => match (line_color, line_width) {
+      (Some(color), Some(Edn::Number(width))) => Ok(Some(StrokeStyle {
+        paint: PaintSource::Solid(extract_color(color)?),
+        width: validate_non_negative("line-width", *width as f32)?,
+        cap: Cap::Round,
+        join: Join::Round,
+        miter_limit: 4.0,
+        dash: None,
+      })),
+      (Some(color), None) => Ok(Some(StrokeStyle {
+        paint: PaintSource::Solid(extract_color(color)?),
+        width: 1.0,
+        cap: Cap::Round,
+        join: Join::Round,
+        miter_limit: 4.0,
+        dash: None,
+      })),
+      (None, None) => Ok(None),
+      (Some(_), Some(width)) => Err(format!("line-width must be a number, got {width}")),
+      (None, Some(width)) => Err(format!("line-width requires line-color, got {width}")),
     },
+  }
+}
+
+pub fn extract_polyline_stroke_style(tree: &EdnMapView) -> Result<StrokeStyle, String> {
+  if let Some(stroke) = tree.get(&tag("stroke")) {
+    for legacy_key in ["color", "width", "join", "cap"] {
+      if tree.contains_key(legacy_key) {
+        return Err(format!("polyline cannot combine :stroke with legacy :{legacy_key}"));
+      }
+    }
+    return match stroke {
+      Edn::Map(stroke) => extract_stroke_map(stroke),
+      value => Err(format!(":stroke must be a map, got {value}")),
+    };
+  }
+
+  Ok(StrokeStyle {
+    paint: PaintSource::Solid(read_color(tree, "color")?),
+    width: validate_non_negative("width", read_f32(tree, "width")?)?,
+    cap: read_line_cap(tree, "cap")?,
+    join: read_line_join(tree, "join")?,
+    miter_limit: 4.0,
+    dash: None,
+  })
+}
+
+pub fn read_blend_mode(tree: &EdnMapView, key: &str) -> Result<BlendMode, String> {
+  let Some(value) = tree.get(&tag(key)) else {
+    return Err(format!("cannot read blend mode from empty field: {key}"));
+  };
+  let Edn::Tag(mode) = value else {
+    return Err(format!("blend mode must be a tag, got {value}"));
+  };
+  match mode.ref_str() {
+    "src-over" => Ok(BlendMode::SrcOver),
+    "multiply" => Ok(BlendMode::Multiply),
+    "screen" => Ok(BlendMode::Screen),
+    "overlay" => Ok(BlendMode::Overlay),
+    "darken" => Ok(BlendMode::Darken),
+    "lighten" => Ok(BlendMode::Lighten),
+    "difference" => Ok(BlendMode::Difference),
+    "exclusion" => Ok(BlendMode::Exclusion),
+    "plus" => Ok(BlendMode::Plus),
+    _ => Err(format!("unsupported blend mode: {mode}")),
+  }
+}
+
+fn extract_stroke_map(tree: &EdnMapView) -> Result<StrokeStyle, String> {
+  let paint = tree
+    .get(&tag("paint"))
+    .ok_or_else(|| ":stroke requires :paint".to_owned())?;
+  let width = match tree.get(&tag("width")) {
+    Some(Edn::Number(width)) => validate_non_negative("stroke width", *width as f32)?,
+    Some(value) => return Err(format!("stroke width must be a number, got {value}")),
+    None => 1.0,
+  };
+  let cap = read_optional_cap(tree, "cap")?.unwrap_or(Cap::Round);
+  let join = read_optional_join(tree, "join")?.unwrap_or(Join::Round);
+  let miter_limit = match tree.get(&tag("miter-limit")) {
+    Some(Edn::Number(limit)) => validate_positive("stroke miter-limit", *limit as f32)?,
+    Some(value) => return Err(format!("stroke miter-limit must be a number, got {value}")),
+    None => 4.0,
+  };
+  let dash = extract_dash_pattern(tree)?;
+  Ok(StrokeStyle {
+    paint: extract_paint_source(paint)?,
+    width,
+    cap,
+    join,
+    miter_limit,
+    dash,
+  })
+}
+
+fn extract_paint_source(value: &Edn) -> Result<PaintSource, String> {
+  let Edn::Map(tree) = value else {
+    return Err(format!("paint must be a map, got {value}"));
+  };
+  let Some(Edn::Tag(kind)) = tree.get(&tag("type")) else {
+    return Err("paint requires a tag in :type".to_owned());
+  };
+  match kind.ref_str() {
+    "solid" => Ok(PaintSource::Solid(read_color(tree, "color")?)),
+    "linear-gradient" => {
+      let from = read_required_point(tree, "from")?;
+      let to = read_required_point(tree, "to")?;
+      if from == to {
+        return Err("linear-gradient :from and :to must be different".to_owned());
+      }
+      Ok(PaintSource::LinearGradient {
+        from,
+        to,
+        stops: extract_gradient_stops(tree)?,
+      })
+    }
+    "radial-gradient" => Ok(PaintSource::RadialGradient {
+      center: read_required_point(tree, "center")?,
+      radius: validate_positive("radial-gradient radius", read_f32(tree, "radius")?)?,
+      stops: extract_gradient_stops(tree)?,
+    }),
+    _ => Err(format!("unsupported paint type: {kind}")),
+  }
+}
+
+fn extract_gradient_stops(tree: &EdnMapView) -> Result<Vec<GradientStop>, String> {
+  let Some(Edn::List(EdnListView(stops))) = tree.get(&tag("stops")) else {
+    return Err("gradient requires a :stops list".to_owned());
+  };
+  if stops.len() < 2 {
+    return Err("gradient requires at least two color stops".to_owned());
+  }
+  let mut parsed = Vec::with_capacity(stops.len());
+  let mut previous = None;
+  for stop in stops {
+    let Edn::List(EdnListView(pair)) = stop else {
+      return Err(format!("gradient stop must be [offset color], got {stop}"));
+    };
+    if pair.len() != 2 {
+      return Err(format!("gradient stop must contain offset and color, got {stop}"));
+    }
+    let Edn::Number(offset) = &pair[0] else {
+      return Err(format!("gradient stop offset must be a number, got {}", pair[0]));
+    };
+    let offset = *offset as f32;
+    if !offset.is_finite() || !(0.0..=1.0).contains(&offset) {
+      return Err(format!("gradient stop offset must be between 0 and 1, got {offset}"));
+    }
+    if previous.is_some_and(|previous| offset <= previous) {
+      return Err("gradient stops must use strictly increasing offsets".to_owned());
+    }
+    previous = Some(offset);
+    parsed.push(GradientStop {
+      offset,
+      color: extract_color(&pair[1])?,
+    });
+  }
+  Ok(parsed)
+}
+
+fn extract_dash_pattern(tree: &EdnMapView) -> Result<Option<DashPattern>, String> {
+  let dash = tree.get(&tag("dash"));
+  let offset = tree.get(&tag("dash-offset"));
+  let Some(dash) = dash else {
+    return match offset {
+      Some(_) => Err(":dash-offset requires :dash".to_owned()),
+      None => Ok(None),
+    };
+  };
+  let Edn::List(EdnListView(values)) = dash else {
+    return Err(format!(":dash must be a list, got {dash}"));
+  };
+  if values.is_empty() || values.len() % 2 != 0 {
+    return Err(":dash must contain a non-empty even number of intervals".to_owned());
+  }
+  let mut intervals = Vec::with_capacity(values.len());
+  for value in values {
+    let Edn::Number(value) = value else {
+      return Err(format!("dash interval must be a number, got {value}"));
+    };
+    intervals.push(validate_positive("dash interval", *value as f32)?);
+  }
+  let offset = match offset {
+    Some(Edn::Number(offset)) if (*offset as f32).is_finite() => *offset as f32,
+    Some(value) => return Err(format!("dash-offset must be a finite number, got {value}")),
+    None => 0.0,
+  };
+  Ok(Some(DashPattern { intervals, offset }))
+}
+
+fn read_required_point(tree: &EdnMapView, key: &str) -> Result<Point2D<f32, f32>, String> {
+  let point = tree
+    .get(&tag(key))
+    .ok_or_else(|| format!("paint requires :{key}"))
+    .and_then(extract_position)?;
+  if point.x.is_finite() && point.y.is_finite() {
+    Ok(point)
+  } else {
+    Err(format!("paint :{key} must contain finite coordinates"))
+  }
+}
+
+fn read_optional_cap(tree: &EdnMapView, key: &str) -> Result<Option<Cap>, String> {
+  match tree.get(&tag(key)) {
+    Some(_) => read_line_cap(tree, key).map(Some),
     None => Ok(None),
   }
 }
 
-pub fn extract_line_style(tree: &EdnMapView) -> Result<Option<(Color, f32)>, String> {
-  match (tree.get(&tag("line-color")), tree.get(&tag("line-width"))) {
-    (Some(color_field), Some(width_field)) => match (extract_color(color_field), width_field) {
-      (Ok(color), Edn::Number(n)) => Ok(Some((color, *n as f32))),
-      (Ok(_), _) => Err(format!("failed to extract line-width from: {}", width_field)),
-      (Err(e), _) => Err(format!("failed line-color, {}", e)),
-    },
-    (Some(color_field), None) => match extract_color(color_field) {
-      Ok(color) => Ok(Some((color, 1.0))),
-      Err(e) => Err(format!("failed line-color, {}", e)),
-    },
-    (None, None) => Ok(None),
-    (a, b) => Err(format!("invalid line-style combination: {:?} {:?}", a, b)),
+fn read_optional_join(tree: &EdnMapView, key: &str) -> Result<Option<Join>, String> {
+  match tree.get(&tag(key)) {
+    Some(_) => read_line_join(tree, key).map(Some),
+    None => Ok(None),
+  }
+}
+
+fn validate_non_negative(name: &str, value: f32) -> Result<f32, String> {
+  if value.is_finite() && value >= 0.0 {
+    Ok(value)
+  } else {
+    Err(format!("{name} must be a finite non-negative number, got {value}"))
+  }
+}
+
+fn validate_positive(name: &str, value: f32) -> Result<f32, String> {
+  if value.is_finite() && value > 0.0 {
+    Ok(value)
+  } else {
+    Err(format!("{name} must be a finite positive number, got {value}"))
   }
 }
 
@@ -186,5 +411,163 @@ pub fn extract_touch_area_shape(m: &EdnMapView) -> Result<TouchAreaShape, String
       (Some(Edn::Number(dx)), Some(Edn::Number(dy))) => Ok(TouchAreaShape::Rect(*dx as f32, *dy as f32)),
       (a, b) => Err(format!("invalid touch area shape: {:?} {:?}", a, b)),
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn map(fields: impl IntoIterator<Item = (&'static str, Edn)>) -> Edn {
+    let mut values = EdnMapView::default();
+    for (key, value) in fields {
+      values.insert(tag(key), value);
+    }
+    Edn::Map(values)
+  }
+
+  fn list(values: impl IntoIterator<Item = Edn>) -> Edn {
+    Edn::List(EdnListView(values.into_iter().collect()))
+  }
+
+  fn point(x: f64, y: f64) -> Edn {
+    list([Edn::Number(x), Edn::Number(y)])
+  }
+
+  fn color(hue: f64) -> Edn {
+    list([Edn::Number(hue), Edn::Number(80.0), Edn::Number(60.0)])
+  }
+
+  fn stop(offset: f64, hue: f64) -> Edn {
+    list([Edn::Number(offset), color(hue)])
+  }
+
+  fn map_view(value: &Edn) -> &EdnMapView {
+    let Edn::Map(value) = value else { panic!("expected map") };
+    value
+  }
+
+  #[test]
+  fn keeps_legacy_solid_fill_and_stroke() {
+    let shape = map([
+      ("fill-color", color(20.0)),
+      ("line-color", color(200.0)),
+      ("line-width", Edn::Number(3.0)),
+    ]);
+    assert!(matches!(
+      extract_fill_style(map_view(&shape)),
+      Ok(Some(PaintSource::Solid(_)))
+    ));
+    assert!(matches!(
+      extract_stroke_style(map_view(&shape)),
+      Ok(Some(StrokeStyle {
+        width: 3.0,
+        dash: None,
+        ..
+      }))
+    ));
+  }
+
+  #[test]
+  fn extracts_linear_and_radial_gradients() {
+    let linear = map([
+      ("type", Edn::tag("linear-gradient")),
+      ("from", point(0.0, 0.0)),
+      ("to", point(100.0, 0.0)),
+      ("stops", list([stop(0.0, 10.0), stop(1.0, 210.0)])),
+    ]);
+    let shape = map([("fill", linear)]);
+    assert!(matches!(
+      extract_fill_style(map_view(&shape)),
+      Ok(Some(PaintSource::LinearGradient { .. }))
+    ));
+
+    let radial = map([
+      ("type", Edn::tag("radial-gradient")),
+      ("center", point(50.0, 50.0)),
+      ("radius", Edn::Number(40.0)),
+      ("stops", list([stop(0.0, 50.0), stop(1.0, 280.0)])),
+    ]);
+    let shape = map([("fill", radial)]);
+    assert!(matches!(
+      extract_fill_style(map_view(&shape)),
+      Ok(Some(PaintSource::RadialGradient { radius: 40.0, .. }))
+    ));
+  }
+
+  #[test]
+  fn extracts_dashed_stroke_options() {
+    let paint = map([("type", Edn::tag("solid")), ("color", color(120.0))]);
+    let stroke = map([
+      ("paint", paint),
+      ("width", Edn::Number(5.0)),
+      ("cap", Edn::tag("square")),
+      ("join", Edn::tag("miter")),
+      ("miter-limit", Edn::Number(8.0)),
+      ("dash", list([Edn::Number(12.0), Edn::Number(6.0)])),
+      ("dash-offset", Edn::Number(2.0)),
+    ]);
+    let shape = map([("stroke", stroke)]);
+    let style = extract_stroke_style(map_view(&shape)).unwrap().unwrap();
+    assert_eq!(style.width, 5.0);
+    assert_eq!(style.cap, Cap::Square);
+    assert_eq!(style.join, Join::Miter);
+    assert_eq!(style.miter_limit, 8.0);
+    assert_eq!(
+      style.dash,
+      Some(DashPattern {
+        intervals: vec![12.0, 6.0],
+        offset: 2.0,
+      })
+    );
+  }
+
+  #[test]
+  fn rejects_invalid_gradient_and_dash_inputs() {
+    let unordered = map([
+      ("type", Edn::tag("linear-gradient")),
+      ("from", point(0.0, 0.0)),
+      ("to", point(100.0, 0.0)),
+      ("stops", list([stop(0.8, 10.0), stop(0.2, 210.0)])),
+    ]);
+    let shape = map([("fill", unordered)]);
+    assert!(extract_fill_style(map_view(&shape))
+      .unwrap_err()
+      .contains("strictly increasing"));
+
+    let degenerate = map([
+      ("type", Edn::tag("linear-gradient")),
+      ("from", point(10.0, 10.0)),
+      ("to", point(10.0, 10.0)),
+      ("stops", list([stop(0.0, 10.0), stop(1.0, 210.0)])),
+    ]);
+    let shape = map([("fill", degenerate)]);
+    assert!(extract_fill_style(map_view(&shape))
+      .unwrap_err()
+      .contains("must be different"));
+
+    let paint = map([("type", Edn::tag("solid")), ("color", color(120.0))]);
+    let empty_dash = map([("paint", paint.clone()), ("dash", list([]))]);
+    let shape = map([("stroke", empty_dash)]);
+    assert!(extract_stroke_style(map_view(&shape))
+      .unwrap_err()
+      .contains("non-empty even number"));
+
+    let negative_dash = map([("paint", paint), ("dash", list([Edn::Number(5.0), Edn::Number(-1.0)]))]);
+    let shape = map([("stroke", negative_dash)]);
+    assert!(extract_stroke_style(map_view(&shape))
+      .unwrap_err()
+      .contains("finite positive number"));
+  }
+
+  #[test]
+  fn validates_blend_modes() {
+    let blend = map([("mode", Edn::tag("multiply"))]);
+    assert_eq!(read_blend_mode(map_view(&blend), "mode"), Ok(BlendMode::Multiply));
+
+    let unknown = map([("mode", Edn::tag("magic"))]);
+    assert!(read_blend_mode(map_view(&unknown), "mode")
+      .unwrap_err()
+      .contains("unsupported blend mode"));
   }
 }

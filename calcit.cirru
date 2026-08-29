@@ -136,6 +136,54 @@
                       {} (:type :touch-area) (:radius 10) (:action nil) (:path nil) (:data nil)
                         :position $ [] 200 200
                         :fill-color $ [] 40 80 80
+                  {} (:type :group)
+                    :children $ []
+                      {} (:type :rounded-rect)
+                        :position $ [] 500 410
+                        :width 180
+                        :height 64
+                        :radius 14
+                        :fill $ {} (:type :linear-gradient)
+                          :from $ [] 500 410
+                          :to $ [] 680 474
+                          :stops $ []
+                            [] 0 $ [] 16 90 60
+                            [] 0.5 $ [] 330 85 62
+                            [] 1 $ [] 210 85 55
+                      {} (:type :circle)
+                        :position $ [] 790 442
+                        :radius 52
+                        :fill $ {} (:type :radial-gradient)
+                          :center $ [] 772 424
+                          :radius 70
+                          :stops $ []
+                            [] 0 $ [] 52 95 72
+                            [] 0.55 $ [] 18 90 58
+                            [] 1 $ [] 348 85 42
+                      {} (:type :rectangle)
+                        :position $ [] 500 510
+                        :width 180
+                        :height 58
+                        :stroke $ {}
+                          :paint $ {} (:type :solid)
+                            :color $ [] 192 90 68
+                          :width 5
+                          :cap :round
+                          :join :miter
+                          :miter-limit 6
+                          :dash $ [] 14 8
+                          :dash-offset 3
+                      {} (:type :rectangle)
+                        :position $ [] 750 510
+                        :width 140
+                        :height 70
+                        :fill-color $ [] 48 90 62
+                      {} (:type :blend) (:mode :multiply)
+                        :children $ []
+                          {} (:type :circle)
+                            :position $ [] 830 545
+                            :radius 42
+                            :fill-color $ [] 215 90 60
                   {} (:type :image) (:file-path |resources/calcit.png) (:x 400) (:y 40) (:w 80) (:h 80)
                     ; :crop $ {} (:x 0) (:y 0) (:w 200) (:h 200)
               launch-canvas! $ fn (event)

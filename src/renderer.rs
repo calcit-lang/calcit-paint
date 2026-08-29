@@ -12,9 +12,11 @@ use lazy_static::lazy_static;
 
 type Transform = euclid::default::Transform2D<f32>;
 
-use skia_safe::canvas::SrcRectConstraint;
-use skia_safe::paint::{Cap, Join};
-use skia_safe::{Color, Data, Font, Image, Paint, PaintStyle, PathBuilder, RRect, Rect, TextBlob};
+use skia_safe::canvas::{SaveLayerRec, SrcRectConstraint};
+use skia_safe::{
+  gradient, Color, Color4f, Data, Font, Image, Paint, PaintStyle, PathBuilder, PathEffect, RRect, Rect, Shader,
+  TextBlob, TileMode,
+};
 
 #[derive(Clone)]
 struct CachedImage {
@@ -27,16 +29,19 @@ lazy_static! {
   static ref PREV_MESSAGES: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
   static ref BG_COLOR: RwLock<Color> = RwLock::new(Color::BLACK);
   static ref IMAGE_CACHE: RwLock<HashMap<String, CachedImage>> = RwLock::new(HashMap::new());
+  static ref SHADER_CACHE: RwLock<HashMap<String, Shader>> = RwLock::new(HashMap::new());
+  static ref DASH_EFFECT_CACHE: RwLock<HashMap<String, PathEffect>> = RwLock::new(HashMap::new());
 }
 
 use crate::{
   color::extract_color,
   extracter::{
-    extract_line_style, extract_position, extract_touch_area_shape, read_bool, read_color, read_f32, read_line_cap,
-    read_line_join, read_optional_f32, read_points, read_position, read_some_color, read_string, read_text_align, tag,
+    extract_fill_style, extract_polyline_stroke_style, extract_position, extract_stroke_style,
+    extract_touch_area_shape, read_blend_mode, read_bool, read_color, read_f32, read_optional_f32, read_points,
+    read_position, read_string, read_text_align, tag,
   },
   key_listener,
-  primes::{PaintPathTo, Shape, TouchAreaShape},
+  primes::{DashPattern, PaintPathTo, PaintSource, Shape, StrokeStyle, TouchAreaShape},
 };
 
 // TODO Stack
@@ -92,22 +97,102 @@ fn load_image(file_path: &str) -> Result<Option<Image>, String> {
   Ok(Some(image))
 }
 
-fn stroke_paint(color: Color, width: f32) -> Paint {
+const EFFECT_CACHE_LIMIT: usize = 256;
+
+fn stroke_paint(style: &StrokeStyle) -> Result<Paint, String> {
   let mut paint = Paint::default();
   paint
     .set_anti_alias(true)
     .set_style(PaintStyle::Stroke)
-    .set_stroke_width(width)
-    .set_stroke_cap(Cap::Round)
-    .set_stroke_join(Join::Round)
-    .set_color(color);
-  paint
+    .set_stroke_width(style.width)
+    .set_stroke_cap(style.cap)
+    .set_stroke_join(style.join)
+    .set_stroke_miter(style.miter_limit);
+  apply_paint_source(&mut paint, &style.paint)?;
+  if let Some(dash) = &style.dash {
+    paint.set_path_effect(dash_effect(dash)?);
+  }
+  Ok(paint)
 }
 
-fn fill_paint(color: Color) -> Paint {
+fn fill_paint(source: &PaintSource) -> Result<Paint, String> {
   let mut paint = Paint::default();
-  paint.set_anti_alias(true).set_style(PaintStyle::Fill).set_color(color);
-  paint
+  paint.set_anti_alias(true).set_style(PaintStyle::Fill);
+  apply_paint_source(&mut paint, source)?;
+  Ok(paint)
+}
+
+fn apply_paint_source(paint: &mut Paint, source: &PaintSource) -> Result<(), String> {
+  match source {
+    PaintSource::Solid(color) => {
+      paint.set_color(*color);
+    }
+    PaintSource::LinearGradient { .. } | PaintSource::RadialGradient { .. } => {
+      paint.set_shader(gradient_shader(source)?);
+    }
+  }
+  Ok(())
+}
+
+fn gradient_shader(source: &PaintSource) -> Result<Shader, String> {
+  let key = format!("{source:?}");
+  if let Some(shader) = SHADER_CACHE
+    .read()
+    .map_err(|_| "gradient shader cache lock is poisoned".to_owned())?
+    .get(&key)
+  {
+    return Ok(shader.clone());
+  }
+
+  let shader = match source {
+    PaintSource::LinearGradient { from, to, stops } => {
+      let colors: Vec<Color4f> = stops.iter().map(|stop| Color4f::from(stop.color)).collect();
+      let positions: Vec<f32> = stops.iter().map(|stop| stop.offset).collect();
+      let colors = gradient::Colors::new(colors.as_slice(), Some(positions.as_slice()), TileMode::Clamp, None);
+      let gradient = gradient::Gradient::new(colors, gradient::Interpolation::default());
+      gradient::shaders::linear_gradient(((*from).to_tuple(), (*to).to_tuple()), &gradient, None)
+        .ok_or_else(|| "Skia failed to create linear-gradient shader".to_owned())?
+    }
+    PaintSource::RadialGradient { center, radius, stops } => {
+      let colors: Vec<Color4f> = stops.iter().map(|stop| Color4f::from(stop.color)).collect();
+      let positions: Vec<f32> = stops.iter().map(|stop| stop.offset).collect();
+      let colors = gradient::Colors::new(colors.as_slice(), Some(positions.as_slice()), TileMode::Clamp, None);
+      let gradient = gradient::Gradient::new(colors, gradient::Interpolation::default());
+      gradient::shaders::radial_gradient(((*center).to_tuple(), *radius), &gradient, None)
+        .ok_or_else(|| "Skia failed to create radial-gradient shader".to_owned())?
+    }
+    PaintSource::Solid(_) => return Err("solid paint does not use a shader".to_owned()),
+  };
+
+  let mut cache = SHADER_CACHE
+    .write()
+    .map_err(|_| "gradient shader cache lock is poisoned".to_owned())?;
+  if cache.len() >= EFFECT_CACHE_LIMIT {
+    cache.clear();
+  }
+  cache.insert(key, shader.clone());
+  Ok(shader)
+}
+
+fn dash_effect(dash: &DashPattern) -> Result<PathEffect, String> {
+  let key = format!("{:?}:{:?}", dash.intervals, dash.offset);
+  if let Some(effect) = DASH_EFFECT_CACHE
+    .read()
+    .map_err(|_| "dash effect cache lock is poisoned".to_owned())?
+    .get(&key)
+  {
+    return Ok(effect.clone());
+  }
+  let effect = PathEffect::dash(&dash.intervals, dash.offset)
+    .ok_or_else(|| "Skia failed to create dash path effect".to_owned())?;
+  let mut cache = DASH_EFFECT_CACHE
+    .write()
+    .map_err(|_| "dash effect cache lock is poisoned".to_owned())?;
+  if cache.len() >= EFFECT_CACHE_LIMIT {
+    cache.clear();
+  }
+  cache.insert(key, effect.clone());
+  Ok(effect)
 }
 
 pub fn draw_page(
@@ -181,24 +266,11 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
 
       // canvas.set_transform(tr);
 
-      if let Some((color, width)) = line_style {
-        let mut paint = Paint::default();
-        paint.set_anti_alias(true);
-        paint
-          .set_style(PaintStyle::Stroke)
-          .set_stroke_width(*width)
-          .set_stroke_cap(Cap::Round)
-          .set_stroke_join(Join::Round)
-          .set_color(*color);
-
-        canvas.draw_rect(rect_path, &paint);
+      if let Some(style) = line_style {
+        canvas.draw_rect(rect_path, &stroke_paint(style)?);
       }
-      if let Some(color) = fill_style {
-        let mut paint = Paint::default();
-        paint.set_anti_alias(true);
-        paint.set_style(PaintStyle::Fill).set_color(*color);
-
-        canvas.draw_rect(rect_path, &paint);
+      if let Some(source) = fill_style {
+        canvas.draw_rect(rect_path, &fill_paint(source)?);
       }
     }
     Shape::RoundedRectangle {
@@ -212,11 +284,11 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
     } => {
       let rect = Rect::from_xywh(position.x, position.y, *width, *height);
       let rounded = RRect::new_rect_xy(rect, *radius_x, *radius_y);
-      if let Some((color, width)) = line_style {
-        canvas.draw_rrect(rounded, &stroke_paint(*color, *width));
+      if let Some(style) = line_style {
+        canvas.draw_rrect(rounded, &stroke_paint(style)?);
       }
-      if let Some(color) = fill_style {
-        canvas.draw_rrect(rounded, &fill_paint(*color));
+      if let Some(source) = fill_style {
+        canvas.draw_rrect(rounded, &fill_paint(source)?);
       }
     }
     Shape::Circle {
@@ -227,25 +299,11 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
     } => {
       // canvas.set_transform(tr);
 
-      if let Some((color, width)) = line_style {
-        let mut paint = Paint::default();
-        paint.set_anti_alias(true);
-
-        paint
-          .set_style(PaintStyle::Stroke)
-          .set_stroke_width(*width)
-          .set_stroke_cap(Cap::Round)
-          .set_stroke_join(Join::Round)
-          .set_color(*color);
-
-        canvas.draw_circle((position.x, position.y), *radius, &paint);
+      if let Some(style) = line_style {
+        canvas.draw_circle((position.x, position.y), *radius, &stroke_paint(style)?);
       }
-      if let Some(color) = fill_style {
-        let mut paint = Paint::default();
-        paint.set_anti_alias(true);
-        paint.set_style(PaintStyle::Fill).set_color(*color);
-
-        canvas.draw_circle((position.x, position.y), *radius, &paint);
+      if let Some(source) = fill_style {
+        canvas.draw_circle((position.x, position.y), *radius, &fill_paint(source)?);
       }
     }
     Shape::Ellipse {
@@ -261,11 +319,11 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
         2.0 * radius_x,
         2.0 * radius_y,
       );
-      if let Some((color, width)) = line_style {
-        canvas.draw_oval(oval, &stroke_paint(*color, *width));
+      if let Some(style) = line_style {
+        canvas.draw_oval(oval, &stroke_paint(style)?);
       }
-      if let Some(color) = fill_style {
-        canvas.draw_oval(oval, &fill_paint(*color));
+      if let Some(source) = fill_style {
+        canvas.draw_oval(oval, &fill_paint(source)?);
       }
     }
     Shape::Arc {
@@ -284,17 +342,11 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
         2.0 * radius_x,
         2.0 * radius_y,
       );
-      if let Some((color, width)) = line_style {
-        canvas.draw_arc(
-          oval,
-          *start_angle,
-          *sweep_angle,
-          *use_center,
-          &stroke_paint(*color, *width),
-        );
+      if let Some(style) = line_style {
+        canvas.draw_arc(oval, *start_angle, *sweep_angle, *use_center, &stroke_paint(style)?);
       }
-      if let Some(color) = fill_style {
-        canvas.draw_arc(oval, *start_angle, *sweep_angle, *use_center, &fill_paint(*color));
+      if let Some(source) = fill_style {
+        canvas.draw_arc(oval, *start_angle, *sweep_angle, *use_center, &fill_paint(source)?);
       }
     }
     Shape::Group { position, children } => {
@@ -338,10 +390,7 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
     Shape::Polyline {
       position,
       stops,
-      width,
-      color,
-      join,
-      cap,
+      line_style,
       skip_first,
     } => {
       let mut path = PathBuilder::new();
@@ -358,16 +407,7 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       path.close();
       let path = path.detach();
 
-      let mut paint = Paint::default();
-      paint.set_anti_alias(true);
-      paint
-        .set_style(PaintStyle::Stroke)
-        .set_stroke_width(*width)
-        .set_stroke_cap(*cap)
-        .set_stroke_join(*join)
-        .set_color(*color);
-
-      canvas.draw_path(&path, &paint);
+      canvas.draw_path(&path, &stroke_paint(line_style)?);
     }
     Shape::Image {
       file_path,
@@ -405,24 +445,11 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
         TouchAreaShape::Circle(r) => {
           // canvas.set_transform(tr);
 
-          if let Some((color, width)) = line_style {
-            let mut paint = Paint::default();
-            paint.set_anti_alias(true);
-            paint
-              .set_style(PaintStyle::Stroke)
-              .set_stroke_width(*width)
-              .set_stroke_cap(Cap::Round)
-              .set_stroke_join(Join::Round)
-              .set_color(*color);
-
-            canvas.draw_circle((position.x, position.y), *r, &paint);
+          if let Some(style) = line_style {
+            canvas.draw_circle((position.x, position.y), *r, &stroke_paint(style)?);
           }
-          if let Some(color) = fill_style {
-            let mut paint = Paint::default();
-            paint.set_anti_alias(true);
-            paint.set_style(PaintStyle::Fill).set_color(*color);
-
-            canvas.draw_circle((position.x, position.y), *r, &paint);
+          if let Some(source) = fill_style {
+            canvas.draw_circle((position.x, position.y), *r, &fill_paint(source)?);
           }
         }
         TouchAreaShape::Rect(dx, dy) => {
@@ -435,24 +462,11 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
 
           // canvas.set_transform(tr);
 
-          if let Some((color, width)) = line_style {
-            let mut paint = Paint::default();
-            paint.set_anti_alias(true);
-            paint
-              .set_style(PaintStyle::Stroke)
-              .set_stroke_width(*width)
-              .set_stroke_cap(Cap::Round)
-              .set_stroke_join(Join::Round)
-              .set_color(*color);
-
-            canvas.draw_rect(rect_path, &paint);
+          if let Some(style) = line_style {
+            canvas.draw_rect(rect_path, &stroke_paint(style)?);
           }
-          if let Some(color) = fill_style {
-            let mut paint = Paint::default();
-            paint.set_anti_alias(true);
-            paint.set_style(PaintStyle::Fill).set_color(*color);
-
-            canvas.draw_rect(rect_path, &paint);
+          if let Some(source) = fill_style {
+            canvas.draw_rect(rect_path, &fill_paint(source)?);
           }
         }
       }
@@ -514,25 +528,12 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       }
       let path = path.detach();
 
-      if let Some((color, width)) = line_style {
-        let mut paint = Paint::default();
-        paint.set_anti_alias(true);
-        paint
-          .set_style(PaintStyle::Stroke)
-          .set_stroke_width(*width)
-          .set_stroke_cap(Cap::Round)
-          .set_stroke_join(Join::Round)
-          .set_color(*color);
-
-        canvas.draw_path(&path, &paint);
+      if let Some(style) = line_style {
+        canvas.draw_path(&path, &stroke_paint(style)?);
       }
 
-      if let Some(color) = fill_style {
-        let mut paint = Paint::default();
-        paint.set_anti_alias(true);
-        paint.set_style(PaintStyle::Fill).set_color(*color);
-
-        canvas.draw_path(&path, &paint);
+      if let Some(source) = fill_style {
+        canvas.draw_path(&path, &fill_paint(source)?);
       }
     }
     Shape::Scale { factor, children } => {
@@ -585,6 +586,15 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       }
       canvas.restore();
     }
+    Shape::Blend { mode, children } => {
+      let mut paint = Paint::default();
+      paint.set_blend_mode(*mode);
+      canvas.save_layer(&SaveLayerRec::default().paint(&paint));
+      for child in children {
+        draw_shape(canvas, child, tr)?;
+      }
+      canvas.restore();
+    }
   }
   Ok(())
 }
@@ -598,8 +608,8 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           position: read_position(m, "position")?,
           width: read_f32(m, "width")?,
           height: read_f32(m, "height")?,
-          fill_style: read_some_color(m, "fill-color")?,
-          line_style: extract_line_style(m)?,
+          fill_style: extract_fill_style(m)?,
+          line_style: extract_stroke_style(m)?,
         }),
         "rounded-rectangle" | "rounded-rect" => {
           let radius = read_optional_f32(m, "radius")?;
@@ -615,22 +625,22 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
             height: read_non_negative_f32(m, "height")?,
             radius_x,
             radius_y,
-            fill_style: read_some_color(m, "fill-color")?,
-            line_style: extract_line_style(m)?,
+            fill_style: extract_fill_style(m)?,
+            line_style: extract_stroke_style(m)?,
           })
         }
         "circle" => Ok(Shape::Circle {
           position: read_position(m, "position")?,
           radius: read_f32(m, "radius")?,
-          fill_style: read_some_color(m, "fill-color")?,
-          line_style: extract_line_style(m)?,
+          fill_style: extract_fill_style(m)?,
+          line_style: extract_stroke_style(m)?,
         }),
         "ellipse" => Ok(Shape::Ellipse {
           position: read_position(m, "position")?,
           radius_x: read_non_negative_f32(m, "radius-x")?,
           radius_y: read_non_negative_f32(m, "radius-y")?,
-          fill_style: read_some_color(m, "fill-color")?,
-          line_style: extract_line_style(m)?,
+          fill_style: extract_fill_style(m)?,
+          line_style: extract_stroke_style(m)?,
         }),
         "arc" => Ok(Shape::Arc {
           position: read_position(m, "position")?,
@@ -639,8 +649,8 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           start_angle: read_f32(m, "start-angle")?,
           sweep_angle: read_f32(m, "sweep-angle")?,
           use_center: read_bool(m, "use-center?")?,
-          fill_style: read_some_color(m, "fill-color")?,
-          line_style: extract_line_style(m)?,
+          fill_style: extract_fill_style(m)?,
+          line_style: extract_stroke_style(m)?,
         }),
         "group" => {
           let c = m.get(&tag("children"));
@@ -662,8 +672,8 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
         "ops" => Ok(Shape::PaintOps {
           position: read_position(m, "position")?,
           path: extract_paint_path(m.get(&tag("path")).unwrap_or(&Edn::Nil))?,
-          fill_style: read_some_color(m, "fill-color")?,
-          line_style: extract_line_style(m)?,
+          fill_style: extract_fill_style(m)?,
+          line_style: extract_stroke_style(m)?,
         }),
         "text" => {
           Ok(Shape::Text {
@@ -677,12 +687,9 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
         }
         "polyline" => Ok(Shape::Polyline {
           position: read_position(m, "position")?,
-          join: read_line_join(m, "join")?,
-          cap: read_line_cap(m, "cap")?,
           skip_first: read_bool(m, "skip-first?")?,
           stops: read_points(m, "stops")?,
-          color: read_color(m, "color")?,
-          width: read_f32(m, "width")?,
+          line_style: extract_polyline_stroke_style(m)?,
         }),
         "touch-area" => Ok(Shape::TouchArea {
           path: Box::new(m.get(&tag("path")).unwrap_or(&Edn::Nil).to_owned()),
@@ -690,8 +697,8 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           data: Box::new(m.get(&tag("data")).unwrap_or(&Edn::Nil).to_owned()),
           position: read_position(m, "position")?,
           area: extract_touch_area_shape(m)?,
-          fill_style: read_some_color(m, "fill-color")?,
-          line_style: extract_line_style(m)?,
+          fill_style: extract_fill_style(m)?,
+          line_style: extract_stroke_style(m)?,
         }),
         "key-listener" => Ok(Shape::KeyListener {
           key: read_string(m, "key")?,
@@ -743,6 +750,10 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
             children: extract_children(m.get(&tag("children")))?,
           })
         }
+        "blend" => Ok(Shape::Blend {
+          mode: read_blend_mode(m, "mode")?,
+          children: extract_children(m.get(&tag("children")))?,
+        }),
         "image" => {
           let crop = match m.get(&tag("crop")) {
             Some(Edn::Map(m)) => Some(Rect::from_xywh(
@@ -943,6 +954,28 @@ mod tests {
     assert!(extract_shape(&ellipse)
       .unwrap_err()
       .contains("radius-x must be a finite non-negative number"));
+
+    let blend = map([
+      ("type", Edn::tag("blend")),
+      ("mode", Edn::tag("multiply")),
+      ("children", list([])),
+    ]);
+    assert!(matches!(
+      extract_shape(&blend),
+      Ok(Shape::Blend {
+        mode: skia_safe::BlendMode::Multiply,
+        ..
+      })
+    ));
+
+    let unknown_blend = map([
+      ("type", Edn::tag("blend")),
+      ("mode", Edn::tag("unknown")),
+      ("children", list([])),
+    ]);
+    assert!(extract_shape(&unknown_blend)
+      .unwrap_err()
+      .contains("unsupported blend mode"));
   }
 
   #[test]
