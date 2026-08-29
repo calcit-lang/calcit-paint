@@ -1,4 +1,8 @@
-use crate::{focus, touches};
+use crate::{
+  focus,
+  hit_test::{ClipRegion, ClipShape},
+  touches,
+};
 use std::collections::HashMap;
 use std::fs;
 use std::sync::{
@@ -462,7 +466,7 @@ fn render_offscreen_shape(width: i32, height: i32, background: Color, shape: &Sh
   let canvas = surface.canvas();
   canvas.clear(background);
   canvas.reset_matrix();
-  draw_shape_with_mode(canvas, shape, &Transform::identity(), RenderMode::Offscreen)?;
+  draw_shape_with_mode(canvas, shape, &Transform::identity(), RenderMode::Offscreen, &[])?;
   Ok(surface.image_snapshot())
 }
 
@@ -502,6 +506,7 @@ fn shape_contains_interactive(shape: &Shape) -> bool {
     | Shape::Rotate { children, .. }
     | Shape::Scale { children, .. }
     | Shape::ClipRect { children, .. }
+    | Shape::ClipRoundedRect { children, .. }
     | Shape::Opacity { children, .. }
     | Shape::Blend { children, .. } => children.iter().any(shape_contains_interactive),
     _ => false,
@@ -547,7 +552,7 @@ fn render_cached_subtree(
   let canvas = surface.canvas();
   canvas.clear(Color::from_argb(0, 0, 0, 0));
   for child in children {
-    draw_shape_with_mode(canvas, child, &Transform::identity(), RenderMode::Offscreen)?;
+    draw_shape_with_mode(canvas, child, &Transform::identity(), RenderMode::Offscreen, &[])?;
   }
   let image = surface.image_snapshot();
 
@@ -639,7 +644,7 @@ pub fn draw_page(
 // }
 
 fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) -> Result<(), String> {
-  draw_shape_with_mode(canvas, tree, tr, RenderMode::Interactive)
+  draw_shape_with_mode(canvas, tree, tr, RenderMode::Interactive, &[])
 }
 
 fn draw_shape_with_mode(
@@ -647,6 +652,7 @@ fn draw_shape_with_mode(
   tree: &Shape,
   tr: &Transform,
   render_mode: RenderMode,
+  clips: &[ClipRegion],
 ) -> Result<(), String> {
   match tree {
     Shape::Rectangle {
@@ -749,7 +755,7 @@ fn draw_shape_with_mode(
       canvas.translate((pos.x, pos.y));
       for child in children {
         let t1 = Transform::identity().then_translate(pos);
-        draw_shape_with_mode(canvas, child, &t1.then(tr), render_mode)?;
+        draw_shape_with_mode(canvas, child, &t1.then(tr), render_mode, clips)?;
       }
       canvas.restore();
     }
@@ -887,6 +893,7 @@ fn draw_shape_with_mode(
           target.to_owned(),
           *cursor,
           tr,
+          clips,
         );
       }
     }
@@ -941,6 +948,7 @@ fn draw_shape_with_mode(
           position: position.to_owned(),
           area: area.to_owned(),
           transform: tr.to_owned(),
+          clips: clips.to_vec(),
           tab_index: *tab_index,
           text_input: *text_input,
           order: 0,
@@ -996,18 +1004,18 @@ fn draw_shape_with_mode(
       canvas.scale((*factor, *factor));
       let t1 = Transform::identity().then_scale(factor.to_owned(), factor.to_owned());
       for child in children {
-        draw_shape_with_mode(canvas, child, &t1.then(tr), render_mode)?;
+        draw_shape_with_mode(canvas, child, &t1.then(tr), render_mode, clips)?;
       }
       canvas.restore();
     }
     Shape::Rotate { radius, children } => {
       canvas.save();
-      canvas.rotate(*radius, None);
+      canvas.rotate(radius.to_degrees(), None);
       let t1 = Transform::identity().then_rotate(Angle {
         radians: radius.to_owned(),
       });
       for child in children {
-        draw_shape_with_mode(canvas, child, &t1.then(tr), render_mode)?;
+        draw_shape_with_mode(canvas, child, &t1.then(tr), render_mode, clips)?;
       }
       canvas.restore();
     }
@@ -1017,7 +1025,7 @@ fn draw_shape_with_mode(
       let v = Vector2D::new(x.to_owned(), y.to_owned());
       let t1 = Transform::identity().then_translate(v);
       for child in children {
-        draw_shape_with_mode(canvas, child, &t1.then(tr), render_mode)?;
+        draw_shape_with_mode(canvas, child, &t1.then(tr), render_mode, clips)?;
       }
       canvas.restore();
     }
@@ -1029,15 +1037,51 @@ fn draw_shape_with_mode(
     } => {
       canvas.save();
       canvas.clip_rect(Rect::from_xywh(position.x, position.y, *width, *height), None, true);
+      let mut child_clips = clips.to_vec();
+      child_clips.push(ClipRegion {
+        shape: ClipShape::Rect {
+          position: *position,
+          width: *width,
+          height: *height,
+        },
+        transform: *tr,
+      });
       for child in children {
-        draw_shape_with_mode(canvas, child, tr, render_mode)?;
+        draw_shape_with_mode(canvas, child, tr, render_mode, &child_clips)?;
+      }
+      canvas.restore();
+    }
+    Shape::ClipRoundedRect {
+      position,
+      width,
+      height,
+      radius_x,
+      radius_y,
+      children,
+    } => {
+      canvas.save();
+      let rect = Rect::from_xywh(position.x, position.y, *width, *height);
+      canvas.clip_rrect(RRect::new_rect_xy(rect, *radius_x, *radius_y), None, true);
+      let mut child_clips = clips.to_vec();
+      child_clips.push(ClipRegion {
+        shape: ClipShape::RoundedRect {
+          position: *position,
+          width: *width,
+          height: *height,
+          radius_x: *radius_x,
+          radius_y: *radius_y,
+        },
+        transform: *tr,
+      });
+      for child in children {
+        draw_shape_with_mode(canvas, child, tr, render_mode, &child_clips)?;
       }
       canvas.restore();
     }
     Shape::Opacity { alpha, children } => {
       canvas.save_layer_alpha_f(None, alpha.clamp(0.0, 1.0));
       for child in children {
-        draw_shape_with_mode(canvas, child, tr, render_mode)?;
+        draw_shape_with_mode(canvas, child, tr, render_mode, clips)?;
       }
       canvas.restore();
     }
@@ -1046,7 +1090,7 @@ fn draw_shape_with_mode(
       paint.set_blend_mode(*mode);
       canvas.save_layer(&SaveLayerRec::default().paint(&paint));
       for child in children {
-        draw_shape_with_mode(canvas, child, tr, render_mode)?;
+        draw_shape_with_mode(canvas, child, tr, render_mode, clips)?;
       }
       canvas.restore();
     }
@@ -1231,6 +1275,23 @@ fn extract_shape_at(tree: &Edn, path: &str) -> Result<Shape, SceneDiagnostics> {
           height: read_non_negative_f32(m, "height")?,
           children: extract_children(m.get(&tag("children")), path)?,
         }),
+        "clip-rounded-rect" | "clip-rounded-rectangle" => {
+          let radius = read_optional_f32(m, "radius")?;
+          let radius_x = read_optional_f32(m, "radius-x")?
+            .or(radius)
+            .ok_or_else(|| "clip-rounded-rect requires :radius or :radius-x".to_owned())?;
+          let radius_y = read_optional_f32(m, "radius-y")?.unwrap_or(radius_x);
+          validate_non_negative("clip-rounded-rect radius-x", radius_x)?;
+          validate_non_negative("clip-rounded-rect radius-y", radius_y)?;
+          Ok(Shape::ClipRoundedRect {
+            position: read_position(m, "position")?,
+            width: read_non_negative_f32(m, "width")?,
+            height: read_non_negative_f32(m, "height")?,
+            radius_x,
+            radius_y,
+            children: extract_children(m.get(&tag("children")), path)?,
+          })
+        }
         "opacity" => {
           let alpha = read_f32(m, "alpha")?;
           if !(0.0..=1.0).contains(&alpha) {
@@ -1524,6 +1585,87 @@ mod tests {
   }
 
   #[test]
+  fn rounded_clip_matches_offscreen_pixels() {
+    let scene = Shape::ClipRoundedRect {
+      position: Vector2D::new(0.0, 0.0),
+      width: 12.0,
+      height: 12.0,
+      radius_x: 4.0,
+      radius_y: 4.0,
+      children: vec![Shape::Rectangle {
+        position: Vector2D::new(0.0, 0.0),
+        width: 12.0,
+        height: 12.0,
+        line_style: None,
+        fill_style: Some(PaintSource::Solid(Color::from_argb(255, 255, 0, 0))),
+      }],
+    };
+    let image = render_offscreen_shape(12, 12, Color::TRANSPARENT, &scene).unwrap();
+    let pixels = rgba_pixels(&image, 12, 12);
+    assert_eq!(&pixels[0..4], &[0, 0, 0, 0]);
+    assert_eq!(&pixels[(6 * 12 + 6) * 4..(6 * 12 + 6) * 4 + 4], &[255, 0, 0, 255]);
+  }
+
+  #[test]
+  fn renderer_propagates_clips_to_touch_hits() {
+    touches::reset_pointer_state();
+    touches::reset_touches_stack();
+    let scene = Shape::ClipRect {
+      position: Vector2D::new(20.0, 10.0),
+      width: 40.0,
+      height: 30.0,
+      children: vec![Shape::TouchArea {
+        id: "$.children[0]".into(),
+        target: crate::primes::EventTarget::default(),
+        position: Vector2D::new(50.0, 30.0),
+        area: TouchAreaShape::Rect(50.0, 30.0),
+        cursor: Some(winit::window::CursorIcon::Pointer),
+        line_style: None,
+        fill_style: None,
+      }],
+    };
+    let mut surface = surfaces::raster_n32_premul((100, 60)).unwrap();
+    draw_shape(surface.canvas(), &scene, &Transform::identity()).unwrap();
+    assert!(touches::find_touch_area(Vector2D::new(40.0, 20.0)).is_some());
+    assert!(touches::find_touch_area(Vector2D::new(10.0, 20.0)).is_none());
+  }
+
+  #[test]
+  fn transformed_clip_keeps_paint_and_hit_rotation_in_sync() {
+    touches::reset_pointer_state();
+    touches::reset_touches_stack();
+    let clipped_touch = Shape::ClipRect {
+      position: Vector2D::new(0.0, 0.0),
+      width: 40.0,
+      height: 30.0,
+      children: vec![Shape::TouchArea {
+        id: "$.children[0].children[0].children[0]".into(),
+        target: crate::primes::EventTarget::default(),
+        position: Vector2D::new(20.0, 15.0),
+        area: TouchAreaShape::Rect(50.0, 40.0),
+        cursor: None,
+        line_style: None,
+        fill_style: Some(PaintSource::Solid(Color::RED)),
+      }],
+    };
+    let scene = Shape::Translate {
+      x: 80.0,
+      y: 20.0,
+      children: vec![Shape::Rotate {
+        radius: std::f32::consts::FRAC_PI_2,
+        children: vec![clipped_touch],
+      }],
+    };
+    let mut surface = surfaces::raster_n32_premul((100, 80)).unwrap();
+    draw_shape(surface.canvas(), &scene, &Transform::identity()).unwrap();
+    let image = surface.image_snapshot();
+    let pixels = rgba_pixels(&image, 100, 80);
+    assert_eq!(&pixels[(40 * 100 + 60) * 4..(40 * 100 + 60) * 4 + 4], &[255, 0, 0, 255]);
+    assert!(touches::find_touch_area(Vector2D::new(60.0, 40.0)).is_some());
+    assert!(touches::find_touch_area(Vector2D::new(90.0, 40.0)).is_none());
+  }
+
+  #[test]
   fn exports_png_only_to_the_explicit_path() {
     let path = std::env::temp_dir().join(format!("calcit-paint-offscreen-{}.png", std::process::id()));
     let request = map([
@@ -1588,6 +1730,45 @@ mod tests {
       ("height", Edn::Number(40.0)),
     ]);
     assert!(extract_shape(&rounded).unwrap_err().contains("requires :radius"));
+
+    let rounded_clip = map([
+      ("type", Edn::tag("clip-rounded-rect")),
+      ("position", list([Edn::Number(4.0), Edn::Number(6.0)])),
+      ("width", Edn::Number(80.0)),
+      ("height", Edn::Number(40.0)),
+      ("radius-x", Edn::Number(8.0)),
+      ("radius-y", Edn::Number(12.0)),
+      ("children", list([])),
+    ]);
+    assert!(matches!(
+      extract_shape(&rounded_clip),
+      Ok(Shape::ClipRoundedRect {
+        radius_x: 8.0,
+        radius_y: 12.0,
+        ..
+      })
+    ));
+
+    let missing_clip_radius = map([
+      ("type", Edn::tag("clip-rounded-rect")),
+      ("width", Edn::Number(80.0)),
+      ("height", Edn::Number(40.0)),
+      ("children", list([])),
+    ]);
+    assert!(extract_shape(&missing_clip_radius)
+      .unwrap_err()
+      .contains("requires :radius"));
+
+    let negative_clip_radius = map([
+      ("type", Edn::tag("clip-rounded-rect")),
+      ("width", Edn::Number(80.0)),
+      ("height", Edn::Number(40.0)),
+      ("radius", Edn::Number(-1.0)),
+      ("children", list([])),
+    ]);
+    assert!(extract_shape(&negative_clip_radius)
+      .unwrap_err()
+      .contains("radius-x must be a finite non-negative number"));
 
     let opacity = map([
       ("type", Edn::tag("opacity")),

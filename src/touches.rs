@@ -3,7 +3,10 @@ use std::cell::RefCell;
 use euclid::{Point2D, Vector2D};
 use winit::{event::MouseButton, window::CursorIcon};
 
-use crate::primes::{EventTarget, TouchAreaShape};
+use crate::{
+  hit_test::{clips_contain, ClipRegion},
+  primes::{EventTarget, TouchAreaShape},
+};
 
 pub type Transform = euclid::default::Transform2D<f32>;
 
@@ -20,6 +23,7 @@ pub struct TouchArea {
   pub area: TouchAreaShape,
   pub transform: Transform,
   pub cursor: Option<CursorIcon>,
+  pub clips: Vec<ClipRegion>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -68,6 +72,7 @@ pub fn add_touch_area(
   target: EventTarget,
   cursor: Option<CursorIcon>,
   transform: &Transform,
+  clips: &[ClipRegion],
 ) {
   TOUCH_ITEMS_STACK.with(|stack| {
     stack.borrow_mut().push(TouchArea {
@@ -77,11 +82,15 @@ pub fn add_touch_area(
       area,
       transform: *transform,
       cursor,
+      clips: clips.to_vec(),
     });
   });
 }
 
 fn contains(area: &TouchArea, position: Vector2D<f32, f32>) -> bool {
+  if !clips_contain(&area.clips, position) {
+    return false;
+  }
   let Some(transform) = area.transform.inverse() else {
     return false;
   };
@@ -197,4 +206,87 @@ pub fn pointer_cursor() -> CursorIcon {
       .or_else(|| state.hovered.as_ref().and_then(|area| area.cursor))
       .unwrap_or_default()
   })
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::hit_test::{ClipRegion, ClipShape};
+
+  fn clipped_area(clips: &[ClipRegion]) {
+    add_touch_area(
+      "clipped",
+      Vector2D::new(50.0, 30.0),
+      TouchAreaShape::Rect(50.0, 30.0),
+      EventTarget::default(),
+      Some(CursorIcon::Pointer),
+      &Transform::identity(),
+      clips,
+    );
+  }
+
+  #[test]
+  fn clip_stack_constrains_touch_hits() {
+    reset_pointer_state();
+    reset_touches_stack();
+    let clips = vec![ClipRegion {
+      shape: ClipShape::Rect {
+        position: Vector2D::new(20.0, 10.0),
+        width: 40.0,
+        height: 30.0,
+      },
+      transform: Transform::identity(),
+    }];
+    clipped_area(&clips);
+
+    assert!(find_touch_area(Vector2D::new(40.0, 20.0)).is_some());
+    assert!(find_touch_area(Vector2D::new(10.0, 20.0)).is_none());
+  }
+
+  #[test]
+  fn rounded_clip_excludes_invisible_touch_corners() {
+    reset_pointer_state();
+    reset_touches_stack();
+    let clips = vec![ClipRegion {
+      shape: ClipShape::RoundedRect {
+        position: Vector2D::new(0.0, 0.0),
+        width: 100.0,
+        height: 60.0,
+        radius_x: 24.0,
+        radius_y: 24.0,
+      },
+      transform: Transform::identity(),
+    }];
+    clipped_area(&clips);
+
+    assert!(find_touch_area(Vector2D::new(50.0, 5.0)).is_some());
+    assert!(find_touch_area(Vector2D::new(2.0, 2.0)).is_none());
+  }
+
+  #[test]
+  fn capture_survives_clip_changes_until_release() {
+    reset_pointer_state();
+    reset_touches_stack();
+    clipped_area(&[]);
+    assert!(begin_pointer_capture(Vector2D::new(50.0, 30.0), MouseButton::Left).is_some());
+
+    reset_touches_stack();
+    let clips = vec![ClipRegion {
+      shape: ClipShape::Rect {
+        position: Vector2D::new(0.0, 0.0),
+        width: 10.0,
+        height: 10.0,
+      },
+      transform: Transform::identity(),
+    }];
+    clipped_area(&clips);
+    let reconcile = reconcile_pointer(Vector2D::new(50.0, 30.0), true);
+    assert!(reconcile.cancelled.is_none());
+    assert!(read_pointer_capture().is_some());
+
+    release_pointer_capture(MouseButton::Left);
+    assert!(reconcile_pointer(Vector2D::new(50.0, 30.0), true)
+      .hover
+      .is_some_and(|transition| transition.to.is_none()));
+  }
 }

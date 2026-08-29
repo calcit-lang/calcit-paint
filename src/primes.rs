@@ -248,6 +248,14 @@ pub enum Shape {
     height: f32,
     children: Vec<Shape>,
   },
+  ClipRoundedRect {
+    position: Vector2D<f32, f32>,
+    width: f32,
+    height: f32,
+    radius_x: f32,
+    radius_y: f32,
+    children: Vec<Shape>,
+  },
   Opacity {
     alpha: f32,
     children: Vec<Shape>,

@@ -38,6 +38,7 @@ mod ffi;
 mod focus;
 mod frame;
 mod handlers;
+mod hit_test;
 mod key_listener;
 mod primes;
 mod renderer;
