@@ -24,6 +24,7 @@ calcit-paint.core/measure-text! text-options
 calcit-paint.core/measure-paragraph! paragraph-options
 calcit-paint.core/validate-scene scene-data
 calcit-paint.core/render-to-png! offscreen-options
+calcit-paint.core/request-frame!
 calcit-paint.core/focus! |focus-id
 calcit-paint.core/focused? |focus-id
 calcit-paint.core/blur!
@@ -617,6 +618,46 @@ and two expected nested failures, so the API is exercised by the normal demo.
 `render-to-png!` 返回相同诊断，且不会写出不完整 PNG。渲染诊断与未知绘制操作均不再
 污染 stdout。默认 Calcit 入口会在打开窗口前实际运行 `validate-scene-demo!`，打印一个
 通过的 scene 和两个预期的嵌套错误，因此正常 demo 会真实覆盖该 API。
+
+### On-demand frames and animation timing / 按需帧与动画时钟
+
+`request-frame!` schedules one `:frame` callback on the active Paint window. It
+is intentionally one-shot: repeated requests before delivery are coalesced, and
+continuous animation must request its next frame from the callback. Paint does
+not switch the event loop to permanent polling, so an idle scene remains idle.
+Calling it without an active blocking `launch-canvas!` callback returns an
+error.
+
+`request-frame!` 会在当前 Paint 窗口上调度一次 `:frame` callback。它是有意设计的
+one-shot API：事件送达前的重复请求会合并；连续动画必须在 callback 内显式请求下一帧。
+Paint 不会把事件循环切换成永久轮询，因此静止场景不会持续占用资源。没有活跃的
+blocking `launch-canvas!` callback 时调用会返回错误。
+
+```cirru.no-check
+launch-canvas! $ fn (event)
+  if (= :frame $ get event :type) $ do
+    render-animation! $ get event :timestamp-ms
+    request-frame!
+  , &unit
+```
+
+A frame event contains `:frame`, monotonic `:timestamp-ms`, `:delta-ms`, logical
+`:width` and `:height`, and `:scale-factor`. The first delivered frame and the
+first frame after an occluded, minimized, or suspended interval use a zero
+delta. While paused, Paint retains at most one pending request and delivers it
+after restoration; closing the window cancels it.
+
+帧事件包含 `:frame` 序号、单调递增的 `:timestamp-ms`、`:delta-ms`、逻辑像素
+`:width`/`:height` 与 `:scale-factor`。首帧以及窗口从遮挡、最小化或 suspended
+状态恢复后的第一帧，其 delta 为零。暂停期间至多保留一个待处理请求，并在恢复后送达；
+窗口关闭时请求会被取消。
+
+The bundled runnable demo requests one startup frame and then stays idle. Press
+`A` to start or pause its animated circle, demonstrating explicit frame
+chaining without a busy loop.
+
+随仓库提供的可运行 demo 会在启动时请求一帧，随后保持空闲。按 `A` 可开始或暂停圆形
+动画，用于演示不依赖 busy loop 的显式逐帧调度。
 
 ### Calcit type boundaries / Calcit 类型边界
 

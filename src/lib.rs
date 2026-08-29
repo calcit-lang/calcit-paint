@@ -36,6 +36,7 @@ mod color;
 mod extracter;
 mod ffi;
 mod focus;
+mod frame;
 mod handlers;
 mod key_listener;
 mod primes;
@@ -86,10 +87,14 @@ struct PaintApplication<F> {
   stencil_size: usize,
   input: handlers::InputState,
   started_at: Instant,
+  frame_clock: frame::FrameClock,
   scale_factor: f32,
   first_paint: bool,
   smoke_once: bool,
   ime_allowed: bool,
+  occluded: bool,
+  minimized: bool,
+  suspended: bool,
 }
 
 impl<F> PaintApplication<F>
@@ -108,6 +113,7 @@ where
       }
     }
     self.sync_ime();
+    self.schedule_requested_frame();
   }
 
   fn sync_ime(&mut self) {
@@ -116,6 +122,43 @@ where
       self.env.window.set_ime_allowed(allowed);
       self.ime_allowed = allowed;
     }
+  }
+
+  fn frame_paused(&self) -> bool {
+    self.occluded || self.minimized || self.suspended
+  }
+
+  fn reset_frame_timing(&mut self) {
+    self.frame_clock.reset_delta();
+  }
+
+  fn schedule_requested_frame(&self) {
+    if self.frame_paused() {
+      return;
+    }
+    match frame::pending() {
+      Ok(true) => self.env.window.request_redraw(),
+      Ok(false) => {}
+      Err(error) => eprintln!("failed reading paint frame request: {error}"),
+    }
+  }
+
+  fn dispatch_requested_frame(&mut self) {
+    let requested = match frame::take_request() {
+      Ok(requested) => requested,
+      Err(error) => {
+        eprintln!("failed consuming paint frame request: {error}");
+        return;
+      }
+    };
+    if !requested {
+      return;
+    }
+    let size = self.env.window.inner_size();
+    let width = size.width as f64 / self.scale_factor as f64;
+    let height = size.height as f64 / self.scale_factor as f64;
+    let timing = self.frame_clock.next_at(Instant::now());
+    self.dispatch(handlers::handle_frame(timing, width, height, self.scale_factor as f64));
   }
 
   fn resize(&mut self, width: u32, height: u32) -> Result<(), String> {
@@ -137,6 +180,10 @@ where
   }
 
   fn draw_frame(&mut self, event_loop: &ActiveEventLoop) {
+    if self.frame_paused() {
+      return;
+    }
+    self.dispatch_requested_frame();
     focus::begin_frame();
     match take_drawing_data() {
       Ok(messages) => {
@@ -173,11 +220,22 @@ where
   F: Fn(Vec<Edn>) -> Result<Edn, String>,
 {
   fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
+    if self.suspended {
+      self.suspended = false;
+      self.reset_frame_timing();
+    }
     if self.first_paint {
       self.dispatch(Edn::Nil);
       self.env.window.request_redraw();
       self.first_paint = false;
+    } else {
+      self.schedule_requested_frame();
     }
+  }
+
+  fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
+    self.suspended = true;
+    self.reset_frame_timing();
   }
 
   fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
@@ -188,14 +246,22 @@ where
     match event {
       WindowEvent::CloseRequested => event_loop.exit(),
       WindowEvent::Resized(size) => {
+        let minimized = size.width == 0 || size.height == 0;
+        if self.minimized != minimized {
+          self.minimized = minimized;
+          self.reset_frame_timing();
+        }
+        let width = size.width as f64 / self.scale_factor as f64;
+        let height = size.height as f64 / self.scale_factor as f64;
+        self.dispatch(handlers::handle_resize(width, height));
+        if minimized {
+          return;
+        }
         if let Err(error) = self.resize(size.width, size.height) {
           eprintln!("failed to resize paint surface: {error}");
           event_loop.exit();
           return;
         }
-        let width = size.width as f64 / self.scale_factor as f64;
-        let height = size.height as f64 / self.scale_factor as f64;
-        self.dispatch(handlers::handle_resize(width, height));
         self.env.window.request_redraw();
       }
       WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
@@ -249,6 +315,15 @@ where
       }
       WindowEvent::ModifiersChanged(modifiers) => {
         self.input.set_modifiers(modifiers.state());
+      }
+      WindowEvent::Occluded(occluded) => {
+        if self.occluded != occluded {
+          self.occluded = occluded;
+          self.reset_frame_timing();
+        }
+        if !occluded {
+          self.schedule_requested_frame();
+        }
       }
       WindowEvent::Focused(focused) => {
         for event in handlers::handle_window_focus(focused) {
@@ -396,6 +471,7 @@ fn launch_canvas_impl(handler: impl Fn(Vec<Edn>) -> Result<Edn, String>) -> Resu
     gl_context,
     window,
   };
+  let started_at = Instant::now();
   let mut application = PaintApplication {
     env,
     handler,
@@ -403,12 +479,17 @@ fn launch_canvas_impl(handler: impl Fn(Vec<Edn>) -> Result<Edn, String>) -> Resu
     num_samples,
     stencil_size,
     input: handlers::InputState::new(Vector2D::new(0.0, 0.0), ModifiersState::empty()),
-    started_at: Instant::now(),
+    started_at,
+    frame_clock: frame::FrameClock::new(started_at),
     scale_factor,
     first_paint: true,
     smoke_once: std::env::var_os("CALCIT_PAINT_SMOKE_ONCE").is_some(),
     ime_allowed: false,
+    occluded: false,
+    minimized: false,
+    suspended: false,
   };
+  let _active_frame_loop = frame::activate()?;
   event_loop
     .run_app(&mut application)
     .map_err(|error| format!("paint event loop failed: {error}"))?;
@@ -451,6 +532,16 @@ fn push_drawing_data(args: Vec<Edn>) -> Result<Edn, String> {
 }
 
 calcit_native_ffi::export_edn_buffer_method_v1!(push_drawing_data_calcit_ffi_v1, push_drawing_data);
+
+fn request_frame(args: Vec<Edn>) -> Result<Edn, String> {
+  if !args.is_empty() {
+    return Err(format!("request-frame expected no arguments, got: {args:?}"));
+  }
+  frame::request()?;
+  Ok(Edn::Nil)
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(request_frame_calcit_ffi_v1, request_frame);
 
 fn request_focus(args: Vec<Edn>) -> Result<Edn, String> {
   let [Edn::Str(id)] = args.as_slice() else {
@@ -605,6 +696,7 @@ mod tests {
 
   #[test]
   fn focus_ffi_validates_argument_shapes() {
+    assert!(request_frame(vec![Edn::Nil]).is_err());
     assert!(request_focus(vec![]).is_err());
     assert!(request_focus(vec![Edn::Nil]).is_err());
     assert!(clear_focus(vec![Edn::Nil]).is_err());

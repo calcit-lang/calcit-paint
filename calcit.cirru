@@ -84,6 +84,15 @@
             {} (:return 'Unit)
               :args $ [] 'T
               :generics $ [] 'T
+        |request-frame! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn request-frame! ()
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |request_frame
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ []
         |validate-scene $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn validate-scene (scene)
@@ -101,6 +110,14 @@
             calcit-paint.util :refer $ get-dylib-path
     |calcit-paint.main $ %{} 'FileEntry
       :defs $ {}
+        |*animation-active? $ %{} 'CodeEntry (:doc |)
+          :code $ quote (defatom *animation-active? false)
+          :examples $ []
+          :schema $ :: 'Ref 'Bool
+        |*animation-time-ms $ %{} 'CodeEntry (:doc |)
+          :code $ quote (defatom *animation-time-ms 0)
+          :examples $ []
+          :schema $ :: 'Ref 'Number
         |export-offscreen-demo! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn export-offscreen-demo! ()
@@ -143,21 +160,21 @@
               println $ measure-paragraph!
                 {} (:text "|Paragraph measurement / 段落测量") (:max-width 260) (:size 20) (:line-height 28) (:max-lines 2) (:ellipsis "|…")
               validate-scene-demo!
-              render!
+              render! true
           :examples $ []
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ []
         |reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote
-            defn reload! () (render!) (println "|reloads 19")
+            defn reload! () (render! false) (println "|reloads 19")
           :examples $ []
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ []
         |render! $ %{} 'CodeEntry (:doc |)
           :code $ quote
-            defn render! ()
+            defn render! (start-loop?)
               push-drawing-data! |reset-canvas! $ [] 200 50 30
               push-drawing-data! |render-canvas! $ {} (:type :group)
                 :children $ []
@@ -418,6 +435,23 @@
                         :align :center
                   {} (:type :image) (:file-path |resources/calcit.png) (:x 400) (:y 40) (:w 80) (:h 80)
                     ; :crop $ {} (:x 0) (:y 0) (:w 200) (:h 200)
+                  {} (:type :group)
+                    :children $ []
+                      {} (:type :circle) (:radius 22)
+                        :position $ []
+                          + 900 $ * 55
+                            sin $ / @*animation-time-ms 420
+                          , 270
+                        :fill-color $ [] 285 82 62
+                        :line-color $ [] 285 95 86
+                        :line-width 3
+                      {} (:type :text)
+                        :text $ if @*animation-active? "|A: pause animation / 暂停动画" "|A: start animation / 开始动画"
+                        :position $ [] 900 315
+                        :color $ [] 285 72 92
+                        :size 15
+                        :align :center
+                      {} (:type :key-listener) (:key |A) (:action :toggle-animation)
                   {} (:type :cached-group) (:cache-key |window-static-badge) (:revision 1)
                     :position $ [] 900 80
                     :width 170
@@ -445,18 +479,34 @@
                         :color $ [] 0 0 86
                         :size 13
                         :align :left
-              launch-canvas! $ fn (event)
-                if (map? event)
-                  case-default
-                    .unwrap-or (get event :action) :none
+              if start-loop? $ launch-canvas!
+                fn (event)
+                  if (map? event)
                     case-default
-                      .unwrap-or (get event :type) :unknown
-                      println |event: event
-                      :redraw $ render!
-                    :focus-first $ focus! |field-a
-                    :export-snapshot $ export-offscreen-demo!
-                  println |event: event
-                , &unit
+                      .unwrap-or (get event :action) :none
+                      case-default
+                        .unwrap-or (get event :type) :unknown
+                        println |event: event
+                        :redraw $ render! false
+                        :frame $ do
+                          reset! *animation-time-ms $ .unwrap-or (get event :timestamp-ms) @*animation-time-ms
+                          if @*animation-active? $ do (render! false) (request-frame!)
+                      :focus-first $ focus! |field-a
+                      :export-snapshot $ export-offscreen-demo!
+                      :toggle-animation $ toggle-animation!
+                    do (println |event: event) (request-frame!)
+                  , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'Bool
+        |toggle-animation! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn toggle-animation! ()
+              if @*animation-active?
+                do (reset! *animation-active? false) (render! false)
+                do (reset! *animation-active? true) (request-frame!)
+              , &unit
           :examples $ []
           :schema $ :: 'Fn
             {} (:return 'Unit)
@@ -488,7 +538,7 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.main $ :require
-            calcit-paint.core :refer $ launch-canvas! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene
+            calcit-paint.core :refer $ launch-canvas! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene request-frame!
     |calcit-paint.util $ %{} 'FileEntry
       :defs $ {}
         |get-dylib-ext $ %{} 'CodeEntry (:doc |)
