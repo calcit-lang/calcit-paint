@@ -14,6 +14,10 @@ type Transform = euclid::default::Transform2D<f32>;
 
 use skia_safe::canvas::{SaveLayerRec, SrcRectConstraint};
 use skia_safe::font_style::{Slant, Weight, Width};
+use skia_safe::textlayout::{
+  FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextAlign as SkParagraphAlign,
+  TextDirection as SkTextDirection, TextStyle as ParagraphTextStyle,
+};
 use skia_safe::{
   gradient, Color, Color4f, Data, Font, FontMgr, FontStyle, Image, Paint, PaintStyle, PathBuilder, PathEffect, RRect,
   Rect, Shader, TextBlob, TileMode,
@@ -37,14 +41,14 @@ lazy_static! {
 use crate::{
   color::extract_color,
   extracter::{
-    extract_event_target, extract_fill_style, extract_polyline_stroke_style, extract_position, extract_stroke_style,
-    extract_text_style, extract_touch_area_shape, read_blend_mode, read_bool, read_color, read_f32, read_optional_f32,
-    read_points, read_position, read_string, read_text_align, tag,
+    extract_event_target, extract_fill_style, extract_paragraph_layout, extract_polyline_stroke_style,
+    extract_position, extract_stroke_style, extract_text_style, extract_touch_area_shape, read_blend_mode, read_bool,
+    read_color, read_f32, read_optional_f32, read_points, read_position, read_string, read_text_align, tag,
   },
   key_listener,
   primes::{
-    DashPattern, PaintPathTo, PaintSource, Shape, StrokeStyle, TextAlign, TextBaseline, TextSlant, TextStyle,
-    TouchAreaShape,
+    DashPattern, PaintPathTo, PaintSource, ParagraphLayout, Shape, StrokeStyle, TextAlign, TextBaseline, TextDirection,
+    TextSlant, TextStyle, TouchAreaShape,
   },
 };
 
@@ -120,6 +124,82 @@ pub fn measure_text(data: &Edn) -> Result<Edn, String> {
   result.insert(tag("descent"), Edn::Number(metrics.descent as f64));
   result.insert(tag("leading"), Edn::Number(metrics.leading as f64));
   result.insert(tag("baseline"), Edn::Number((-metrics.ascent) as f64));
+  Ok(Edn::Map(result))
+}
+
+fn build_paragraph(layout: &ParagraphLayout, color: Color) -> Paragraph {
+  let slant = match layout.style.slant {
+    TextSlant::Normal => Slant::Upright,
+    TextSlant::Italic => Slant::Italic,
+  };
+  let font_style = FontStyle::new(Weight::from(layout.style.weight), Width::NORMAL, slant);
+  let mut text_style = ParagraphTextStyle::new();
+  text_style
+    .set_color(color)
+    .set_font_style(font_style)
+    .set_font_size(layout.size);
+  if let Some(family) = &layout.style.family {
+    text_style.set_font_families(&[family]);
+  }
+  if let Some(line_height) = layout.line_height {
+    text_style
+      .set_height(line_height / layout.size)
+      .set_height_override(true);
+  }
+
+  let mut paragraph_style = ParagraphStyle::new();
+  paragraph_style
+    .set_text_style(&text_style)
+    .set_text_align(match layout.align {
+      TextAlign::Left => SkParagraphAlign::Left,
+      TextAlign::Center => SkParagraphAlign::Center,
+      TextAlign::Right => SkParagraphAlign::Right,
+    })
+    .set_text_direction(match layout.direction {
+      TextDirection::Ltr => SkTextDirection::LTR,
+      TextDirection::Rtl => SkTextDirection::RTL,
+    })
+    .set_max_lines(layout.max_lines);
+  if let Some(ellipsis) = &layout.ellipsis {
+    paragraph_style.set_ellipsis(ellipsis);
+  }
+
+  let mut fonts = FontCollection::new();
+  fonts.set_default_font_manager(FontMgr::new(), None);
+  let mut builder = ParagraphBuilder::new(&paragraph_style, fonts);
+  builder.add_text(&layout.text);
+  let mut paragraph = builder.build();
+  paragraph.layout(layout.max_width);
+  paragraph
+}
+
+pub fn measure_paragraph(data: &Edn) -> Result<Edn, String> {
+  let Edn::Map(data) = data else {
+    return Err(format!("measure-paragraph expects one map, got {data}"));
+  };
+  let layout = extract_paragraph_layout(data)?;
+  let paragraph = build_paragraph(&layout, Color::BLACK);
+  let mut result = EdnMapView::default();
+  result.insert(tag("width"), Edn::Number(paragraph.longest_line() as f64));
+  result.insert(tag("height"), Edn::Number(paragraph.height() as f64));
+  result.insert(tag("line-count"), Edn::Number(paragraph.line_number() as f64));
+  result.insert(tag("max-width"), Edn::Number(paragraph.max_width() as f64));
+  result.insert(
+    tag("min-intrinsic-width"),
+    Edn::Number(paragraph.min_intrinsic_width() as f64),
+  );
+  result.insert(
+    tag("max-intrinsic-width"),
+    Edn::Number(paragraph.max_intrinsic_width() as f64),
+  );
+  result.insert(
+    tag("alphabetic-baseline"),
+    Edn::Number(paragraph.alphabetic_baseline() as f64),
+  );
+  result.insert(
+    tag("ideographic-baseline"),
+    Edn::Number(paragraph.ideographic_baseline() as f64),
+  );
   Ok(Edn::Map(result))
 }
 
@@ -445,6 +525,14 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       let y = text_baseline_y(position.y, style, &font);
       canvas.draw_text_blob(text_blob, (position.x + x_offset, y), &paint);
     }
+    Shape::Paragraph {
+      position,
+      color,
+      layout,
+    } => {
+      let paragraph = build_paragraph(layout, *color);
+      paragraph.paint(canvas, (position.x, position.y));
+    }
     Shape::Polyline {
       position,
       stops,
@@ -722,6 +810,11 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           align: read_text_align(m, "align")?,
           style: extract_text_style(m)?,
         }),
+        "paragraph" | "text-block" => Ok(Shape::Paragraph {
+          position: read_position(m, "position")?,
+          color: read_color(m, "color")?,
+          layout: extract_paragraph_layout(m)?,
+        }),
         "polyline" => Ok(Shape::Polyline {
           position: read_position(m, "position")?,
           skip_first: read_bool(m, "skip-first?")?,
@@ -946,6 +1039,24 @@ mod tests {
     }
   }
 
+  fn paragraph_data(text: &str, max_width: f64) -> Edn {
+    map([
+      ("text", Edn::Str(text.into())),
+      ("max-width", Edn::Number(max_width)),
+      ("size", Edn::Number(20.0)),
+    ])
+  }
+
+  fn metric(data: &Edn, key: &str) -> f64 {
+    let Edn::Map(values) = data else {
+      panic!("expected measurement map, got {data}");
+    };
+    let Some(Edn::Number(value)) = values.get(&tag(key)) else {
+      panic!("expected numeric :{key} in {data}");
+    };
+    *value
+  }
+
   #[test]
   fn extracts_new_skia_shapes() {
     let rounded = map([
@@ -1081,6 +1192,114 @@ mod tests {
         ..
       })
     ));
+  }
+
+  #[test]
+  fn extracts_paragraph_shape_and_text_block_alias() {
+    for kind in ["paragraph", "text-block"] {
+      let paragraph = map([
+        ("type", Edn::tag(kind)),
+        ("text", Edn::Str("Calcit 段落".into())),
+        ("position", list([Edn::Number(12.0), Edn::Number(24.0)])),
+        ("max-width", Edn::Number(240.0)),
+        ("size", Edn::Number(20.0)),
+        (
+          "color",
+          list([Edn::Number(200.0), Edn::Number(80.0), Edn::Number(90.0)]),
+        ),
+        ("align", Edn::tag("center")),
+        ("direction", Edn::tag("ltr")),
+        ("line-height", Edn::Number(30.0)),
+        ("max-lines", Edn::Number(2.0)),
+        ("ellipsis", Edn::Str("…".into())),
+      ]);
+      assert!(matches!(
+        extract_shape(&paragraph),
+        Ok(Shape::Paragraph {
+          layout: ParagraphLayout {
+            align: TextAlign::Center,
+            direction: TextDirection::Ltr,
+            line_height: Some(30.0),
+            max_lines: Some(2),
+            ..
+          },
+          ..
+        })
+      ));
+    }
+  }
+
+  #[test]
+  fn paragraph_layout_handles_empty_cjk_and_rtl_text() {
+    for text in ["", "中文段落可以安全换行", "مرحبا بالعالم"] {
+      let measured = measure_paragraph(&paragraph_data(text, 140.0)).unwrap();
+      for key in [
+        "width",
+        "height",
+        "line-count",
+        "max-width",
+        "min-intrinsic-width",
+        "max-intrinsic-width",
+        "alphabetic-baseline",
+        "ideographic-baseline",
+      ] {
+        assert!(metric(&measured, key).is_finite(), "non-finite :{key} for {text:?}");
+      }
+    }
+
+    let Edn::Map(mut rtl) = paragraph_data("مرحبا بالعالم", 140.0) else {
+      unreachable!();
+    };
+    rtl.insert(tag("direction"), Edn::tag("rtl"));
+    rtl.insert(tag("align"), Edn::tag("right"));
+    assert!(measure_paragraph(&Edn::Map(rtl)).is_ok());
+  }
+
+  #[test]
+  fn paragraph_respects_newlines_max_lines_and_measurement_metrics() {
+    let explicit_break = paragraph_data("first line\nsecond line", 500.0);
+    let measured = measure_paragraph(&explicit_break).unwrap();
+    assert_eq!(metric(&measured, "line-count"), 2.0);
+
+    let Edn::Map(mut truncated) =
+      paragraph_data("one two three four five six seven eight nine ten eleven twelve", 90.0)
+    else {
+      unreachable!();
+    };
+    truncated.insert(tag("max-lines"), Edn::Number(2.0));
+    truncated.insert(tag("ellipsis"), Edn::Str("…".into()));
+    let layout = extract_paragraph_layout(&truncated).unwrap();
+    let paragraph = build_paragraph(&layout, Color::BLACK);
+    assert_eq!(paragraph.line_number(), 2);
+    assert!(paragraph.did_exceed_max_lines());
+
+    let measured = measure_paragraph(&Edn::Map(truncated)).unwrap();
+    assert_eq!(metric(&measured, "line-count"), paragraph.line_number() as f64);
+    assert_eq!(metric(&measured, "height"), paragraph.height() as f64);
+    assert_eq!(metric(&measured, "width"), paragraph.longest_line() as f64);
+  }
+
+  #[test]
+  fn paragraph_rejects_invalid_layout_constraints() {
+    assert!(measure_paragraph(&paragraph_data("bad width", 0.0))
+      .unwrap_err()
+      .contains("max-width"));
+
+    let Edn::Map(mut invalid_height) = paragraph_data("bad height", 120.0) else {
+      unreachable!();
+    };
+    invalid_height.insert(tag("line-height"), Edn::Number(-1.0));
+    assert!(measure_paragraph(&Edn::Map(invalid_height))
+      .unwrap_err()
+      .contains("line-height"));
+
+    let Edn::Map(mut orphan_ellipsis) = paragraph_data("bad ellipsis", 120.0) else {
+      unreachable!();
+    };
+    orphan_ellipsis.insert(tag("ellipsis"), Edn::Str("…".into()));
+    assert!(measure_paragraph(&Edn::Map(orphan_ellipsis))
+      .unwrap_err()
+      .contains("requires :max-lines"));
   }
 
   #[test]

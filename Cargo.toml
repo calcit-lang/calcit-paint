@@ -20,7 +20,7 @@ lazy_static = "1.5.0"
 env_logger = "0.11.11"
 euclid = "0.22.14"
 winit = "0.30.13"
-skia-safe = { version = "0.97.2", features = ["gl"] }
+skia-safe = { version = "0.97.2", features = ["gl", "textlayout"] }
 glutin = "0.32.3"
 glutin-winit = "0.5.0"
 raw-window-handle = "0.6.2"

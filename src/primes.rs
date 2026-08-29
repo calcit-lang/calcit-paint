@@ -14,6 +14,12 @@ pub enum TextAlign {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub enum TextDirection {
+  Ltr,
+  Rtl,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum TextSlant {
   Normal,
   Italic,
@@ -33,6 +39,19 @@ pub struct TextStyle {
   pub weight: i32,
   pub slant: TextSlant,
   pub baseline: TextBaseline,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ParagraphLayout {
+  pub text: String,
+  pub max_width: f32,
+  pub size: f32,
+  pub align: TextAlign,
+  pub direction: TextDirection,
+  pub style: TextStyle,
+  pub line_height: Option<f32>,
+  pub max_lines: Option<usize>,
+  pub ellipsis: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -140,6 +159,11 @@ pub enum Shape {
     color: Color,
     align: TextAlign,
     style: TextStyle,
+  },
+  Paragraph {
+    position: Vector2D<f32, f32>,
+    color: Color,
+    layout: ParagraphLayout,
   },
   // Arc {
   //   position: Vector2D<f32,f32>,
