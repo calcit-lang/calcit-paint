@@ -21,6 +21,7 @@ Available APIs:
 calcit-paint.core/push-drawing-data! |reset-canvas! nil
 calcit-paint.core/push-drawing-data! |render-canvas! shape-data
 calcit-paint.core/measure-text! text-options
+calcit-paint.core/measure-paragraph! paragraph-options
 
 calcit-paint.core/launch-canvas! $ fn (event)
   println "|rendering to canvas..."
@@ -315,6 +316,65 @@ displays bold italic/top, regular/middle, and light/bottom text samples.
 执行 `./build.sh` 后运行 `calcit ./calcit.cirru` 即可启动维护中的 Calcit demo。
 它会在打开画布前打印测量 map，并显示粗斜体/top、常规/middle、细体/bottom 三组文本。
 
+#### Paragraph layout and international text / 段落布局与国际化文本
+
+Use `:paragraph` (or the `:text-block` alias) for wrapping and multi-line text.
+It uses Skia Paragraph/TextLayout with ICU/BiDi shaping; it never slices UTF-8
+bytes as a fallback. The existing single-line `:text` shape and
+`measure-text!` API remain unchanged.
+
+使用 `:paragraph`（或别名 `:text-block`）绘制自动换行和多行文本。实现直接使用带
+ICU/BiDi shaping 的 Skia Paragraph/TextLayout，不会通过切分 UTF-8 字节来降级处理。
+现有单行 `:text` shape 与 `measure-text!` API 保持不变。
+
+```cirru.no-check
+{} (:type :paragraph) (:text "|Calcit Paint paragraph\n中文段落 · explicit newline")
+  :position $ [] 40 610
+  :max-width 300
+  :color $ [] 42 90 92
+  :size 20
+  :line-height 28
+  :align :left
+  :direction :ltr
+  :max-lines 2
+  :ellipsis |…
+```
+
+`position` is the top-left corner of the paragraph layout box. `:max-width`
+and `:size` must be finite positive numbers. `:line-height`, when present, is
+an absolute logical-pixel height and must also be positive. `:align` accepts
+`:left`, `:center`, or `:right` and defaults to `:left`; `:direction` accepts
+`:ltr` or `:rtl` and defaults to `:ltr`. `:max-lines` must be a positive
+integer. A string `:ellipsis` requires `:max-lines`, which prevents a silently
+ineffective truncation option. Font family, weight, style, and color behave the
+same as on single-line text.
+
+`position` 表示段落布局框的左上角。`:max-width` 与 `:size` 必须是有限正数；可选的
+`:line-height` 是以逻辑像素表示的绝对行高，也必须为正数。`:align` 支持 `:left`、
+`:center`、`:right`，默认 `:left`；`:direction` 支持 `:ltr`、`:rtl`，默认 `:ltr`。
+`:max-lines` 必须为正整数；字符串 `:ellipsis` 必须与 `:max-lines` 一起使用，避免配置
+省略号却不生效。字体族、字重、样式和颜色沿用单行文本语义。
+
+`measure-paragraph!` accepts the layout fields above (drawing-only
+`:position`, `:color`, and `:type` are unnecessary) and returns a homogeneous
+`Map<Tag, Number>` containing `:width`, `:height`, `:line-count`, `:max-width`,
+`:min-intrinsic-width`, `:max-intrinsic-width`, `:alphabetic-baseline`, and
+`:ideographic-baseline`. Drawing and measurement use the same layout helper.
+
+`measure-paragraph!` 接收上述布局字段（不需要仅绘制使用的 `:position`、`:color`、
+`:type`），返回同构的 `Map<Tag, Number>`，字段包括 `:width`、`:height`、
+`:line-count`、`:max-width`、`:min-intrinsic-width`、`:max-intrinsic-width`、
+`:alphabetic-baseline` 与 `:ideographic-baseline`。绘制与测量共用同一布局实现。
+
+The maintained default Calcit demo prints paragraph metrics and renders three
+real paragraph shapes: Chinese/English with an explicit newline, constrained
+two-line ellipsis, and right-to-left Arabic. Run it with the commands at the
+top of this README.
+
+维护中的默认 Calcit demo 会打印段落度量，并实际绘制三组 paragraph shape：含显式
+换行的中英文、受限为两行并带省略号的段落，以及从右向左的阿拉伯文。使用 README
+开头的命令即可运行。
+
 - Paint operations, with `ops`
 
 ```rust
@@ -428,20 +488,22 @@ to omit meaningless placeholders.
 
 Public wrappers use explicit `Unit` returns for side effects. Drawing payloads
 are generic because each operation accepts a different EDN shape, while text
-measurement returns `Map<Tag, Number>`. Two `Dynamic` slots remain by design:
-the blocking callback first receives legacy `nil` and then heterogeneous event
-maps, while text-option map values are heterogeneous. Callback result type `R`
-remains generic; `launch-canvas!` discards that result inside an adapter and
+and paragraph measurement return `Map<Tag, Number>`. Three `Dynamic` slots
+remain by design: the blocking callback first receives legacy `nil` and then
+heterogeneous event maps, while text-option and paragraph-option map values are
+heterogeneous. Callback result type `R` remains generic; `launch-canvas!`
+discards that result inside an adapter and
 returns the serializable `:handled` tag to the blocking ABI because Calcit
 `Unit` is intentionally not Cirru EDN. These boundaries are tracked by the
 reviewed quality baseline rather than being misrepresented as homogeneous
 values or JS FFI.
 
 公开 wrapper 的副作用返回值均显式声明为 `Unit`。不同绘制操作接收不同 EDN shape，
-因此 drawing payload 使用泛型；文字测量结果则明确为 `Map<Tag, Number>`。目前仅有
-两个 `Dynamic` 是有意保留的真实框架边界：blocking callback 会先收到兼容旧行为的
-`nil`、随后收到异构事件 map；文字选项 map 的 value 也为异构数据。callback 返回类型
-`R` 仍为泛型；`launch-canvas!` 在内部 adapter 中丢弃该结果，并向 blocking ABI 返回
+因此 drawing payload 使用泛型；单行文字与段落测量结果均明确为 `Map<Tag, Number>`。
+目前仅有三个 `Dynamic` 是有意保留的真实框架边界：blocking callback 会先收到兼容
+旧行为的 `nil`、随后收到异构事件 map；单行文字与段落选项 map 的 value 也为异构
+数据。callback 返回类型 `R` 仍为泛型；`launch-canvas!` 在内部 adapter 中丢弃该结果，
+并向 blocking ABI 返回
 可序列化的 `:handled` tag，因为 Calcit `Unit` 本身并不是 Cirru EDN。这些边界由已审核
 的质量基线跟踪，而不会被错误标成同构类型或 JS FFI。
 

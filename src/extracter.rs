@@ -9,8 +9,8 @@ use skia_safe::{BlendMode, Color};
 use crate::{
   color::extract_color,
   primes::{
-    DashPattern, EventTarget, GradientStop, PaintSource, StrokeStyle, TextAlign, TextBaseline, TextSlant, TextStyle,
-    TouchAreaShape,
+    DashPattern, EventTarget, GradientStop, PaintSource, ParagraphLayout, StrokeStyle, TextAlign, TextBaseline,
+    TextDirection, TextSlant, TextStyle, TouchAreaShape,
   },
 };
 
@@ -371,6 +371,69 @@ pub fn read_text_align(tree: &EdnMapView, key: &str) -> Result<TextAlign, String
     Some(a) => Err(format!("invalid text align: {}", a)),
     None => Err(format!("cannot read text align from empty from: {}", key)),
   }
+}
+
+fn read_optional_text_align(tree: &EdnMapView, key: &str) -> Result<Option<TextAlign>, String> {
+  match tree.get(&tag(key)) {
+    Some(_) => read_text_align(tree, key).map(Some),
+    None => Ok(None),
+  }
+}
+
+fn read_text_direction(tree: &EdnMapView, key: &str) -> Result<TextDirection, String> {
+  match tree.get(&tag(key)) {
+    Some(Edn::Tag(direction)) => match direction.ref_str() {
+      "ltr" => Ok(TextDirection::Ltr),
+      "rtl" => Ok(TextDirection::Rtl),
+      _ => Err(format!("unsupported text direction: {direction}")),
+    },
+    Some(value) => Err(format!("text direction must be a tag, got {value}")),
+    None => Ok(TextDirection::Ltr),
+  }
+}
+
+fn read_optional_string(tree: &EdnMapView, key: &str) -> Result<Option<String>, String> {
+  match tree.get(&tag(key)) {
+    Some(Edn::Str(value)) => Ok(Some(value.to_string())),
+    Some(Edn::Nil) | None => Ok(None),
+    Some(value) => Err(format!("{key} must be a string, got {value}")),
+  }
+}
+
+fn read_optional_positive_usize(tree: &EdnMapView, key: &str) -> Result<Option<usize>, String> {
+  match tree.get(&tag(key)) {
+    Some(Edn::Number(value))
+      if value.is_finite() && value.fract() == 0.0 && *value >= 1.0 && *value <= usize::MAX as f64 =>
+    {
+      Ok(Some(*value as usize))
+    }
+    Some(value) => Err(format!("{key} must be a positive integer, got {value}")),
+    None => Ok(None),
+  }
+}
+
+pub fn extract_paragraph_layout(tree: &EdnMapView) -> Result<ParagraphLayout, String> {
+  let size = validate_positive("paragraph size", read_f32(tree, "size")?)?;
+  let max_width = validate_positive("paragraph max-width", read_f32(tree, "max-width")?)?;
+  let line_height = read_optional_f32(tree, "line-height")?
+    .map(|value| validate_positive("paragraph line-height", value))
+    .transpose()?;
+  let max_lines = read_optional_positive_usize(tree, "max-lines")?;
+  let ellipsis = read_optional_string(tree, "ellipsis")?;
+  if ellipsis.is_some() && max_lines.is_none() {
+    return Err("paragraph :ellipsis requires :max-lines".to_owned());
+  }
+  Ok(ParagraphLayout {
+    text: read_string(tree, "text")?,
+    max_width,
+    size,
+    align: read_optional_text_align(tree, "align")?.unwrap_or(TextAlign::Left),
+    direction: read_text_direction(tree, "direction")?,
+    style: extract_text_style(tree)?,
+    line_height,
+    max_lines,
+    ellipsis,
+  })
 }
 
 pub fn extract_text_style(tree: &EdnMapView) -> Result<TextStyle, String> {
