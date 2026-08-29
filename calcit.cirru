@@ -6,9 +6,9 @@
       :modules $ []
       :type-slots $ {}
   :files $ {}
-    |calcit-paint.core $ %{} 'FileEntry
+    'calcit-paint.core $ %{} 'FileEntry
       :defs $ {}
-        |launch-canvas! $ %{} 'CodeEntry (:doc |)
+        'launch-canvas! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn launch-canvas! (cb)
               &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas cb
@@ -18,7 +18,15 @@
               :args $ []
                 :: 'Fn $ {} (:return 'Dynamic)
                   :args $ [] 'Dynamic
-        |push-drawing-data! $ %{} 'CodeEntry (:doc |)
+        'measure-text! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn measure-text! (data)
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_text data
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Dynamic)
+              :args $ [] 'Dynamic
+        'push-drawing-data! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn push-drawing-data! (op data)
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |push_drawing_data op data
@@ -31,23 +39,26 @@
           ns calcit-paint.core $ :require
             calcit-paint.$meta :refer $ calcit-dirname
             calcit-paint.util :refer $ get-dylib-path
-    |calcit-paint.main $ %{} 'FileEntry
+    'calcit-paint.main $ %{} 'FileEntry
       :defs $ {}
-        |main! $ %{} 'CodeEntry (:doc |)
+        'main! $ %{} 'CodeEntry (:doc |)
           :code $ quote
-            defn main! () (println |started) (render!)
+            defn main! () (println |started)
+              println $ measure-text!
+                {} (:text "|Text layout / 文本排版") (:size 24) (:font-family |monospace) (:weight 700) (:style :italic) (:baseline :middle)
+              render!
           :examples $ []
           :schema $ :: 'Fn
             {} (:return 'Nil)
               :args $ []
-        |reload! $ %{} 'CodeEntry (:doc |)
+        'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn reload! () (render!) (println "|reloads 19")
           :examples $ []
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ []
-        |render! $ %{} 'CodeEntry (:doc |)
+        'render! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn render! ()
               push-drawing-data! |reset-canvas! $ [] 200 50 30
@@ -95,6 +106,33 @@
                     :size 40
                     :weight |300
                     :align :center
+                  {} (:type :group)
+                    :children $ []
+                      {} (:type :text) (:text "|Bold italic · top")
+                        :position $ [] 530 110
+                        :color $ [] 42 90 92
+                        :size 24
+                        :font-family |monospace
+                        :weight 700
+                        :style :italic
+                        :baseline :top
+                        :align :left
+                      {} (:type :text) (:text "|Regular · middle")
+                        :position $ [] 530 158
+                        :color $ [] 170 76 96
+                        :size 24
+                        :font-family |monospace
+                        :weight 400
+                        :baseline :middle
+                        :align :left
+                      {} (:type :text) (:text "|Light · bottom")
+                        :position $ [] 530 206
+                        :color $ [] 42 90 88
+                        :size 24
+                        :font-family |monospace
+                        :weight 300
+                        :baseline :bottom
+                        :align :left
                   {} (:type :polyline)
                     :position $ [] 480 200
                     :color $ [] 0 0 100 1
@@ -223,10 +261,10 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.main $ :require
-            calcit-paint.core :refer $ launch-canvas! push-drawing-data!
-    |calcit-paint.util $ %{} 'FileEntry
+            calcit-paint.core :refer $ launch-canvas! push-drawing-data! measure-text!
+    'calcit-paint.util $ %{} 'FileEntry
       :defs $ {}
-        |get-dylib-ext $ %{} 'CodeEntry (:doc |)
+        'get-dylib-ext $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defmacro get-dylib-ext () $ case-default (&get-os) |.so (:macos |.dylib) (:windows |.dll)
           :examples $ []
@@ -235,7 +273,7 @@
               :capabilities $ #{} :platform-read
               :expansion $ :: 'Expr 'String
               :required $ []
-        |get-dylib-path $ %{} 'CodeEntry (:doc |)
+        'get-dylib-path $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn get-dylib-path (p)
               str (or-current-path calcit-dirname) p $ get-dylib-ext
@@ -243,7 +281,7 @@
           :schema $ :: 'Fn
             {} (:return 'String)
               :args $ [] 'String
-        |or-current-path $ %{} 'CodeEntry (:doc |)
+        'or-current-path $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn or-current-path (p)
               if (blank? p) |. p

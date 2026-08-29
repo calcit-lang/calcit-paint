@@ -13,9 +13,10 @@ use lazy_static::lazy_static;
 type Transform = euclid::default::Transform2D<f32>;
 
 use skia_safe::canvas::{SaveLayerRec, SrcRectConstraint};
+use skia_safe::font_style::{Slant, Weight, Width};
 use skia_safe::{
-  gradient, Color, Color4f, Data, Font, Image, Paint, PaintStyle, PathBuilder, PathEffect, RRect, Rect, Shader,
-  TextBlob, TileMode,
+  gradient, Color, Color4f, Data, Font, FontMgr, FontStyle, Image, Paint, PaintStyle, PathBuilder, PathEffect, RRect,
+  Rect, Shader, TextBlob, TileMode,
 };
 
 #[derive(Clone)]
@@ -36,12 +37,15 @@ lazy_static! {
 use crate::{
   color::extract_color,
   extracter::{
-    extract_fill_style, extract_polyline_stroke_style, extract_position, extract_stroke_style,
+    extract_fill_style, extract_polyline_stroke_style, extract_position, extract_stroke_style, extract_text_style,
     extract_touch_area_shape, read_blend_mode, read_bool, read_color, read_f32, read_optional_f32, read_points,
     read_position, read_string, read_text_align, tag,
   },
   key_listener,
-  primes::{DashPattern, PaintPathTo, PaintSource, Shape, StrokeStyle, TouchAreaShape},
+  primes::{
+    DashPattern, PaintPathTo, PaintSource, Shape, StrokeStyle, TextAlign, TextBaseline, TextSlant, TextStyle,
+    TouchAreaShape,
+  },
 };
 
 // TODO Stack
@@ -59,6 +63,64 @@ pub fn reset_page(_canvas: &skia_safe::canvas::Canvas, color: Color) -> Result<(
 pub fn get_bg_color() -> Color {
   let c = BG_COLOR.read().unwrap();
   c.to_owned()
+}
+
+fn create_text_font(style: &TextStyle, size: f32) -> Result<Font, String> {
+  if !size.is_finite() || size <= 0.0 {
+    return Err(format!("text size must be a finite positive number, got {size}"));
+  }
+  let slant = match &style.slant {
+    TextSlant::Normal => Slant::Upright,
+    TextSlant::Italic => Slant::Italic,
+  };
+  let font_style = FontStyle::new(Weight::from(style.weight), Width::NORMAL, slant);
+  let font_mgr = FontMgr::new();
+  // A requested family can be absent on another desktop. In that case retain
+  // the requested weight/slant while asking Skia for the platform default.
+  let typeface = font_mgr
+    .legacy_make_typeface(style.family.as_deref(), font_style)
+    .or_else(|| font_mgr.legacy_make_typeface(None, font_style))
+    .ok_or_else(|| "Skia could not resolve a default typeface".to_owned())?;
+  Ok(Font::new(typeface, size))
+}
+
+fn text_x_offset(align: &TextAlign, width: f32) -> f32 {
+  match align {
+    TextAlign::Left => 0.0,
+    TextAlign::Center => -0.5 * width,
+    TextAlign::Right => -width,
+  }
+}
+
+fn text_baseline_y(y: f32, style: &TextStyle, font: &Font) -> f32 {
+  let (_, metrics) = font.metrics();
+  match &style.baseline {
+    TextBaseline::Alphabetic => y,
+    TextBaseline::Top => y - metrics.ascent,
+    TextBaseline::Middle => y - 0.5 * (metrics.ascent + metrics.descent),
+    TextBaseline::Bottom => y - metrics.descent,
+  }
+}
+
+pub fn measure_text(data: &Edn) -> Result<Edn, String> {
+  let Edn::Map(data) = data else {
+    return Err(format!("measure-text expects one map, got {data}"));
+  };
+  let text = read_string(data, "text")?;
+  let size = read_f32(data, "size")?;
+  let style = extract_text_style(data)?;
+  let font = create_text_font(&style, size)?;
+  let (width, _) = font.measure_str(&text, None);
+  let (line_height, metrics) = font.metrics();
+  let mut result = EdnMapView::default();
+  result.insert(tag("width"), Edn::Number(width as f64));
+  result.insert(tag("height"), Edn::Number((metrics.descent - metrics.ascent) as f64));
+  result.insert(tag("line-height"), Edn::Number(line_height as f64));
+  result.insert(tag("ascent"), Edn::Number(metrics.ascent as f64));
+  result.insert(tag("descent"), Edn::Number(metrics.descent as f64));
+  result.insert(tag("leading"), Edn::Number(metrics.leading as f64));
+  result.insert(tag("baseline"), Edn::Number((-metrics.ascent) as f64));
+  Ok(Edn::Map(result))
 }
 
 fn load_image(file_path: &str) -> Result<Option<Image>, String> {
@@ -364,28 +426,24 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       position,
       size,
       color,
-      // weight: _w,
       align,
+      style,
     } => {
       // canvas.set_transform(tr);
       // https://github.com/jrmuizel/raqote/issues/179
       // for now we have to by pass bug in text rendering
       // canvas.set_transform(&Transform::identity());
 
-      let mut font = Font::default();
-      font.set_size(*size);
-      let text_blob = TextBlob::new(text, &font).unwrap();
+      let font = create_text_font(style, *size)?;
+      let text_blob = TextBlob::new(text, &font).ok_or_else(|| "failed to create text blob".to_owned())?;
 
       let mut paint = Paint::default();
       paint.set_anti_alias(true);
       paint.set_style(PaintStyle::Fill).set_color(*color);
 
-      let x_offset = match align {
-        crate::primes::TextAlign::Left => 0.0,
-        crate::primes::TextAlign::Center => -0.5 * text_blob.bounds().width(),
-        crate::primes::TextAlign::Right => -text_blob.bounds().width(),
-      };
-      canvas.draw_text_blob(text_blob, (position.x + x_offset, position.y), &paint);
+      let x_offset = text_x_offset(align, text_blob.bounds().width());
+      let y = text_baseline_y(position.y, style, &font);
+      canvas.draw_text_blob(text_blob, (position.x + x_offset, y), &paint);
     }
     Shape::Polyline {
       position,
@@ -675,16 +733,14 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           fill_style: extract_fill_style(m)?,
           line_style: extract_stroke_style(m)?,
         }),
-        "text" => {
-          Ok(Shape::Text {
-            text: read_string(m, "text")?,
-            position: read_position(m, "position")?,
-            size: read_f32(m, "size")?,
-            color: read_color(m, "color")?,
-            // weight: read_string(m, "weight")?, // TODO
-            align: read_text_align(m, "align")?,
-          })
-        }
+        "text" => Ok(Shape::Text {
+          text: read_string(m, "text")?,
+          position: read_position(m, "position")?,
+          size: read_f32(m, "size")?,
+          color: read_color(m, "color")?,
+          align: read_text_align(m, "align")?,
+          style: extract_text_style(m)?,
+        }),
         "polyline" => Ok(Shape::Polyline {
           position: read_position(m, "position")?,
           skip_first: read_bool(m, "skip-first?")?,
@@ -904,6 +960,15 @@ mod tests {
     Edn::List(EdnListView(values.into_iter().collect()))
   }
 
+  fn text_style() -> TextStyle {
+    TextStyle {
+      family: None,
+      weight: 400,
+      slant: TextSlant::Normal,
+      baseline: TextBaseline::Alphabetic,
+    }
+  }
+
   #[test]
   fn extracts_new_skia_shapes() {
     let rounded = map([
@@ -982,5 +1047,130 @@ mod tests {
   fn supports_explicit_path_close() {
     assert_eq!(extract_paint_op(&[Edn::tag("close-path")]), Ok(PaintPathTo::Close));
     assert!(extract_paint_op(&[Edn::tag("close"), Edn::Nil]).is_err());
+  }
+
+  #[test]
+  fn text_alignment_uses_the_requested_anchor() {
+    assert_eq!(text_x_offset(&TextAlign::Left, 120.0), 0.0);
+    assert_eq!(text_x_offset(&TextAlign::Center, 120.0), -60.0);
+    assert_eq!(text_x_offset(&TextAlign::Right, 120.0), -120.0);
+  }
+
+  #[test]
+  fn extracts_legacy_and_extended_text_shapes() {
+    let legacy = map([
+      ("type", Edn::tag("text")),
+      ("text", Edn::Str("Demo".into())),
+      ("position", list([Edn::Number(10.0), Edn::Number(20.0)])),
+      ("size", Edn::Number(24.0)),
+      ("color", list([Edn::Number(0.0), Edn::Number(0.0), Edn::Number(100.0)])),
+      ("align", Edn::tag("center")),
+      ("weight", Edn::Str("300".into())),
+    ]);
+    assert!(matches!(
+      extract_shape(&legacy),
+      Ok(Shape::Text {
+        style: TextStyle {
+          family: None,
+          weight: 300,
+          slant: TextSlant::Normal,
+          baseline: TextBaseline::Alphabetic,
+        },
+        ..
+      })
+    ));
+
+    let extended = map([
+      ("type", Edn::tag("text")),
+      ("text", Edn::Str("Layout".into())),
+      ("position", list([Edn::Number(10.0), Edn::Number(20.0)])),
+      ("size", Edn::Number(24.0)),
+      ("color", list([Edn::Number(0.0), Edn::Number(0.0), Edn::Number(100.0)])),
+      ("align", Edn::tag("left")),
+      ("font-family", Edn::Str("monospace".into())),
+      ("weight", Edn::Number(700.0)),
+      ("style", Edn::tag("italic")),
+      ("baseline", Edn::tag("top")),
+    ]);
+    assert!(matches!(
+      extract_shape(&extended),
+      Ok(Shape::Text {
+        style: TextStyle {
+          family: Some(_),
+          weight: 700,
+          slant: TextSlant::Italic,
+          baseline: TextBaseline::Top,
+        },
+        ..
+      })
+    ));
+  }
+
+  #[test]
+  fn text_font_falls_back_and_honors_supported_weights() {
+    let missing_family = TextStyle {
+      family: Some("Calcit Paint Missing Family".into()),
+      weight: 700,
+      slant: TextSlant::Italic,
+      baseline: TextBaseline::Alphabetic,
+    };
+    assert!(create_text_font(&missing_family, 18.0).is_ok());
+    assert!(create_text_font(
+      &TextStyle {
+        weight: 100,
+        ..text_style()
+      },
+      18.0,
+    )
+    .is_ok());
+    assert!(create_text_font(
+      &TextStyle {
+        weight: 900,
+        ..text_style()
+      },
+      18.0,
+    )
+    .is_ok());
+  }
+
+  #[test]
+  fn text_baselines_and_empty_measurement_are_stable() {
+    let font = create_text_font(&text_style(), 20.0).unwrap();
+    let (_, metrics) = font.metrics();
+    let top = text_baseline_y(
+      100.0,
+      &TextStyle {
+        baseline: TextBaseline::Top,
+        ..text_style()
+      },
+      &font,
+    );
+    let middle = text_baseline_y(
+      100.0,
+      &TextStyle {
+        baseline: TextBaseline::Middle,
+        ..text_style()
+      },
+      &font,
+    );
+    let bottom = text_baseline_y(
+      100.0,
+      &TextStyle {
+        baseline: TextBaseline::Bottom,
+        ..text_style()
+      },
+      &font,
+    );
+    assert!((top - (100.0 - metrics.ascent)).abs() < f32::EPSILON);
+    assert!((middle - (100.0 - 0.5 * (metrics.ascent + metrics.descent))).abs() < f32::EPSILON);
+    assert!((bottom - (100.0 - metrics.descent)).abs() < f32::EPSILON);
+
+    let measured = measure_text(&map([("text", Edn::Str("".into())), ("size", Edn::Number(20.0))])).unwrap();
+    let Edn::Map(measured) = measured else {
+      panic!("expected text metrics map")
+    };
+    assert_eq!(measured.get(&tag("width")), Some(&Edn::Number(0.0)));
+    assert!(matches!(measured.get(&tag("height")), Some(Edn::Number(height)) if *height > 0.0));
+    assert!(matches!(measured.get(&tag("baseline")), Some(Edn::Number(offset)) if *offset > 0.0));
   }
 }

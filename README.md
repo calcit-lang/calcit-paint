@@ -8,7 +8,7 @@ It runs [Calcit](https://github.com/calcit-lang/calcit) and is driven by the can
 
 项目直接运行 [Calcit](https://github.com/calcit-lang/calcit)，并以规范的
 `calcit.cirru` Snapshot 作为源码。默认场景包含可直接看到效果的渐变、虚线描边和
-混合模式 demo。
+混合模式、输入事件和文本排版 demo。
 
 ```bash
 ./build.sh
@@ -20,6 +20,7 @@ Available APIs:
 ```cirru.no-check
 calcit-paint.core/push-drawing-data! |reset-canvas! nil
 calcit-paint.core/push-drawing-data! |render-canvas! shape-data
+calcit-paint.core/measure-text! text-options
 
 calcit-paint.core/launch-canvas! $ fn (event)
   println "|rendering to canvas..."
@@ -235,18 +236,83 @@ Circle {
   :line-width 4
 ```
 
-- Text, using `text`
+#### Text layout / 文本排版
 
-```rust
-Text {
-  text: String,
-  position: Vec2,
-  size: f32,
-  // weight: String, // TODO
-  color: Color,
-  // align: TextAlign,
-},
+`text` accepts the required `:text`, `:position`, `:size`, `:color`, and
+`:align` fields, plus the following optional text-layout fields. The default
+behaviour is compatible with existing text shapes: a 400-weight, upright,
+platform-default font is drawn with `:alphabetic` baseline.
+
+`text` 需要 `:text`、`:position`、`:size`、`:color` 和 `:align`；还支持以下可选
+排版字段。缺省行为与旧 text shape 兼容：使用平台默认字体、400 字重、常规样式，并以
+`:alphabetic` 基线绘制。
+
+| Field / 字段 | Values / 取值 | Default / 默认值 |
+| --- | --- | --- |
+| `:font-family` | Font-family string / 字体族字符串 | System default / 系统默认字体 |
+| `:weight` | Integer from `100` to `900` / `100` 至 `900` 的整数 | `400` |
+| `:style` | `:normal`, `:italic` | `:normal` |
+| `:baseline` | `:alphabetic`, `:top`, `:middle`, `:bottom` | `:alphabetic` |
+| `:align` | `:left`, `:center`, `:right` | Required / 必填 |
+
+```cirru.no-check
+{} (:type :text) (:text "|Bold italic · top")
+  :position $ [] 530 110
+  :color $ [] 42 90 92
+  :size 24
+  :font-family |monospace
+  :weight 700
+  :style :italic
+  :baseline :top
+  :align :left
 ```
+
+`position` is the selected alignment anchor on the selected baseline. Thus
+`:top`, `:middle`, and `:bottom` keep those respective visual locations stable;
+`:alphabetic` preserves Skia's traditional text origin. A requested font family
+that is not installed is not an error: Skia falls back to the platform default
+while retaining the requested weight and style as closely as available.
+
+`position` 是所选对齐方式和基线的锚点。`:top`、`:middle`、`:bottom` 会稳定对应的
+视觉位置；`:alphabetic` 则保持 Skia 传统的文字原点。若请求的字体族未安装，不会报错：
+Skia 会回退到平台默认字体，并尽可能保留请求的字重和样式。
+
+Weights must be integral values in the inclusive `100..900` range; unknown
+styles or baselines are rejected with field-specific errors. For compatibility,
+legacy numeric string weights such as `|300` are also accepted, but new code
+should use numbers.
+
+字重必须是 `100..900`（含边界）范围的整数；未知样式或基线会返回指向字段的错误。为
+兼容旧代码，`|300` 这样的数字字符串字重仍可用；新代码应使用数字。
+
+`calcit-paint.core/measure-text!` measures text without drawing it. It accepts a
+map with `:text`, `:size`, and the same optional font fields above, and returns
+an EDN map with `:width`, `:height`, `:line-height`, `:ascent`, `:descent`,
+`:leading`, and `:baseline`. `:baseline` is the distance from the line box top
+to the alphabetic baseline; an empty string has zero width and retains its font
+line metrics.
+
+`calcit-paint.core/measure-text!` 可在不绘制时测量文本。它接收包含 `:text`、`:size`
+及上述可选字体字段的 map，返回带有 `:width`、`:height`、`:line-height`、`:ascent`、
+`:descent`、`:leading` 和 `:baseline` 的 EDN map。`:baseline` 表示从行框顶部到
+alphabetic 基线的距离；空字符串宽度为零，仍保留对应字体的行度量。
+
+```cirru.no-check
+measure-text! $ {}
+  :text "|Text layout / 文本排版"
+  :size 24
+  :font-family |monospace
+  :weight 700
+  :style :italic
+  :baseline :middle
+```
+
+Run `./build.sh` followed by `calcit ./calcit.cirru` to run the maintained
+Calcit demo. It prints the measurement map before opening the canvas, then
+displays bold italic/top, regular/middle, and light/bottom text samples.
+
+执行 `./build.sh` 后运行 `calcit ./calcit.cirru` 即可启动维护中的 Calcit demo。
+它会在打开画布前打印测量 map，并显示粗斜体/top、常规/middle、细体/bottom 三组文本。
 
 - Paint operations, with `ops`
 

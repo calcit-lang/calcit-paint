@@ -14,6 +14,28 @@ pub enum TextAlign {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub enum TextSlant {
+  Normal,
+  Italic,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum TextBaseline {
+  Alphabetic,
+  Top,
+  Middle,
+  Bottom,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct TextStyle {
+  pub family: Option<String>,
+  pub weight: i32,
+  pub slant: TextSlant,
+  pub baseline: TextBaseline,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum PaintPathTo {
   Move(Point2D<f32, f32>),
   Line(Point2D<f32, f32>),
@@ -108,9 +130,9 @@ pub enum Shape {
     text: String,
     position: Vector2D<f32, f32>,
     size: f32,
-    // weight: String, // TODO
     color: Color,
     align: TextAlign,
+    style: TextStyle,
   },
   // Arc {
   //   position: Vector2D<f32,f32>,

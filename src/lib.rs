@@ -387,6 +387,15 @@ fn push_drawing_data(args: Vec<Edn>) -> Result<Edn, String> {
 
 calcit_native_ffi::export_edn_buffer_method_v1!(push_drawing_data_calcit_ffi_v1, push_drawing_data);
 
+fn measure_text(args: Vec<Edn>) -> Result<Edn, String> {
+  let [data] = args.as_slice() else {
+    return Err(format!("measure-text expected one text options map, got: {args:?}"));
+  };
+  renderer::measure_text(data)
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(measure_text_calcit_ffi_v1, measure_text);
+
 /// Own the host thread while the paint event loop is running.
 ///
 /// # Safety
@@ -447,5 +456,11 @@ mod tests {
       vec![(Box::<str>::from("render-canvas!"), Edn::Number(3.0))]
     );
     assert!(take_drawing_data().unwrap().is_empty());
+  }
+
+  #[test]
+  fn text_measurement_validates_its_argument_shape() {
+    assert!(measure_text(vec![]).is_err());
+    assert!(measure_text(vec![Edn::Nil]).is_err());
   }
 }
