@@ -121,8 +121,8 @@ use crate::{
   extracter::{
     extract_event_target, extract_fill_style, extract_paragraph_layout, extract_polyline_stroke_style,
     extract_position, extract_shortcut_modifiers, extract_stroke_style, extract_text_style, extract_touch_area_shape,
-    read_blend_mode, read_bool, read_color, read_f32, read_optional_f32, read_optional_i32, read_optional_string_field,
-    read_points, read_position, read_string, read_text_align, tag,
+    read_blend_mode, read_bool, read_color, read_f32, read_optional_cursor_icon, read_optional_f32, read_optional_i32,
+    read_optional_string_field, read_points, read_position, read_string, read_text_align, tag,
   },
   key_listener,
   primes::{
@@ -842,8 +842,10 @@ fn draw_shape_with_mode(
       }
     }
     Shape::TouchArea {
+      id,
       position,
       target,
+      cursor,
       line_style,
       fill_style,
       area,
@@ -878,7 +880,14 @@ fn draw_shape_with_mode(
         }
       }
       if render_mode == RenderMode::Interactive {
-        touches::add_touch_area(position.to_owned(), area.to_owned(), target.to_owned(), tr);
+        touches::add_touch_area(
+          id.to_owned(),
+          position.to_owned(),
+          area.to_owned(),
+          target.to_owned(),
+          *cursor,
+          tr,
+        );
       }
     }
     Shape::KeyListener {
@@ -1164,9 +1173,11 @@ fn extract_shape_at(tree: &Edn, path: &str) -> Result<Shape, SceneDiagnostics> {
           line_style: extract_polyline_stroke_style(m)?,
         }),
         "touch-area" => Ok(Shape::TouchArea {
+          id: path.to_owned(),
           target: extract_event_target(m),
           position: read_position(m, "position")?,
           area: extract_touch_area_shape(m)?,
+          cursor: read_optional_cursor_icon(m)?,
           fill_style: extract_fill_style(m)?,
           line_style: extract_stroke_style(m)?,
         }),
@@ -1477,6 +1488,29 @@ mod tests {
       ("radius-y", Edn::Number(20.0)),
     ]);
     assert!(matches!(extract_shape(&ellipse), Ok(Shape::Ellipse { .. })));
+
+    let touch = map([
+      ("type", Edn::tag("touch-area")),
+      ("radius", Edn::Number(12.0)),
+      ("cursor", Edn::tag("pointer")),
+    ]);
+    assert!(matches!(
+      extract_shape(&touch),
+      Ok(Shape::TouchArea {
+        ref id,
+        cursor: Some(winit::window::CursorIcon::Pointer),
+        ..
+      }) if id.len() == 1
+    ));
+
+    let invalid_cursor = map([
+      ("type", Edn::tag("touch-area")),
+      ("radius", Edn::Number(12.0)),
+      ("cursor", Edn::str("pointer")),
+    ]);
+    assert!(extract_shape(&invalid_cursor)
+      .unwrap_err()
+      .contains("cursor must be a tag"));
   }
 
   #[test]

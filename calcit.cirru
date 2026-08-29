@@ -118,6 +118,14 @@
           :code $ quote (defatom *animation-time-ms 0)
           :examples $ []
           :schema $ :: 'Ref 'Number
+        |*pointer-dirty? $ %{} 'CodeEntry (:doc |)
+          :code $ quote (defatom *pointer-dirty? false)
+          :examples $ []
+          :schema $ :: 'Ref 'Bool
+        |*pointer-status $ %{} 'CodeEntry (:doc |)
+          :code $ quote (defatom *pointer-status |hover:idle)
+          :examples $ []
+          :schema $ :: 'Ref 'String
         |export-offscreen-demo! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn export-offscreen-demo! ()
@@ -338,22 +346,37 @@
                             :fill-color $ [] 215 90 60
                   {} (:type :group)
                     :children $ []
-                      {} (:type :touch-area) (:dx 150) (:dy 40)
+                      {} (:type :touch-area) (:dx 150) (:dy 42)
                         :position $ [] 780 320
                         :action :input-demo
-                        :path $ [] :demo :pointer
-                        :data :pointer-demo
+                        :path $ [] :demo :pointer :base
+                        :data :capture-base
+                        :cursor :grab
                         :fill-color $ [] 185 70 50
                         :line-color $ [] 185 90 85
                         :line-width 2
-                      {} (:type :text) (:text "|Pointer event demo")
-                        :position $ [] 780 314
+                      {} (:type :touch-area) (:dx 55) (:dy 28)
+                        :position $ [] 855 320
+                        :action :input-demo
+                        :path $ [] :demo :pointer :overlay
+                        :data :hover-overlay
+                        :cursor :crosshair
+                        :fill-color $ [] 42 82 58
+                        :line-color $ [] 42 94 84
+                        :line-width 2
+                      {} (:type :text) (:text "|Hover + capture demo / 悬停与捕获")
+                        :position $ [] 760 306
                         :color $ [] 0 0 100
-                        :size 18
+                        :size 17
                         :align :center
-                      {} (:type :text) (:text "|Click or drag; hold Shift; press I")
-                        :position $ [] 780 338
+                      {} (:type :text) (:text "|Drag outside a region; overlap uses crosshair")
+                        :position $ [] 760 332
                         :color $ [] 0 0 94
+                        :size 12
+                        :align :center
+                      {} (:type :text) (:text @*pointer-status)
+                        :position $ [] 780 370
+                        :color $ [] 45 18 96
                         :size 13
                         :align :center
                       {} (:type :key-listener) (:key |I) (:action :input-demo)
@@ -490,10 +513,16 @@
                         :redraw $ render! false
                         :frame $ do
                           reset! *animation-time-ms $ .unwrap-or (get event :timestamp-ms) @*animation-time-ms
-                          if @*animation-active? $ do (render! false) (request-frame!)
+                          if @*animation-active?
+                            do (reset! *pointer-dirty? false) (render! false) (request-frame!)
+                            if @*pointer-dirty? $ do (reset! *pointer-dirty? false) (render! false)
                       :focus-first $ focus! |field-a
                       :export-snapshot $ export-offscreen-demo!
                       :toggle-animation $ toggle-animation!
+                      :input-demo $ do
+                        reset! *pointer-status $ str-spaced (get event :type) (get event :path) |captured? (get event :captured?)
+                        reset! *pointer-dirty? true
+                        request-frame!
                     do (println |event: event) (request-frame!)
                   , &unit
           :examples $ []

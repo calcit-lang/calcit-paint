@@ -472,6 +472,7 @@ TouchArea {
   position: Vec2,
   // children: Vec<Shape>, // TODO
   area: TouchAreaShape,
+  cursor: Option<CursorIcon>,
   line_style: Option<StrokeStyle>,
   fill_style: Option<PaintSource>,
 },
@@ -521,6 +522,27 @@ to omit meaningless placeholders.
 `nil` 等价。Paint 内部使用 `Option<Edn>` 存储；当 touch area 或 key listener
 命中时，发出的事件仍保留这三个历史字段，缺失值以 `nil` 表示。因此旧事件消费代码
 保持兼容，而新的 Calcit demo 不再需要填写无意义的占位值。
+
+`touch-area` also accepts optional `:cursor` as a strict tag. Missing or `nil`
+uses the platform default; strings and unknown tags are rejected by scene
+validation. Paint accepts the W3C cursor names supported by winit, including
+`:default`, `:pointer`, `:text`, `:crosshair`, `:grab`, `:grabbing`, `:move`,
+`:not-allowed`, the directional resize tags, `:col-resize`, `:row-resize`,
+`:all-scroll`, `:zoom-in`, and `:zoom-out`.
+
+`touch-area` 还可使用严格 tag 类型的可选 `:cursor`。省略或传入 `nil` 时使用平台
+默认光标；字符串和未知 tag 会被 scene validation 拒绝。Paint 接受 winit 支持的
+W3C cursor 名称，包括 `:default`、`:pointer`、`:text`、`:crosshair`、`:grab`、
+`:grabbing`、`:move`、`:not-allowed`、各方向 resize tag、`:col-resize`、
+`:row-resize`、`:all-scroll`、`:zoom-in` 与 `:zoom-out`。
+
+```cirru.no-check
+{} (:type :touch-area) (:dx 80) (:dy 30) (:cursor :grab)
+  :position $ [] 200 120
+  :action :drag-card
+  :path $ [] :card |demo
+```
+
 
 ### Offscreen rendering and snapshots / 离屏渲染与快照
 
@@ -707,16 +729,46 @@ recent count rather than a hard-coded value.
 逻辑像素时，计数会递增；否则从 `1` 重新开始。`mouse-move` 与 `mouse-wheel`
 保留 `:clicks`，其值为最近一次计数，而不再固定为常数。
 
-An active touch-area drag is attached only to the button that started it. When
-the cursor leaves the window, Paint emits `:mouse-leave`; if a drag is active,
-the event includes its `:action`, `:path`, `:data`, `:button`, `:dx`, `:dy`, and
-`:cancelled? true`, then clears the drag. Consumers should use this event to
-finish drag state when a physical mouse-up occurs outside the window.
+Paint tracks the topmost, last-drawn `touch-area` under the pointer. Crossing
+between targets emits `:pointer-leave` before `:pointer-enter`; both events carry
+`:x`, `:y`, `:modifiers`, `:action`, `:path`, `:data`, `:cursor`, and
+`:captured? false`. Stable scene paths preserve hover across redraws. If the
+hovered target is removed, Paint emits its leave event and then enters the newly
+revealed target at the same position. Leaving the window emits the compatible
+`:mouse-leave` plus the target's `:pointer-leave`, and restores the default
+system cursor.
 
-touch-area drag 只会关联启动它的那个 button。光标离开窗口时，Paint 会发送
-`:mouse-leave`；若 drag 正在进行，事件会包含其 `:action`、`:path`、`:data`、
-`:button`、`:dx`、`:dy` 和 `:cancelled? true`，随后清理 drag。消费者应利用该
-事件完成窗口外松开鼠标时的清理。
+Paint 跟踪指针下最后绘制、位于最上层的 `touch-area`。跨目标时先发送
+`:pointer-leave`，再发送 `:pointer-enter`；两者均包含 `:x`、`:y`、`:modifiers`、
+`:action`、`:path`、`:data`、`:cursor` 与 `:captured? false`。稳定 scene path 会让
+hover 在重绘之间保持不变。若 hovered target 被移除，Paint 会先发送其 leave，再进入
+同一位置新露出的目标。指针离开窗口时仍发送兼容的 `:mouse-leave`，同时发送目标的
+`:pointer-leave`，并恢复默认系统光标。
+
+Pressing a mouse button inside a touch area establishes pointer capture for that
+button. Captured `:mouse-move` and the matching `:mouse-up` continue to use the
+original target outside its hit geometry and include `:captured? true`, the
+button, and drag `:dx`/`:dy`. Release ends capture and immediately reconciles
+hover. Target removal, window exit, or window-focus loss emits
+`:pointer-cancel` with `:cancelled? true` and reason `:target-removed`,
+`:window-leave`, or `:window-blur`. Capture is event-routing semantics; it does
+not confine or lock the physical cursor.
+
+在 touch area 内按下鼠标会为该 button 建立 pointer capture。即使移出命中几何，
+被捕获的 `:mouse-move` 与对应 `:mouse-up` 仍路由给原目标，并包含
+`:captured? true`、button 以及拖拽 `:dx`/`:dy`。释放后结束 capture 并立即重新计算
+hover。目标移除、指针离开窗口或窗口失焦时会发送 `:pointer-cancel`，其中包含
+`:cancelled? true`，reason 分别为 `:target-removed`、`:window-leave` 或
+`:window-blur`。Capture 仅定义事件路由，不会限制或锁定物理光标。
+
+The bundled runnable demo contains overlapping `:grab` and `:crosshair` areas.
+Move across them, press and drag outside either region, then release; the status
+line shows hover/capture transitions. Updates use coalesced `request-frame!`
+requests, so event bursts do not queue duplicate scenes.
+
+随仓库提供的可运行 demo 包含重叠的 `:grab` 与 `:crosshair` 区域。可在两者之间移动，
+按下后拖出区域再释放；状态行会显示 hover/capture 转换。更新通过合并的
+`request-frame!` 请求完成，因此连续事件不会重复排队 scene。
 
 Keyboard events include layout-aware `:name`, legacy numeric `:key-code`,
 portable `:physical-key`, and `:modifiers`. `:name` is the logical key and can
