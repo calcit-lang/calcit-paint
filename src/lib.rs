@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 
+use std::collections::VecDeque;
 use std::ffi::CString;
 use std::num::NonZeroU32;
 use std::sync::RwLock;
@@ -34,6 +35,7 @@ use winit::{
 mod color;
 mod extracter;
 mod ffi;
+mod focus;
 mod handlers;
 mod key_listener;
 mod primes;
@@ -64,6 +66,7 @@ const HEIGHT: u32 = 760;
 
 lazy_static! {
   static ref NEXT_DRAWING_DATA: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
+  static ref NEXT_FOCUS_EVENTS: RwLock<Vec<Edn>> = RwLock::new(vec![]);
 }
 
 fn create_event_loop() -> Result<EventLoop<()>, String> {
@@ -86,15 +89,32 @@ struct PaintApplication<F> {
   scale_factor: f32,
   first_paint: bool,
   smoke_once: bool,
+  ime_allowed: bool,
 }
 
 impl<F> PaintApplication<F>
 where
   F: Fn(Vec<Edn>) -> Result<Edn, String>,
 {
-  fn dispatch(&self, event: Edn) {
-    if let Err(error) = (self.handler)(vec![event]) {
-      eprintln!("error in handling paint event: {error}");
+  fn dispatch(&mut self, event: Edn) {
+    let mut events = VecDeque::from([event]);
+    while let Some(event) = events.pop_front() {
+      if let Err(error) = (self.handler)(vec![event]) {
+        eprintln!("error in handling paint event: {error}");
+      }
+      match take_focus_events() {
+        Ok(pending) => events.extend(pending),
+        Err(error) => eprintln!("failed reading programmatic focus events: {error}"),
+      }
+    }
+    self.sync_ime();
+  }
+
+  fn sync_ime(&mut self) {
+    let allowed = focus::text_input_enabled();
+    if self.ime_allowed != allowed {
+      self.env.window.set_ime_allowed(allowed);
+      self.ime_allowed = allowed;
     }
   }
 
@@ -117,6 +137,7 @@ where
   }
 
   fn draw_frame(&mut self, event_loop: &ActiveEventLoop) {
+    focus::begin_frame();
     match take_drawing_data() {
       Ok(messages) => {
         let canvas = self.env.surface.canvas();
@@ -129,6 +150,13 @@ where
       }
       Err(error) => eprintln!("failed extracting paint messages: {error}"),
     }
+
+    if let Some(transition) = focus::finish_frame() {
+      for event in handlers::handle_focus_transition(transition) {
+        self.dispatch(event);
+      }
+    }
+    self.sync_ime();
 
     self.env.gr_context.flush_and_submit();
     if let Err(error) = self.env.gl_surface.swap_buffers(&self.env.gl_context) {
@@ -197,6 +225,11 @@ where
           ElementState::Released => handlers::handle_mouse_up(&self.input, button),
         };
         self.dispatch(event);
+        if state == ElementState::Pressed {
+          for event in handlers::handle_pointer_focus(self.input.position(), button) {
+            self.dispatch(event);
+          }
+        }
         self.env.window.request_redraw();
       }
       WindowEvent::MouseWheel { delta, .. } => {
@@ -217,6 +250,18 @@ where
       WindowEvent::ModifiersChanged(modifiers) => {
         self.input.set_modifiers(modifiers.state());
       }
+      WindowEvent::Focused(focused) => {
+        for event in handlers::handle_window_focus(focused) {
+          self.dispatch(event);
+        }
+        self.env.window.request_redraw();
+      }
+      WindowEvent::Ime(ime) => {
+        for event in handlers::handle_ime(ime) {
+          self.dispatch(event);
+        }
+        self.env.window.request_redraw();
+      }
       WindowEvent::KeyboardInput {
         event: KeyEvent {
           state,
@@ -226,7 +271,11 @@ where
         },
         ..
       } => {
-        if logical_key == Key::Named(NamedKey::Escape) {
+        if state == ElementState::Pressed
+          && logical_key == Key::Named(NamedKey::Escape)
+          && !focus::has_focus()
+          && !focus::is_composing()
+        {
           event_loop.exit();
           return;
         }
@@ -358,6 +407,7 @@ fn launch_canvas_impl(handler: impl Fn(Vec<Edn>) -> Result<Edn, String>) -> Resu
     scale_factor,
     first_paint: true,
     smoke_once: std::env::var_os("CALCIT_PAINT_SMOKE_ONCE").is_some(),
+    ime_allowed: false,
   };
   event_loop
     .run_app(&mut application)
@@ -369,6 +419,21 @@ fn take_drawing_data() -> Result<Vec<(Box<str>, Edn)>, String> {
   let mut pending = NEXT_DRAWING_DATA
     .write()
     .map_err(|_| "drawing-data queue lock is poisoned".to_owned())?;
+  Ok(std::mem::take(&mut *pending))
+}
+
+fn queue_focus_events(events: Vec<Edn>) -> Result<(), String> {
+  NEXT_FOCUS_EVENTS
+    .write()
+    .map_err(|_| "focus-event queue lock is poisoned".to_owned())?
+    .extend(events);
+  Ok(())
+}
+
+fn take_focus_events() -> Result<Vec<Edn>, String> {
+  let mut pending = NEXT_FOCUS_EVENTS
+    .write()
+    .map_err(|_| "focus-event queue lock is poisoned".to_owned())?;
   Ok(std::mem::take(&mut *pending))
 }
 
@@ -386,6 +451,39 @@ fn push_drawing_data(args: Vec<Edn>) -> Result<Edn, String> {
 }
 
 calcit_native_ffi::export_edn_buffer_method_v1!(push_drawing_data_calcit_ffi_v1, push_drawing_data);
+
+fn request_focus(args: Vec<Edn>) -> Result<Edn, String> {
+  let [Edn::Str(id)] = args.as_slice() else {
+    return Err(format!("request-focus expected one focus-id string, got: {args:?}"));
+  };
+  if let Some(transition) = focus::request_focus(id, focus::FocusReason::Programmatic)? {
+    queue_focus_events(handlers::handle_focus_transition(transition))?;
+  }
+  Ok(Edn::Nil)
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(request_focus_calcit_ffi_v1, request_focus);
+
+fn clear_focus(args: Vec<Edn>) -> Result<Edn, String> {
+  if !args.is_empty() {
+    return Err(format!("clear-focus expected no arguments, got: {args:?}"));
+  }
+  if let Some(transition) = focus::clear_focus(focus::FocusReason::Programmatic) {
+    queue_focus_events(handlers::handle_focus_transition(transition))?;
+  }
+  Ok(Edn::Nil)
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(clear_focus_calcit_ffi_v1, clear_focus);
+
+fn focused(args: Vec<Edn>) -> Result<Edn, String> {
+  let [Edn::Str(id)] = args.as_slice() else {
+    return Err(format!("focused expected one focus-id string, got: {args:?}"));
+  };
+  Ok(Edn::Bool(focus::focused(id)))
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(focused_calcit_ffi_v1, focused);
 
 fn measure_text(args: Vec<Edn>) -> Result<Edn, String> {
   let [data] = args.as_slice() else {
@@ -475,5 +573,14 @@ mod tests {
     assert!(measure_text(vec![Edn::Nil]).is_err());
     assert!(measure_paragraph(vec![]).is_err());
     assert!(measure_paragraph(vec![Edn::Nil]).is_err());
+  }
+
+  #[test]
+  fn focus_ffi_validates_argument_shapes() {
+    assert!(request_focus(vec![]).is_err());
+    assert!(request_focus(vec![Edn::Nil]).is_err());
+    assert!(clear_focus(vec![Edn::Nil]).is_err());
+    assert!(focused(vec![]).is_err());
+    assert!(focused(vec![Edn::Nil]).is_err());
   }
 }

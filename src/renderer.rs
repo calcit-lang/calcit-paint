@@ -1,4 +1,4 @@
-use crate::touches;
+use crate::{focus, touches};
 use std::collections::HashMap;
 use std::fs;
 use std::sync::RwLock;
@@ -42,8 +42,9 @@ use crate::{
   color::extract_color,
   extracter::{
     extract_event_target, extract_fill_style, extract_paragraph_layout, extract_polyline_stroke_style,
-    extract_position, extract_stroke_style, extract_text_style, extract_touch_area_shape, read_blend_mode, read_bool,
-    read_color, read_f32, read_optional_f32, read_points, read_position, read_string, read_text_align, tag,
+    extract_position, extract_shortcut_modifiers, extract_stroke_style, extract_text_style, extract_touch_area_shape,
+    read_blend_mode, read_bool, read_color, read_f32, read_optional_f32, read_optional_i32, read_optional_string_field,
+    read_points, read_position, read_string, read_text_align, tag,
   },
   key_listener,
   primes::{
@@ -616,8 +617,58 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       }
       touches::add_touch_area(position.to_owned(), area.to_owned(), target.to_owned(), tr);
     }
-    Shape::KeyListener { key, target } => {
-      key_listener::add_key_listener(key.to_owned(), target.to_owned());
+    Shape::KeyListener {
+      key,
+      modifiers,
+      focus_id,
+      target,
+    } => {
+      key_listener::add_key_listener(
+        key.to_owned(),
+        modifiers.to_owned(),
+        focus_id.to_owned(),
+        target.to_owned(),
+      );
+    }
+    Shape::FocusArea {
+      id,
+      target,
+      position,
+      area,
+      tab_index,
+      text_input,
+      line_style,
+      fill_style,
+    } => {
+      match area {
+        TouchAreaShape::Circle(radius) => {
+          if let Some(style) = line_style {
+            canvas.draw_circle((position.x, position.y), *radius, &stroke_paint(style)?);
+          }
+          if let Some(source) = fill_style {
+            canvas.draw_circle((position.x, position.y), *radius, &fill_paint(source)?);
+          }
+        }
+        TouchAreaShape::Rect(dx, dy) => {
+          let rect = Rect::from_xywh(position.x - dx, position.y - dy, 2.0 * dx, 2.0 * dy);
+          if let Some(style) = line_style {
+            canvas.draw_rect(rect, &stroke_paint(style)?);
+          }
+          if let Some(source) = fill_style {
+            canvas.draw_rect(rect, &fill_paint(source)?);
+          }
+        }
+      }
+      focus::register_focus_area(focus::FocusArea {
+        id: id.to_owned(),
+        target: target.to_owned(),
+        position: position.to_owned(),
+        area: area.to_owned(),
+        transform: tr.to_owned(),
+        tab_index: *tab_index,
+        text_input: *text_input,
+        order: 0,
+      })?;
     }
     Shape::PaintOps {
       path: ops_path,
@@ -830,7 +881,19 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
         }),
         "key-listener" => Ok(Shape::KeyListener {
           key: read_string(m, "key")?,
+          modifiers: extract_shortcut_modifiers(m)?,
+          focus_id: read_optional_string_field(m, "focus-id")?,
           target: extract_event_target(m),
+        }),
+        "focus-area" | "focusable" => Ok(Shape::FocusArea {
+          id: read_string(m, "focus-id")?,
+          target: extract_event_target(m),
+          position: read_position(m, "position")?,
+          area: extract_touch_area_shape(m)?,
+          tab_index: read_optional_i32(m, "tab-index")?.unwrap_or(0),
+          text_input: read_bool(m, "text-input?")?,
+          fill_style: extract_fill_style(m)?,
+          line_style: extract_stroke_style(m)?,
         }),
         "rotate" => {
           let c = m.get(&tag("children"));
@@ -1227,6 +1290,74 @@ mod tests {
         })
       ));
     }
+  }
+
+  #[test]
+  fn extracts_focus_areas_and_compatible_shortcut_listeners() {
+    let focus_area = map([
+      ("type", Edn::tag("focus-area")),
+      ("focus-id", Edn::Str("editor".into())),
+      ("position", list([Edn::Number(40.0), Edn::Number(60.0)])),
+      ("dx", Edn::Number(30.0)),
+      ("dy", Edn::Number(20.0)),
+      ("tab-index", Edn::Number(2.0)),
+      ("text-input?", Edn::Bool(true)),
+    ]);
+    assert!(matches!(
+      extract_shape(&focus_area),
+      Ok(Shape::FocusArea {
+        id,
+        tab_index: 2,
+        text_input: true,
+        ..
+      }) if id == "editor"
+    ));
+
+    let mut modifier_values = EdnMapView::default();
+    modifier_values.insert(tag("control?"), Edn::Bool(true));
+    let shortcut = map([
+      ("type", Edn::tag("key-listener")),
+      ("key", Edn::Str("K".into())),
+      ("focus-id", Edn::Str("editor".into())),
+      ("modifiers", Edn::Map(modifier_values)),
+    ]);
+    assert!(matches!(
+      extract_shape(&shortcut),
+      Ok(Shape::KeyListener {
+        modifiers: Some(crate::primes::ShortcutModifiers { control: true, .. }),
+        focus_id: Some(id),
+        ..
+      }) if id == "editor"
+    ));
+
+    let legacy = map([("type", Edn::tag("key-listener")), ("key", Edn::Str("D".into()))]);
+    assert!(matches!(
+      extract_shape(&legacy),
+      Ok(Shape::KeyListener {
+        modifiers: None,
+        focus_id: None,
+        ..
+      })
+    ));
+
+    let invalid_modifiers = map([
+      ("type", Edn::tag("key-listener")),
+      ("key", Edn::Str("K".into())),
+      ("modifiers", Edn::Number(1.0)),
+    ]);
+    assert!(extract_shape(&invalid_modifiers)
+      .unwrap_err()
+      .contains(":modifiers must be a map"));
+
+    let invalid_tab_index = map([
+      ("type", Edn::tag("focus-area")),
+      ("focus-id", Edn::Str("editor".into())),
+      ("radius", Edn::Number(20.0)),
+      ("tab-index", Edn::Number(1.5)),
+    ]);
+    assert!(extract_shape(&invalid_tab_index)
+      .unwrap_err()
+      .contains("tab-index must be an integer"));
   }
 
   #[test]

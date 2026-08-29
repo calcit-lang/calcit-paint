@@ -9,8 +9,8 @@ use skia_safe::{BlendMode, Color};
 use crate::{
   color::extract_color,
   primes::{
-    DashPattern, EventTarget, GradientStop, PaintSource, ParagraphLayout, StrokeStyle, TextAlign, TextBaseline,
-    TextDirection, TextSlant, TextStyle, TouchAreaShape,
+    DashPattern, EventTarget, GradientStop, PaintSource, ParagraphLayout, ShortcutModifiers, StrokeStyle, TextAlign,
+    TextBaseline, TextDirection, TextSlant, TextStyle, TouchAreaShape,
   },
 };
 
@@ -397,6 +397,35 @@ fn read_optional_string(tree: &EdnMapView, key: &str) -> Result<Option<String>, 
     Some(Edn::Str(value)) => Ok(Some(value.to_string())),
     Some(Edn::Nil) | None => Ok(None),
     Some(value) => Err(format!("{key} must be a string, got {value}")),
+  }
+}
+
+pub fn read_optional_string_field(tree: &EdnMapView, key: &str) -> Result<Option<String>, String> {
+  read_optional_string(tree, key)
+}
+
+pub fn read_optional_i32(tree: &EdnMapView, key: &str) -> Result<Option<i32>, String> {
+  match tree.get(&tag(key)) {
+    Some(Edn::Number(value))
+      if value.is_finite() && value.fract() == 0.0 && *value >= i32::MIN as f64 && *value <= i32::MAX as f64 =>
+    {
+      Ok(Some(*value as i32))
+    }
+    Some(value) => Err(format!("{key} must be an integer, got {value}")),
+    None => Ok(None),
+  }
+}
+
+pub fn extract_shortcut_modifiers(tree: &EdnMapView) -> Result<Option<ShortcutModifiers>, String> {
+  match tree.get(&tag("modifiers")) {
+    Some(Edn::Map(modifiers)) => Ok(Some(ShortcutModifiers {
+      shift: read_bool(modifiers, "shift?")?,
+      control: read_bool(modifiers, "control?")?,
+      alt: read_bool(modifiers, "alt?")?,
+      super_key: read_bool(modifiers, "super?")?,
+    })),
+    Some(value) => Err(format!("key-listener :modifiers must be a map, got {value}")),
+    None => Ok(None),
   }
 }
 

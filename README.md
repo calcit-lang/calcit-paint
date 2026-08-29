@@ -22,6 +22,9 @@ calcit-paint.core/push-drawing-data! |reset-canvas! nil
 calcit-paint.core/push-drawing-data! |render-canvas! shape-data
 calcit-paint.core/measure-text! text-options
 calcit-paint.core/measure-paragraph! paragraph-options
+calcit-paint.core/focus! |focus-id
+calcit-paint.core/focused? |focus-id
+calcit-paint.core/blur!
 
 calcit-paint.core/launch-canvas! $ fn (event)
   println "|rendering to canvas..."
@@ -463,6 +466,8 @@ TouchArea {
 ```rust
 KeyListener {
   key: String,
+  modifiers: Option<ShortcutModifiers>,
+  focus_id: Option<String>,
   target: EventTarget {
     action: Option<Calcit>,
     path: Option<Calcit>,
@@ -472,14 +477,31 @@ KeyListener {
 },
 ```
 
-`:action`, `:path`, and `:data` are optional on both shape maps. Omitting a
+- Focus area, using `focus-area` (alias: `focusable`)
+
+```rust
+FocusArea {
+  id: String,
+  target: EventTarget,
+  position: Vec2,
+  area: TouchAreaShape,
+  tab_index: i32,
+  text_input: bool,
+  line_style: Option<StrokeStyle>,
+  fill_style: Option<PaintSource>,
+}
+```
+
+`:action`, `:path`, and `:data` are optional on touch-area, key-listener, and
+focus-area shape maps. Omitting a
 field and passing an explicit `nil` are equivalent. Internally Paint stores
 them as `Option<Edn>`; when a touch area or key listener matches, the emitted
 event still contains all three legacy keys and uses `nil` for absent values.
 This keeps existing event consumers compatible while allowing new Calcit demos
 to omit meaningless placeholders.
 
-`:action`、`:path` 与 `:data` 在两类 shape map 中均为可选字段；省略字段与显式传入
+`:action`、`:path` 与 `:data` 在 touch-area、key-listener、focus-area 三类 shape map
+中均为可选字段；省略字段与显式传入
 `nil` 等价。Paint 内部使用 `Option<Edn>` 存储；当 touch area 或 key listener
 命中时，发出的事件仍保留这三个历史字段，缺失值以 `nil` 表示。因此旧事件消费代码
 保持兼容，而新的 Calcit demo 不再需要填写无意义的占位值。
@@ -559,12 +581,110 @@ listener 使用的大写行为。`:physical-key` 是 winit 的物理键名，例
 优先使用 `:name`；只有需要与物理键位无关的绑定时才使用 `:physical-key`。旧版数字
 字段为兼容保留，不应作为可移植标识。
 
+#### Focus, shortcuts, and IME / 焦点、快捷键与 IME
+
+A `:focus-area` uses the same circle (`:radius`) or centered rectangle (`:dx`
+and `:dy`) geometry as `:touch-area`. It requires a stable string
+`:focus-id`; optional `:tab-index` defaults to `0`, and negative values exclude
+the area from Tab traversal. Equal indices retain render registration order.
+`:text-input? true` enables the platform IME only while that area owns focus.
+Duplicate focus IDs in one rendered scene are rejected.
+
+`:focus-area` 使用与 `:touch-area` 相同的圆形（`:radius`）或中心矩形（`:dx`、
+`:dy`）几何。它要求稳定的字符串 `:focus-id`；可选 `:tab-index` 默认为 `0`，负值
+表示不参加 Tab 导航，相同 index 按渲染注册顺序排列。只有获得焦点且声明
+`:text-input? true` 的区域会启用平台 IME。同一帧出现重复 focus ID 会直接报错。
+
+```cirru.no-check
+{} (:type :focus-area) (:focus-id |field-a) (:tab-index 0) (:text-input? true)
+  :position $ [] 180 450
+  :dx 140
+  :dy 32
+  :action :focus-demo
+  :fill-color $ [] 215 70 45
+
+{} (:type :key-listener) (:key |K) (:action :focus-first)
+  :modifiers $ {} (:shift? true)
+
+{} (:type :key-listener) (:key |Enter) (:focus-id |field-a)
+  :action :field-submit
+```
+
+Primary-clicking an area transfers focus; clicking outside all focus areas
+clears it. Tab and Shift+Tab traverse and wrap. Focus transitions emit
+`:focus-in`/`:focus-out` with `:focus-id`, `:related-focus-id`, `:reason`, and
+the target's existing `:action`/`:path`/`:data`. Reasons are `:pointer`,
+`:tab`, `:programmatic`, `:escape`, `:window-blur`, or `:removed`. Removing a
+focused node on the next rendered frame clears focus rather than leaving a
+stale owner. Window blur clears focus; Escape first cancels composition and
+clears focus, and retains the historical exit behavior only when no focus or
+composition is active.
+
+主键点击区域会转移焦点，点击所有 focus area 之外会清除焦点；Tab 与 Shift+Tab
+循环导航。焦点变化发送 `:focus-in`/`:focus-out`，包含 `:focus-id`、
+`:related-focus-id`、`:reason` 及目标原有的 `:action`/`:path`/`:data`。reason
+可能为 `:pointer`、`:tab`、`:programmatic`、`:escape`、`:window-blur` 或
+`:removed`。下一帧移除已聚焦节点会清除焦点，不会留下失效 owner；窗口失焦也会
+清除焦点。Escape 会先取消 composition 并清焦点，仅在没有焦点和 composition 时保留
+历史上的退出窗口行为。
+
+Calcit can request and release focus with `focus!` and `blur!`, and query one
+ID with `focused?`. `focus!` rejects an ID that is not registered in the
+current rendered scene. Programmatic transition events are delivered after the
+current callback returns, avoiding reentrant Calcit callbacks.
+
+Calcit 可通过 `focus!`、`blur!` 请求或释放焦点，并用 `focused?` 查询指定 ID。
+`focus!` 会拒绝当前已渲染 scene 中不存在的 ID。程序化焦点事件会在当前 callback
+返回后投递，避免 Calcit callback 重入。
+
+```cirru.no-check
+focus! |field-a
+focused? |field-a
+blur!
+```
+
+An old `:key-listener` without `:modifiers` remains a wildcard over modifier
+state. Supplying a `:modifiers` map makes all four flags (`:shift?`,
+`:control?`, `:alt?`, `:super?`) an exact chord; omitted flags mean `false`.
+Matched chord events add `:shortcut? true`. Optional `:focus-id` restricts a
+listener to that current owner. This preserves legacy single-key listeners
+while making shortcuts deterministic.
+
+旧 `:key-listener` 不提供 `:modifiers` 时仍忽略 modifier 状态，保持兼容。显式提供
+`:modifiers` map 后，`:shift?`、`:control?`、`:alt?`、`:super?` 四个 flag 会做
+精确 chord 匹配，省略的 flag 表示 `false`；命中事件增加 `:shortcut? true`。可选
+`:focus-id` 会把 listener 限定到当前焦点 owner。
+
+For a focused text-input area, winit IME events map to `:ime-enabled`,
+`:composition-start`, `:composition-update`, `:composition-end`,
+`:text-input`, and `:ime-disabled`. Composition events carry `:text`,
+`:cursor-start`, and `:cursor-end`; cursor offsets follow winit and are UTF-8
+byte indices, not Unicode scalar indices. `:composition-end` includes
+`:cancelled?`; committed insertion is the `:text-input` event. Focus transfer,
+Escape, window blur, IME disable, and node removal explicitly cancel any live
+composition. Platform IMEs differ in whether they emit Enabled/Disabled and in
+their exact preedit sequence, so consumers must rely on the lifecycle contract
+rather than a fixed event count.
+
+当文本输入区域获得焦点后，winit IME 会映射为 `:ime-enabled`、
+`:composition-start`、`:composition-update`、`:composition-end`、`:text-input`
+与 `:ime-disabled`。composition 事件包含 `:text`、`:cursor-start`、
+`:cursor-end`；cursor offset 遵循 winit，是 UTF-8 字节索引而非 Unicode scalar
+索引。`:composition-end` 带 `:cancelled?`，最终提交文本由 `:text-input` 表示。
+焦点转移、Escape、窗口失焦、IME disable 与节点卸载都会显式取消未完成 composition。
+不同平台是否发送 Enabled/Disabled 及具体 preedit 序列可能不同，消费端应依赖生命周期
+契约而非固定事件数量。
+
 Run the bundled scene with `calcit ./calcit.cirru`, then click or drag the
-"Pointer event demo" panel, hold a modifier, or press `I`. The callback prints
-the live event map, including the new fields, to the Calcit terminal.
+"Pointer event demo" panel, hold a modifier, or press `I`. Two additional
+focus areas demonstrate click focus, Tab/Shift+Tab traversal, IME input,
+focus-scoped Enter, and a Shift+K shortcut that calls `focus!`. The callback
+prints the live event maps to the Calcit terminal.
 
 运行 `calcit ./calcit.cirru` 后，点击或拖拽 “Pointer event demo” 面板、按住任意
-modifier，或按下 `I`。回调会在 Calcit terminal 中打印包含新字段的实时事件 map。
+modifier，或按下 `I`。新增的两个 focus area 还会实际演示点击聚焦、Tab/Shift+Tab、
+IME 输入、焦点限定 Enter，以及调用 `focus!` 的 Shift+K 快捷键；callback 会把实时
+事件 map 打印到 Calcit terminal。
 
 - Rotate
 

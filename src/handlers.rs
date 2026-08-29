@@ -4,11 +4,11 @@ use std::time::Duration;
 use cirru_edn::{Edn, EdnMapView};
 use euclid::Vector2D;
 use winit::{
-  event::{ElementState, MouseButton},
+  event::{ElementState, Ime, MouseButton},
   keyboard::{Key, ModifiersState, PhysicalKey},
 };
 
-use crate::{extracter::tag, key_listener, primes::EventTarget, touches};
+use crate::{extracter::tag, focus, key_listener, primes::EventTarget, touches};
 
 fn map_view(pairs: impl IntoIterator<Item = (Edn, Edn)>) -> EdnMapView {
   let mut map = EdnMapView::default();
@@ -54,6 +54,10 @@ impl InputState {
 
   pub fn modifiers(&self) -> ModifiersState {
     self.modifiers
+  }
+
+  pub fn position(&self) -> Vector2D<f32, f32> {
+    self.position
   }
 
   pub fn set_modifiers(&mut self, modifiers: ModifiersState) {
@@ -137,6 +141,132 @@ fn add_target_fields(info: &mut EdnMapView, target: &EventTarget) {
       (tag("data"), target.data.clone().unwrap_or(Edn::Nil)),
     ],
   );
+}
+
+fn focus_id_value(area: Option<&focus::FocusArea>) -> Edn {
+  area.map_or(Edn::Nil, |area| Edn::str(area.id.as_str()))
+}
+
+fn focus_event(kind: &str, area: &focus::FocusArea, related: Option<&focus::FocusArea>, reason: &str) -> Edn {
+  let mut info = map_view([
+    (tag("type"), tag(kind)),
+    (tag("focus-id"), Edn::str(area.id.as_str())),
+    (tag("related-focus-id"), focus_id_value(related)),
+    (tag("reason"), tag(reason)),
+  ]);
+  add_target_fields(&mut info, &area.target);
+  Edn::Map(info)
+}
+
+fn composition_event(
+  kind: &str,
+  area: &focus::FocusArea,
+  text: &str,
+  cursor: Option<(usize, usize)>,
+  cancelled: Option<bool>,
+) -> Edn {
+  let mut info = map_view([
+    (tag("type"), tag(kind)),
+    (tag("focus-id"), Edn::str(area.id.as_str())),
+    (tag("text"), Edn::str(text)),
+    (
+      tag("cursor-start"),
+      cursor.map_or(Edn::Nil, |(start, _)| Edn::Number(start as f64)),
+    ),
+    (
+      tag("cursor-end"),
+      cursor.map_or(Edn::Nil, |(_, end)| Edn::Number(end as f64)),
+    ),
+  ]);
+  if let Some(cancelled) = cancelled {
+    info.insert(tag("cancelled?"), Edn::Bool(cancelled));
+  }
+  add_target_fields(&mut info, &area.target);
+  Edn::Map(info)
+}
+
+pub fn handle_focus_transition(transition: focus::FocusTransition) -> Vec<Edn> {
+  let mut events = vec![];
+  if let Some(from) = &transition.from {
+    if focus::end_composition() {
+      events.push(composition_event("composition-end", from, "", None, Some(true)));
+    }
+    events.push(focus_event(
+      "focus-out",
+      from,
+      transition.to.as_ref(),
+      transition.reason.as_str(),
+    ));
+  }
+  if let Some(to) = &transition.to {
+    events.push(focus_event(
+      "focus-in",
+      to,
+      transition.from.as_ref(),
+      transition.reason.as_str(),
+    ));
+  }
+  events
+}
+
+pub fn handle_pointer_focus(position: Vector2D<f32, f32>, button: MouseButton) -> Vec<Edn> {
+  if button != MouseButton::Left {
+    return vec![];
+  }
+  focus::focus_at(position).map_or_else(Vec::new, handle_focus_transition)
+}
+
+pub fn handle_window_focus(focused: bool) -> Vec<Edn> {
+  let mut events = vec![Edn::Map(map_view([(
+    tag("type"),
+    tag(if focused { "window-focus" } else { "window-blur" }),
+  )]))];
+  if !focused {
+    if let Some(transition) = focus::clear_focus(focus::FocusReason::WindowBlur) {
+      events.extend(handle_focus_transition(transition));
+    }
+  }
+  events
+}
+
+pub fn handle_ime(ime: Ime) -> Vec<Edn> {
+  let Some(area) = focus::current().filter(|area| area.text_input) else {
+    return vec![];
+  };
+  match ime {
+    Ime::Enabled => vec![composition_event("ime-enabled", &area, "", None, None)],
+    Ime::Preedit(text, _) if text.is_empty() => {
+      if focus::end_composition() {
+        vec![composition_event("composition-end", &area, "", None, Some(false))]
+      } else {
+        vec![]
+      }
+    }
+    Ime::Preedit(text, cursor) => {
+      let mut events = vec![];
+      if focus::begin_composition() {
+        events.push(composition_event("composition-start", &area, &text, cursor, None));
+      }
+      events.push(composition_event("composition-update", &area, &text, cursor, None));
+      events
+    }
+    Ime::Commit(text) => {
+      let mut events = vec![];
+      if focus::end_composition() {
+        events.push(composition_event("composition-end", &area, "", None, Some(false)));
+      }
+      events.push(composition_event("text-input", &area, &text, None, None));
+      events
+    }
+    Ime::Disabled => {
+      let mut events = vec![];
+      if focus::end_composition() {
+        events.push(composition_event("composition-end", &area, "", None, Some(true)));
+      }
+      events.push(composition_event("ime-disabled", &area, "", None, None));
+      events
+    }
+  }
 }
 
 pub fn handle_mouse_down(input: &mut InputState, button: MouseButton, at: Duration) -> Edn {
@@ -235,7 +365,8 @@ pub fn handle_keyboard(
   key_state: ElementState,
   modifiers: ModifiersState,
 ) -> Vec<Edn> {
-  let targets = key_listener::find_key_listeners(key_name);
+  let focused = focus::current();
+  let targets = key_listener::find_key_listeners(key_name, modifiers, focused.as_ref().map(|area| area.id.as_str()));
   let base = map_view([
     (
       tag("type"),
@@ -248,18 +379,35 @@ pub fn handle_keyboard(
     (tag("physical-key"), Edn::str(physical_key_name(physical_key))),
     (tag("name"), Edn::str(key_name)),
     (tag("modifiers"), modifiers_edn(modifiers)),
+    (tag("focus-id"), focus_id_value(focused.as_ref())),
   ]);
-  if targets.is_empty() {
+  let mut events = if targets.is_empty() {
     vec![Edn::Map(base)]
   } else {
     let mut hits: Vec<Edn> = vec![];
     for target in targets {
       let mut info = base.clone();
       add_target_fields(&mut info, &target.target);
+      if target.modifiers.is_some() {
+        info.insert(tag("shortcut?"), Edn::Bool(true));
+      }
       hits.push(Edn::Map(info));
     }
     hits
+  };
+
+  if key_state == ElementState::Pressed {
+    if key_name == "Tab" {
+      if let Some(transition) = focus::advance(modifiers.shift_key()) {
+        events.extend(handle_focus_transition(transition));
+      }
+    } else if key_name == "Escape" {
+      if let Some(transition) = focus::clear_focus(focus::FocusReason::Escape) {
+        events.extend(handle_focus_transition(transition));
+      }
+    }
   }
+  events
 }
 
 pub fn name_key(key: &Key) -> String {
@@ -319,6 +467,30 @@ mod tests {
       panic!("event must be a map")
     };
     event
+  }
+
+  fn focus_area(id: &str, x: f32, tab_index: i32, text_input: bool) -> focus::FocusArea {
+    focus::FocusArea {
+      id: id.into(),
+      target: EventTarget {
+        action: Some(tag("focus-demo")),
+        path: Some(Edn::str(id)),
+        data: None,
+      },
+      position: Vector2D::new(x, 20.0),
+      area: crate::primes::TouchAreaShape::Rect(20.0, 10.0),
+      transform: focus::Transform::identity(),
+      tab_index,
+      text_input,
+      order: 0,
+    }
+  }
+
+  fn event_types(events: Vec<Edn>) -> Vec<Edn> {
+    events
+      .into_iter()
+      .map(|event| event_map(event).get(&tag("type")).unwrap().clone())
+      .collect()
   }
 
   #[test]
@@ -481,5 +653,150 @@ mod tests {
   fn names_unidentified_physical_keys_without_panicking() {
     assert_eq!(physical_key_name(&PhysicalKey::Code(KeyCode::KeyA)), "KeyA");
     assert!(physical_key_name(&PhysicalKey::Unidentified(NativeKeyCode::Unidentified)).starts_with("Unidentified("));
+  }
+
+  #[test]
+  fn transfers_focus_with_pointer_and_wrapping_tab_navigation() {
+    let _guard = focus::FOCUS_TEST_LOCK.lock().unwrap();
+    focus::reset_for_test();
+    focus::begin_frame();
+    focus::register_focus_area(focus_area("first", 20.0, 0, true)).unwrap();
+    focus::register_focus_area(focus_area("second", 80.0, 1, false)).unwrap();
+
+    assert_eq!(
+      event_types(handle_pointer_focus(Vector2D::new(20.0, 20.0), MouseButton::Left)),
+      vec![tag("focus-in")]
+    );
+    assert!(focus::focused("first"));
+
+    let tab = handle_keyboard(
+      "Tab",
+      KeyCode::Tab as u32 as f64,
+      &PhysicalKey::Code(KeyCode::Tab),
+      ElementState::Pressed,
+      ModifiersState::empty(),
+    );
+    assert_eq!(
+      event_types(tab),
+      vec![tag("key-down"), tag("focus-out"), tag("focus-in")]
+    );
+    assert!(focus::focused("second"));
+
+    handle_keyboard(
+      "Tab",
+      KeyCode::Tab as u32 as f64,
+      &PhysicalKey::Code(KeyCode::Tab),
+      ElementState::Pressed,
+      ModifiersState::SHIFT,
+    );
+    assert!(focus::focused("first"));
+  }
+
+  #[test]
+  fn matches_exact_modifier_chords_and_focus_scope() {
+    let _guard = focus::FOCUS_TEST_LOCK.lock().unwrap();
+    focus::reset_for_test();
+    key_listener::reset_listeners_stack();
+    focus::begin_frame();
+    focus::register_focus_area(focus_area("editor", 20.0, 0, true)).unwrap();
+    focus::request_focus("editor", focus::FocusReason::Programmatic).unwrap();
+    key_listener::add_key_listener(
+      "K".into(),
+      Some(crate::primes::ShortcutModifiers {
+        control: true,
+        ..Default::default()
+      }),
+      Some("editor".into()),
+      EventTarget {
+        action: Some(tag("shortcut")),
+        ..Default::default()
+      },
+    );
+
+    let plain = event_map(
+      handle_keyboard(
+        "K",
+        KeyCode::KeyK as u32 as f64,
+        &PhysicalKey::Code(KeyCode::KeyK),
+        ElementState::Pressed,
+        ModifiersState::empty(),
+      )
+      .remove(0),
+    );
+    assert_eq!(plain.get(&tag("action")), None);
+
+    let chord = event_map(
+      handle_keyboard(
+        "K",
+        KeyCode::KeyK as u32 as f64,
+        &PhysicalKey::Code(KeyCode::KeyK),
+        ElementState::Pressed,
+        ModifiersState::CONTROL,
+      )
+      .remove(0),
+    );
+    assert_eq!(chord.get(&tag("action")), Some(&tag("shortcut")));
+    assert_eq!(chord.get(&tag("shortcut?")), Some(&Edn::Bool(true)));
+    assert_eq!(chord.get(&tag("focus-id")), Some(&Edn::str("editor")));
+  }
+
+  #[test]
+  fn emits_ime_composition_and_committed_text_lifecycle() {
+    let _guard = focus::FOCUS_TEST_LOCK.lock().unwrap();
+    focus::reset_for_test();
+    focus::begin_frame();
+    focus::register_focus_area(focus_area("editor", 20.0, 0, true)).unwrap();
+    focus::request_focus("editor", focus::FocusReason::Programmatic).unwrap();
+
+    assert_eq!(event_types(handle_ime(Ime::Enabled)), vec![tag("ime-enabled")]);
+    let preedit = handle_ime(Ime::Preedit("ni".into(), Some((1, 2))));
+    assert_eq!(
+      event_types(preedit.clone()),
+      vec![tag("composition-start"), tag("composition-update")]
+    );
+    let update = event_map(preedit.into_iter().last().unwrap());
+    assert_eq!(update.get(&tag("cursor-start")), Some(&Edn::Number(1.0)));
+    assert_eq!(update.get(&tag("cursor-end")), Some(&Edn::Number(2.0)));
+
+    assert_eq!(
+      event_types(handle_ime(Ime::Preedit(String::new(), None))),
+      vec![tag("composition-end")]
+    );
+    let committed = event_map(handle_ime(Ime::Commit("你".into())).remove(0));
+    assert_eq!(committed.get(&tag("type")), Some(&tag("text-input")));
+    assert_eq!(committed.get(&tag("text")), Some(&Edn::str("你")));
+  }
+
+  #[test]
+  fn cancels_composition_on_escape_and_window_blur() {
+    let _guard = focus::FOCUS_TEST_LOCK.lock().unwrap();
+    focus::reset_for_test();
+    focus::begin_frame();
+    focus::register_focus_area(focus_area("editor", 20.0, 0, true)).unwrap();
+    focus::request_focus("editor", focus::FocusReason::Programmatic).unwrap();
+    handle_ime(Ime::Preedit("draft".into(), None));
+
+    let escape = handle_keyboard(
+      "Escape",
+      KeyCode::Escape as u32 as f64,
+      &PhysicalKey::Code(KeyCode::Escape),
+      ElementState::Pressed,
+      ModifiersState::empty(),
+    );
+    assert_eq!(
+      event_types(escape),
+      vec![tag("key-down"), tag("composition-end"), tag("focus-out")]
+    );
+    assert!(!focus::has_focus());
+    assert!(!focus::is_composing());
+
+    focus::request_focus("editor", focus::FocusReason::Programmatic).unwrap();
+    handle_ime(Ime::Preedit("draft".into(), None));
+    let blur = handle_window_focus(false);
+    assert_eq!(
+      event_types(blur),
+      vec![tag("window-blur"), tag("composition-end"), tag("focus-out")]
+    );
+    assert!(!focus::has_focus());
   }
 }
