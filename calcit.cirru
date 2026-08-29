@@ -184,6 +184,29 @@
                             :position $ [] 830 545
                             :radius 42
                             :fill-color $ [] 215 90 60
+                  {} (:type :group)
+                    :children $ []
+                      {} (:type :touch-area) (:dx 150) (:dy 40)
+                        :position $ [] 780 320
+                        :action :input-demo
+                        :path $ [] :demo :pointer
+                        :data :pointer-demo
+                        :fill-color $ [] 185 70 50
+                        :line-color $ [] 185 90 85
+                        :line-width 2
+                      {} (:type :text) (:text "|Pointer event demo")
+                        :position $ [] 780 314
+                        :color $ [] 0 0 100
+                        :size 18
+                        :align :center
+                      {} (:type :text) (:text "|Click or drag; hold Shift; press I")
+                        :position $ [] 780 338
+                        :color $ [] 0 0 94
+                        :size 13
+                        :align :center
+                      {} (:type :key-listener) (:key |I) (:action :input-demo)
+                        :path $ [] :demo :keyboard
+                        :data :keyboard-demo
                   {} (:type :image) (:file-path |resources/calcit.png) (:x 400) (:y 40) (:w 80) (:h 80)
                     ; :crop $ {} (:x 0) (:y 0) (:w 200) (:h 200)
               launch-canvas! $ fn (event)

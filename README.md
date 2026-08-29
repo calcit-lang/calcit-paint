@@ -314,10 +314,6 @@ modification time changes.
 
 - Touch Area, using `touch-area`
 
-Window callbacks also emit `:mouse-wheel` events with `:dx`, `:dy`, and a
-`:unit` of either `:line` or `:pixel`. Pixel deltas are normalized to logical
-pixels, consistently with drawing coordinates.
-
 For handling events:
 
 ```rust
@@ -337,13 +333,72 @@ TouchArea {
 
 ```rust
 KeyListener {
-  key: String, // TODO modifier
+  key: String,
   action: Calcit,
   path: Calcit,
   data: Calcit,
   // children: Vec<Shape>, // TODO
 },
 ```
+
+### Input events / 输入事件
+
+Every event remains a Calcit map. Existing `:type`, `:x`, `:y`, `:dx`, `:dy`,
+`:action`, `:path`, and `:data` fields are unchanged. Pointer events now add
+`:modifiers`, a map containing `:shift?`, `:control?`, `:alt?`, and `:super?`.
+`mouse-down` and `mouse-up` also include `:button`: `:primary`, `:secondary`,
+`:middle`, `:back`, `:forward`, or `:other`; `:other` includes numeric
+`:button-id`.
+
+所有事件仍是 Calcit map。既有的 `:type`、`:x`、`:y`、`:dx`、`:dy`、`:action`、
+`:path`、`:data` 字段保持不变。指针事件新增 `:modifiers` map，其中包括
+`:shift?`、`:control?`、`:alt?`、`:super?`。`mouse-down` 与 `mouse-up` 还会提供
+`:button`：`:primary`、`:secondary`、`:middle`、`:back`、`:forward` 或 `:other`；
+`:other` 同时提供数字 `:button-id`。
+
+`:clicks` is counted separately for each button. A sequence continues when the
+next press happens within 500 ms and within four logical pixels; otherwise it
+restarts at `1`. `mouse-move` and `mouse-wheel` retain `:clicks` with the most
+recent count rather than a hard-coded value.
+
+`:clicks` 会为每个 button 单独计数：下一次按下发生在 500 ms 内且距离不超过四个
+逻辑像素时，计数会递增；否则从 `1` 重新开始。`mouse-move` 与 `mouse-wheel`
+保留 `:clicks`，其值为最近一次计数，而不再固定为常数。
+
+An active touch-area drag is attached only to the button that started it. When
+the cursor leaves the window, Paint emits `:mouse-leave`; if a drag is active,
+the event includes its `:action`, `:path`, `:data`, `:button`, `:dx`, `:dy`, and
+`:cancelled? true`, then clears the drag. Consumers should use this event to
+finish drag state when a physical mouse-up occurs outside the window.
+
+touch-area drag 只会关联启动它的那个 button。光标离开窗口时，Paint 会发送
+`:mouse-leave`；若 drag 正在进行，事件会包含其 `:action`、`:path`、`:data`、
+`:button`、`:dx`、`:dy` 和 `:cancelled? true`，随后清理 drag。消费者应利用该
+事件完成窗口外松开鼠标时的清理。
+
+Keyboard events include layout-aware `:name`, legacy numeric `:key-code`,
+portable `:physical-key`, and `:modifiers`. `:name` is the logical key and can
+vary with the active keyboard layout; single-character names retain the
+uppercase behavior used by existing listeners. `:physical-key` is a winit
+physical code name such as `"KeyD"`; for unknown hardware it is an
+`"Unidentified(...)"` string containing a platform-native code. Keep
+cross-platform shortcuts on `:name`; use `:physical-key` only when a physical
+layout-independent binding is required. The legacy number is retained for
+compatibility but should not be used as a portable identifier.
+
+键盘事件包含布局相关的 `:name`、旧版数字 `:key-code`、可移植的 `:physical-key`
+和 `:modifiers`。`:name` 是逻辑键名，会受当前键盘布局影响；单字符键名仍保持旧
+listener 使用的大写行为。`:physical-key` 是 winit 的物理键名，例如 `"KeyD"`；
+未知硬件会使用包含平台原生 code 的 `"Unidentified(...)"` 字符串。跨平台快捷键
+优先使用 `:name`；只有需要与物理键位无关的绑定时才使用 `:physical-key`。旧版数字
+字段为兼容保留，不应作为可移植标识。
+
+Run the bundled scene with `calcit ./calcit.cirru`, then click or drag the
+"Pointer event demo" panel, hold a modifier, or press `I`. The callback prints
+the live event map, including the new fields, to the Calcit terminal.
+
+运行 `calcit ./calcit.cirru` 后，点击或拖拽 “Pointer event demo” 面板、按住任意
+modifier，或按下 `I`。回调会在 Calcit terminal 中打印包含新字段的实时事件 map。
 
 - Rotate
 
