@@ -1,7 +1,10 @@
 use crate::{focus, touches};
 use std::collections::HashMap;
 use std::fs;
-use std::sync::RwLock;
+use std::sync::{
+  atomic::{AtomicU64, Ordering},
+  RwLock,
+};
 use std::time::SystemTime;
 
 use euclid::{Angle, Vector2D};
@@ -19,8 +22,9 @@ use skia_safe::textlayout::{
   TextDirection as SkTextDirection, TextStyle as ParagraphTextStyle,
 };
 use skia_safe::{
-  gradient, Color, Color4f, Data, Font, FontMgr, FontStyle, Image, Paint, PaintStyle, PathBuilder, PathEffect, RRect,
-  Rect, Shader, TextBlob, TileMode,
+  gradient, surfaces, AlphaType, Color, Color4f, ColorSpace, ColorType, Data, EncodedImageFormat, Font, FontMgr,
+  FontStyle, Image, ImageInfo, Paint, PaintStyle, PathBuilder, PathEffect, RRect, Rect, Shader, Surface, TextBlob,
+  TileMode,
 };
 
 #[derive(Clone)]
@@ -30,12 +34,42 @@ struct CachedImage {
   image: Image,
 }
 
+#[derive(Clone)]
+struct CachedSubtree {
+  revision: i32,
+  width: i32,
+  height: i32,
+  bytes: usize,
+  last_used: u64,
+  image: Image,
+}
+
+#[derive(Default)]
+struct SubtreeCache {
+  entries: HashMap<String, CachedSubtree>,
+  bytes: usize,
+}
+
 lazy_static! {
   static ref PREV_MESSAGES: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
   static ref BG_COLOR: RwLock<Color> = RwLock::new(Color::BLACK);
   static ref IMAGE_CACHE: RwLock<HashMap<String, CachedImage>> = RwLock::new(HashMap::new());
   static ref SHADER_CACHE: RwLock<HashMap<String, Shader>> = RwLock::new(HashMap::new());
   static ref DASH_EFFECT_CACHE: RwLock<HashMap<String, PathEffect>> = RwLock::new(HashMap::new());
+  static ref SUBTREE_CACHE: RwLock<SubtreeCache> = RwLock::new(SubtreeCache::default());
+}
+
+static SUBTREE_CACHE_TICK: AtomicU64 = AtomicU64::new(1);
+
+const MAX_OFFSCREEN_DIMENSION: i32 = 4096;
+const MAX_OFFSCREEN_PIXELS: usize = 16 * 1024 * 1024;
+const SUBTREE_CACHE_LIMIT_BYTES: usize = 32 * 1024 * 1024;
+const SUBTREE_CACHE_MAX_ENTRIES: usize = 32;
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RenderMode {
+  Interactive,
+  Offscreen,
 }
 
 use crate::{
@@ -338,6 +372,175 @@ fn dash_effect(dash: &DashPattern) -> Result<PathEffect, String> {
   Ok(effect)
 }
 
+fn validate_surface_size(width: i32, height: i32, context: &str) -> Result<usize, String> {
+  if !(1..=MAX_OFFSCREEN_DIMENSION).contains(&width) || !(1..=MAX_OFFSCREEN_DIMENSION).contains(&height) {
+    return Err(format!(
+      "{context} dimensions must be integers between 1 and {MAX_OFFSCREEN_DIMENSION}, got {width}x{height}"
+    ));
+  }
+  let pixels = width as usize * height as usize;
+  if pixels > MAX_OFFSCREEN_PIXELS {
+    return Err(format!(
+      "{context} exceeds the {MAX_OFFSCREEN_PIXELS}-pixel limit: {width}x{height}"
+    ));
+  }
+  Ok(pixels)
+}
+
+fn read_surface_dimension(tree: &EdnMapView, key: &str, context: &str) -> Result<i32, String> {
+  match tree.get(&tag(key)) {
+    Some(Edn::Number(value))
+      if value.is_finite() && value.fract() == 0.0 && *value >= 1.0 && *value <= MAX_OFFSCREEN_DIMENSION as f64 =>
+    {
+      Ok(*value as i32)
+    }
+    Some(value) => Err(format!(
+      "{context} :{key} must be an integer between 1 and {MAX_OFFSCREEN_DIMENSION}, got {value}"
+    )),
+    None => Err(format!("{context} requires :{key}")),
+  }
+}
+
+fn make_raster_surface(width: i32, height: i32) -> Result<Surface, String> {
+  validate_surface_size(width, height, "offscreen surface")?;
+  let info = ImageInfo::new(
+    (width, height),
+    ColorType::RGBA8888,
+    AlphaType::Premul,
+    ColorSpace::new_srgb(),
+  );
+  surfaces::raster(&info, None, None)
+    .ok_or_else(|| format!("Skia failed to allocate a {width}x{height} RGBA8888 sRGB raster surface"))
+}
+
+fn render_offscreen_shape(width: i32, height: i32, background: Color, shape: &Shape) -> Result<Image, String> {
+  let mut surface = make_raster_surface(width, height)?;
+  let canvas = surface.canvas();
+  canvas.clear(background);
+  canvas.reset_matrix();
+  draw_shape_with_mode(canvas, shape, &Transform::identity(), RenderMode::Offscreen)?;
+  Ok(surface.image_snapshot())
+}
+
+pub fn render_to_png(data: &Edn) -> Result<(), String> {
+  let Edn::Map(options) = data else {
+    return Err(format!("render-to-png expects one options map, got {data}"));
+  };
+  let width = read_surface_dimension(options, "width", "render-to-png")?;
+  let height = read_surface_dimension(options, "height", "render-to-png")?;
+  validate_surface_size(width, height, "render-to-png")?;
+  let path = read_string(options, "path")?;
+  if path.is_empty() {
+    return Err("render-to-png :path must not be empty".to_owned());
+  }
+  let scene = options
+    .get(&tag("scene"))
+    .or_else(|| options.get(&tag("shape")))
+    .ok_or_else(|| "render-to-png requires :scene (or the :shape alias)".to_owned())?;
+  let background = match options.get(&tag("background")) {
+    Some(color) => extract_color(color)?,
+    None => Color::from_argb(0, 0, 0, 0),
+  };
+  let shape = extract_shape(scene)?;
+  let image = render_offscreen_shape(width, height, background, &shape)?;
+  let png = image
+    .encode(None, EncodedImageFormat::PNG, 100)
+    .ok_or_else(|| "Skia PNG encoding is unavailable".to_owned())?;
+  fs::write(&path, png.as_bytes()).map_err(|error| format!("failed writing offscreen PNG {path}: {error}"))
+}
+
+fn shape_contains_interactive(shape: &Shape) -> bool {
+  match shape {
+    Shape::TouchArea { .. } | Shape::KeyListener { .. } | Shape::FocusArea { .. } => true,
+    Shape::Group { children, .. }
+    | Shape::CachedGroup { children, .. }
+    | Shape::Translate { children, .. }
+    | Shape::Rotate { children, .. }
+    | Shape::Scale { children, .. }
+    | Shape::ClipRect { children, .. }
+    | Shape::Opacity { children, .. }
+    | Shape::Blend { children, .. } => children.iter().any(shape_contains_interactive),
+    _ => false,
+  }
+}
+
+fn render_cached_subtree(
+  cache_key: &str,
+  revision: i32,
+  width: i32,
+  height: i32,
+  children: &[Shape],
+) -> Result<Image, String> {
+  if cache_key.is_empty() {
+    return Err("cached-group :cache-key must not be empty".to_owned());
+  }
+  if children.iter().any(shape_contains_interactive) {
+    return Err(format!(
+      "cached-group {cache_key:?} cannot contain touch-area, key-listener, or focus-area nodes"
+    ));
+  }
+  let pixels = validate_surface_size(width, height, "cached-group")?;
+  let bytes = pixels * 4;
+  if bytes > SUBTREE_CACHE_LIMIT_BYTES {
+    return Err(format!(
+      "cached-group {cache_key:?} requires {bytes} bytes, above the {SUBTREE_CACHE_LIMIT_BYTES}-byte cache limit"
+    ));
+  }
+  let tick = SUBTREE_CACHE_TICK.fetch_add(1, Ordering::Relaxed);
+  {
+    let mut cache = SUBTREE_CACHE
+      .write()
+      .map_err(|_| "static-subtree cache lock is poisoned".to_owned())?;
+    if let Some(entry) = cache.entries.get_mut(cache_key) {
+      if entry.revision == revision && entry.width == width && entry.height == height {
+        entry.last_used = tick;
+        return Ok(entry.image.clone());
+      }
+    }
+  }
+
+  let mut surface = make_raster_surface(width, height)?;
+  let canvas = surface.canvas();
+  canvas.clear(Color::from_argb(0, 0, 0, 0));
+  for child in children {
+    draw_shape_with_mode(canvas, child, &Transform::identity(), RenderMode::Offscreen)?;
+  }
+  let image = surface.image_snapshot();
+
+  let mut cache = SUBTREE_CACHE
+    .write()
+    .map_err(|_| "static-subtree cache lock is poisoned".to_owned())?;
+  if let Some(previous) = cache.entries.remove(cache_key) {
+    cache.bytes = cache.bytes.saturating_sub(previous.bytes);
+  }
+  while !cache.entries.is_empty()
+    && (cache.entries.len() >= SUBTREE_CACHE_MAX_ENTRIES || cache.bytes + bytes > SUBTREE_CACHE_LIMIT_BYTES)
+  {
+    let oldest_key = cache
+      .entries
+      .iter()
+      .min_by_key(|(_, entry)| entry.last_used)
+      .map(|(key, _)| key.clone())
+      .expect("non-empty cache has an oldest entry");
+    if let Some(removed) = cache.entries.remove(&oldest_key) {
+      cache.bytes = cache.bytes.saturating_sub(removed.bytes);
+    }
+  }
+  cache.bytes += bytes;
+  cache.entries.insert(
+    cache_key.to_owned(),
+    CachedSubtree {
+      revision,
+      width,
+      height,
+      bytes,
+      last_used: tick,
+      image: image.clone(),
+    },
+  );
+  Ok(image)
+}
+
 pub fn draw_page(
   canvas: &skia_safe::canvas::Canvas,
   base_messages: Vec<(Box<str>, Edn)>,
@@ -397,6 +600,15 @@ pub fn draw_page(
 // }
 
 fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) -> Result<(), String> {
+  draw_shape_with_mode(canvas, tree, tr, RenderMode::Interactive)
+}
+
+fn draw_shape_with_mode(
+  canvas: &skia_safe::canvas::Canvas,
+  tree: &Shape,
+  tr: &Transform,
+  render_mode: RenderMode,
+) -> Result<(), String> {
   match tree {
     Shape::Rectangle {
       position,
@@ -498,9 +710,20 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       canvas.translate((pos.x, pos.y));
       for child in children {
         let t1 = Transform::identity().then_translate(pos);
-        draw_shape(canvas, child, &t1.then(tr))?;
+        draw_shape_with_mode(canvas, child, &t1.then(tr), render_mode)?;
       }
       canvas.restore();
+    }
+    Shape::CachedGroup {
+      cache_key,
+      revision,
+      position,
+      width,
+      height,
+      children,
+    } => {
+      let image = render_cached_subtree(cache_key, *revision, *width, *height, children)?;
+      canvas.draw_image(image, (position.x, position.y), None);
     }
     Shape::Text {
       text,
@@ -615,7 +838,9 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
           }
         }
       }
-      touches::add_touch_area(position.to_owned(), area.to_owned(), target.to_owned(), tr);
+      if render_mode == RenderMode::Interactive {
+        touches::add_touch_area(position.to_owned(), area.to_owned(), target.to_owned(), tr);
+      }
     }
     Shape::KeyListener {
       key,
@@ -623,12 +848,14 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       focus_id,
       target,
     } => {
-      key_listener::add_key_listener(
-        key.to_owned(),
-        modifiers.to_owned(),
-        focus_id.to_owned(),
-        target.to_owned(),
-      );
+      if render_mode == RenderMode::Interactive {
+        key_listener::add_key_listener(
+          key.to_owned(),
+          modifiers.to_owned(),
+          focus_id.to_owned(),
+          target.to_owned(),
+        );
+      }
     }
     Shape::FocusArea {
       id,
@@ -659,16 +886,18 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
           }
         }
       }
-      focus::register_focus_area(focus::FocusArea {
-        id: id.to_owned(),
-        target: target.to_owned(),
-        position: position.to_owned(),
-        area: area.to_owned(),
-        transform: tr.to_owned(),
-        tab_index: *tab_index,
-        text_input: *text_input,
-        order: 0,
-      })?;
+      if render_mode == RenderMode::Interactive {
+        focus::register_focus_area(focus::FocusArea {
+          id: id.to_owned(),
+          target: target.to_owned(),
+          position: position.to_owned(),
+          area: area.to_owned(),
+          transform: tr.to_owned(),
+          tab_index: *tab_index,
+          text_input: *text_input,
+          order: 0,
+        })?;
+      }
     }
     Shape::PaintOps {
       path: ops_path,
@@ -719,7 +948,7 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       canvas.scale((*factor, *factor));
       let t1 = Transform::identity().then_scale(factor.to_owned(), factor.to_owned());
       for child in children {
-        draw_shape(canvas, child, &t1.then(tr))?;
+        draw_shape_with_mode(canvas, child, &t1.then(tr), render_mode)?;
       }
       canvas.restore();
     }
@@ -730,7 +959,7 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
         radians: radius.to_owned(),
       });
       for child in children {
-        draw_shape(canvas, child, &t1.then(tr))?;
+        draw_shape_with_mode(canvas, child, &t1.then(tr), render_mode)?;
       }
       canvas.restore();
     }
@@ -740,7 +969,7 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       let v = Vector2D::new(x.to_owned(), y.to_owned());
       let t1 = Transform::identity().then_translate(v);
       for child in children {
-        draw_shape(canvas, child, &t1.then(tr))?;
+        draw_shape_with_mode(canvas, child, &t1.then(tr), render_mode)?;
       }
       canvas.restore();
     }
@@ -753,14 +982,14 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       canvas.save();
       canvas.clip_rect(Rect::from_xywh(position.x, position.y, *width, *height), None, true);
       for child in children {
-        draw_shape(canvas, child, tr)?;
+        draw_shape_with_mode(canvas, child, tr, render_mode)?;
       }
       canvas.restore();
     }
     Shape::Opacity { alpha, children } => {
       canvas.save_layer_alpha_f(None, alpha.clamp(0.0, 1.0));
       for child in children {
-        draw_shape(canvas, child, tr)?;
+        draw_shape_with_mode(canvas, child, tr, render_mode)?;
       }
       canvas.restore();
     }
@@ -769,7 +998,7 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       paint.set_blend_mode(*mode);
       canvas.save_layer(&SaveLayerRec::default().paint(&paint));
       for child in children {
-        draw_shape(canvas, child, tr)?;
+        draw_shape_with_mode(canvas, child, tr, render_mode)?;
       }
       canvas.restore();
     }
@@ -837,6 +1066,19 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           Ok(Shape::Group {
             position: read_position(m, "position")?,
             children,
+          })
+        }
+        "cached-group" | "static-group" => {
+          let width = read_surface_dimension(m, "width", "cached-group")?;
+          let height = read_surface_dimension(m, "height", "cached-group")?;
+          validate_surface_size(width, height, "cached-group")?;
+          Ok(Shape::CachedGroup {
+            cache_key: read_string(m, "cache-key")?,
+            revision: read_optional_i32(m, "revision")?.unwrap_or(0),
+            position: read_position(m, "position")?,
+            width,
+            height,
+            children: extract_children(m.get(&tag("children")))?,
           })
         }
         // "arc" => Ok(Shape::Arc {
@@ -1120,6 +1362,45 @@ mod tests {
     *value
   }
 
+  fn rgba_pixels(image: &Image, width: i32, height: i32) -> Vec<u8> {
+    let info = ImageInfo::new(
+      (width, height),
+      ColorType::RGBA8888,
+      AlphaType::Unpremul,
+      ColorSpace::new_srgb(),
+    );
+    let mut pixels = vec![0; width as usize * height as usize * 4];
+    assert!(image.read_pixels(
+      &info,
+      &mut pixels,
+      width as usize * 4,
+      (0, 0),
+      skia_safe::image::CachingHint::Disallow,
+    ));
+    pixels
+  }
+
+  fn fnv1a64(bytes: &[u8]) -> u64 {
+    bytes.iter().fold(0xcbf29ce484222325, |hash, byte| {
+      (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
+    })
+  }
+
+  fn solid_rectangle(color: Color) -> Shape {
+    Shape::Rectangle {
+      position: Vector2D::new(2.0, 2.0),
+      width: 4.0,
+      height: 4.0,
+      line_style: None,
+      fill_style: Some(PaintSource::Solid(color)),
+    }
+  }
+
+  fn reset_subtree_cache() {
+    *SUBTREE_CACHE.write().unwrap() = SubtreeCache::default();
+    SUBTREE_CACHE_TICK.store(1, Ordering::Relaxed);
+  }
+
   #[test]
   fn extracts_new_skia_shapes() {
     let rounded = map([
@@ -1144,6 +1425,73 @@ mod tests {
       ("radius-y", Edn::Number(20.0)),
     ]);
     assert!(matches!(extract_shape(&ellipse), Ok(Shape::Ellipse { .. })));
+  }
+
+  #[test]
+  fn renders_deterministic_rgba_offscreen_pixels() {
+    let scene = solid_rectangle(Color::from_argb(255, 255, 0, 0));
+    let image = render_offscreen_shape(8, 8, Color::from_argb(0, 0, 0, 0), &scene).unwrap();
+    let pixels = rgba_pixels(&image, 8, 8);
+    assert_eq!(&pixels[0..4], &[0, 0, 0, 0]);
+    assert_eq!(&pixels[(3 * 8 + 3) * 4..(3 * 8 + 3) * 4 + 4], &[255, 0, 0, 255]);
+    assert_eq!(fnv1a64(&pixels), 0xc795_b70a_8da3_da05);
+  }
+
+  #[test]
+  fn exports_png_only_to_the_explicit_path() {
+    let path = std::env::temp_dir().join(format!("calcit-paint-offscreen-{}.png", std::process::id()));
+    let request = map([
+      ("width", Edn::Number(7.0)),
+      ("height", Edn::Number(5.0)),
+      ("path", Edn::Str(path.to_string_lossy().into_owned().into())),
+      ("scene", Edn::Nil),
+    ]);
+    render_to_png(&request).unwrap();
+    let png = fs::read(&path).unwrap();
+    assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
+    let decoded = Image::from_encoded(Data::new_copy(&png)).unwrap();
+    assert_eq!((decoded.width(), decoded.height()), (7, 5));
+    fs::remove_file(path).unwrap();
+  }
+
+  #[test]
+  fn cached_groups_use_revision_invalidation_and_reject_interaction() {
+    reset_subtree_cache();
+    let red = solid_rectangle(Color::from_argb(255, 255, 0, 0));
+    let blue = solid_rectangle(Color::from_argb(255, 0, 0, 255));
+    let first = render_cached_subtree("badge", 0, 8, 8, std::slice::from_ref(&red)).unwrap();
+    let stale_by_contract = render_cached_subtree("badge", 0, 8, 8, std::slice::from_ref(&blue)).unwrap();
+    assert_eq!(rgba_pixels(&first, 8, 8), rgba_pixels(&stale_by_contract, 8, 8));
+
+    let refreshed = render_cached_subtree("badge", 1, 8, 8, &[blue]).unwrap();
+    assert_eq!(
+      &rgba_pixels(&refreshed, 8, 8)[(3 * 8 + 3) * 4..(3 * 8 + 3) * 4 + 4],
+      &[0, 0, 255, 255]
+    );
+    let cache = SUBTREE_CACHE.read().unwrap();
+    assert_eq!(cache.entries.len(), 1);
+    assert_eq!(cache.bytes, 8 * 8 * 4);
+    drop(cache);
+
+    let listener = Shape::KeyListener {
+      key: "K".into(),
+      modifiers: None,
+      focus_id: None,
+      target: Default::default(),
+    };
+    assert!(render_cached_subtree("interactive", 0, 8, 8, &[listener])
+      .unwrap_err()
+      .contains("cannot contain"));
+
+    reset_subtree_cache();
+    for index in 0..=SUBTREE_CACHE_MAX_ENTRIES {
+      render_cached_subtree(&format!("entry-{index}"), 0, 1, 1, &[]).unwrap();
+    }
+    let cache = SUBTREE_CACHE.read().unwrap();
+    assert_eq!(cache.entries.len(), SUBTREE_CACHE_MAX_ENTRIES);
+    assert!(!cache.entries.contains_key("entry-0"));
+    drop(cache);
+    reset_subtree_cache();
   }
 
   #[test]
@@ -1192,6 +1540,23 @@ mod tests {
     assert!(extract_shape(&unknown_blend)
       .unwrap_err()
       .contains("unsupported blend mode"));
+
+    let fractional_cache = map([
+      ("type", Edn::tag("cached-group")),
+      ("cache-key", Edn::Str("badge".into())),
+      ("width", Edn::Number(8.5)),
+      ("height", Edn::Number(8.0)),
+    ]);
+    assert!(extract_shape(&fractional_cache)
+      .unwrap_err()
+      .contains(":width must be an integer"));
+
+    let missing_scene = map([
+      ("width", Edn::Number(8.0)),
+      ("height", Edn::Number(8.0)),
+      ("path", Edn::Str("unused.png".into())),
+    ]);
+    assert!(render_to_png(&missing_scene).unwrap_err().contains("requires :scene"));
   }
 
   #[test]

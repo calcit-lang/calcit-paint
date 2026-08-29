@@ -74,6 +74,16 @@
             {} (:return 'Unit)
               :args $ [] 'String 'T
               :generics $ [] 'T
+        |render-to-png! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn render-to-png! (options)
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |render_to_png options
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'T
+              :generics $ [] 'T
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.core $ :require
@@ -81,6 +91,40 @@
             calcit-paint.util :refer $ get-dylib-path
     |calcit-paint.main $ %{} 'FileEntry
       :defs $ {}
+        |export-offscreen-demo! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn export-offscreen-demo! ()
+              render-to-png! $ {} (:path |offscreen-demo.png) (:width 360) (:height 180)
+                :background $ [] 225 25 12
+                :scene $ {} (:type :group)
+                  :children $ []
+                    {} (:type :cached-group) (:cache-key |offscreen-card) (:revision 1)
+                      :position $ [] 20 20
+                      :width 320
+                      :height 140
+                      :children $ []
+                        {} (:type :rounded-rect)
+                          :position $ [] 0 0
+                          :width 320
+                          :height 140
+                          :radius 18
+                          :fill-color $ [] 205 70 42
+                        {} (:type :circle)
+                          :position $ [] 75 70
+                          :radius 42
+                          :fill-color $ [] 38 90 58
+                        {} (:type :text) (:text "|Offscreen · 离屏快照")
+                          :position $ [] 140 70
+                          :color $ [] 0 0 98
+                          :size 22
+                          :baseline :middle
+                          :align :left
+              println "|Exported offscreen-demo.png / 已导出离屏快照"
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ []
         |main! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn main! () (println |started)
@@ -352,23 +396,54 @@
                       {} (:type :key-listener) (:key |K) (:action :focus-first)
                         :modifiers $ {} (:shift? true)
                         :data :shortcut-demo
+                      {} (:type :key-listener) (:key |P) (:action :export-snapshot)
+                        :modifiers $ {} (:shift? true)
+                        :data :offscreen-demo
                       {} (:type :key-listener) (:key |Enter) (:focus-id |field-a) (:action :field-submit) (:data :focus-scoped-key)
-                      {} (:type :text) (:text "|Click a field, press Tab, type with IME; Shift+K focuses A")
+                      {} (:type :text) (:text "|Click, Tab, IME; Shift+K focuses A; Shift+P exports PNG")
                         :position $ [] 180 580
                         :color $ [] 45 18 96
                         :size 14
                         :align :center
                   {} (:type :image) (:file-path |resources/calcit.png) (:x 400) (:y 40) (:w 80) (:h 80)
                     ; :crop $ {} (:x 0) (:y 0) (:w 200) (:h 200)
+                  {} (:type :cached-group) (:cache-key |window-static-badge) (:revision 1)
+                    :position $ [] 900 80
+                    :width 170
+                    :height 110
+                    :children $ []
+                      {} (:type :rounded-rect)
+                        :position $ [] 0 0
+                        :width 170
+                        :height 110
+                        :radius 16
+                        :fill-color $ [] 225 55 28
+                        :line-color $ [] 195 82 68
+                        :line-width 3
+                      {} (:type :circle)
+                        :position $ [] 42 55
+                        :radius 25
+                        :fill-color $ [] 42 90 58
+                      {} (:type :text) (:text |cached)
+                        :position $ [] 80 48
+                        :color $ [] 0 0 96
+                        :size 18
+                        :align :left
+                      {} (:type :text) (:text "|Shift+P → PNG")
+                        :position $ [] 80 72
+                        :color $ [] 0 0 86
+                        :size 13
+                        :align :left
               launch-canvas! $ fn (event)
                 if (map? event)
-                  if
-                    = :focus-first $ .unwrap-or (get event :action) :none
-                    focus! |field-a
+                  case-default
+                    .unwrap-or (get event :action) :none
                     case-default
                       .unwrap-or (get event :type) :unknown
                       println |event: event
                       :redraw $ render!
+                    :focus-first $ focus! |field-a
+                    :export-snapshot $ export-offscreen-demo!
                   println |event: event
                 , &unit
           :examples $ []
@@ -378,7 +453,7 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.main $ :require
-            calcit-paint.core :refer $ launch-canvas! push-drawing-data! measure-text! measure-paragraph! focus!
+            calcit-paint.core :refer $ launch-canvas! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png!
     |calcit-paint.util $ %{} 'FileEntry
       :defs $ {}
         |get-dylib-ext $ %{} 'CodeEntry (:doc |)

@@ -137,6 +137,14 @@ pub enum Shape {
     position: Vector2D<f32, f32>,
     children: Vec<Shape>,
   },
+  CachedGroup {
+    cache_key: String,
+    revision: i32,
+    position: Vector2D<f32, f32>,
+    width: i32,
+    height: i32,
+    children: Vec<Shape>,
+  },
   Circle {
     position: Vector2D<f32, f32>,
     radius: f32,
