@@ -1,5 +1,6 @@
-use cirru_edn::Edn;
 use std::sync::RwLock;
+
+use crate::primes::EventTarget;
 
 lazy_static! {
   static ref KEY_LISTENERS: RwLock<Vec<KeyListenerMark>> = RwLock::new(vec![]);
@@ -8,9 +9,7 @@ lazy_static! {
 #[derive(Debug, PartialEq, Clone)]
 pub struct KeyListenerMark {
   pub key: String,
-  pub path: Edn,
-  pub action: Edn,
-  pub data: Edn,
+  pub target: EventTarget,
 }
 
 pub fn reset_listeners_stack() {
@@ -18,14 +17,9 @@ pub fn reset_listeners_stack() {
   stack.clear();
 }
 
-pub fn add_key_listener(key: String, action: Edn, path: Edn, data: Edn) {
+pub fn add_key_listener(key: String, target: EventTarget) {
   let mut stack = KEY_LISTENERS.write().unwrap();
-  stack.push(KeyListenerMark {
-    key,
-    action,
-    path,
-    data,
-  })
+  stack.push(KeyListenerMark { key, target })
 }
 
 pub fn find_key_listeners(k: &str) -> Vec<KeyListenerMark> {

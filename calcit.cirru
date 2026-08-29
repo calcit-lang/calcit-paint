@@ -11,29 +11,34 @@
         |launch-canvas! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn launch-canvas! (cb)
-              &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas cb
+              &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas $ fn (event) (cb event) :handled
+              , &unit
           :examples $ []
           :schema $ :: 'Fn
-            {} (:return 'Nil)
+            {} (:return 'Unit)
               :args $ []
-                :: 'Fn $ {} (:return 'Dynamic)
+                :: 'Fn $ {} (:return 'R)
                   :args $ [] 'Dynamic
+              :generics $ [] 'R
         |measure-text! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn measure-text! (data)
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_text data
           :examples $ []
           :schema $ :: 'Fn
-            {} (:return 'Dynamic)
-              :args $ [] 'Dynamic
+            {}
+              :args $ [] (:: 'Map 'Tag 'Dynamic)
+              :return $ :: 'Map 'Tag 'Number
         |push-drawing-data! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn push-drawing-data! (op data)
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |push_drawing_data op data
+              , &unit
           :examples $ []
           :schema $ :: 'Fn
-            {} (:return 'Nil)
-              :args $ [] 'String 'Dynamic
+            {} (:return 'Unit)
+              :args $ [] 'String 'T
+              :generics $ [] 'T
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.core $ :require
@@ -49,7 +54,7 @@
               render!
           :examples $ []
           :schema $ :: 'Fn
-            {} (:return 'Nil)
+            {} (:return 'Unit)
               :args $ []
         |reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote
@@ -145,7 +150,7 @@
                           * 80 $ sin (* 1.9 i)
                     :join :round
                     :cap :round
-                  {} (:type :touch-area) (:radius 10) (:action nil) (:path nil) (:data nil)
+                  {} (:type :touch-area) (:radius 10)
                     :position $ [] 200 200
                     :fill-color $ [] 40 80 80
                   {} (:type :key-listener) (:key |D) (:action :keyboard)
@@ -171,7 +176,7 @@
                                 :fill-color $ [] 200 80 80
                   {} (:type :scale) (:factor 2.5)
                     :children $ []
-                      {} (:type :touch-area) (:radius 10) (:action nil) (:path nil) (:data nil)
+                      {} (:type :touch-area) (:radius 10)
                         :position $ [] 200 200
                         :fill-color $ [] 40 80 80
                   {} (:type :group)
@@ -254,9 +259,10 @@
                     println |event: event
                     :redraw $ render!
                   println |event: event
+                , &unit
           :examples $ []
           :schema $ :: 'Fn
-            {} (:return 'Nil)
+            {} (:return 'Unit)
               :args $ []
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote

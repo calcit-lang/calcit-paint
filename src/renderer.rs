@@ -37,9 +37,9 @@ lazy_static! {
 use crate::{
   color::extract_color,
   extracter::{
-    extract_fill_style, extract_polyline_stroke_style, extract_position, extract_stroke_style, extract_text_style,
-    extract_touch_area_shape, read_blend_mode, read_bool, read_color, read_f32, read_optional_f32, read_points,
-    read_position, read_string, read_text_align, tag,
+    extract_event_target, extract_fill_style, extract_polyline_stroke_style, extract_position, extract_stroke_style,
+    extract_text_style, extract_touch_area_shape, read_blend_mode, read_bool, read_color, read_f32, read_optional_f32,
+    read_points, read_position, read_string, read_text_align, tag,
   },
   key_listener,
   primes::{
@@ -492,9 +492,7 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
     }
     Shape::TouchArea {
       position,
-      action,
-      data,
-      path,
+      target,
       line_style,
       fill_style,
       area,
@@ -528,27 +526,10 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
           }
         }
       }
-      touches::add_touch_area(
-        position.to_owned(),
-        area.to_owned(),
-        (**action).to_owned(),
-        (**path).to_owned(),
-        (**data).to_owned(),
-        tr,
-      );
+      touches::add_touch_area(position.to_owned(), area.to_owned(), target.to_owned(), tr);
     }
-    Shape::KeyListener {
-      key,
-      action,
-      path,
-      data,
-    } => {
-      key_listener::add_key_listener(
-        key.to_owned(),
-        (**action).to_owned(),
-        (**path).to_owned(),
-        (**data).to_owned(),
-      );
+    Shape::KeyListener { key, target } => {
+      key_listener::add_key_listener(key.to_owned(), target.to_owned());
     }
     Shape::PaintOps {
       path: ops_path,
@@ -748,9 +729,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           line_style: extract_polyline_stroke_style(m)?,
         }),
         "touch-area" => Ok(Shape::TouchArea {
-          path: Box::new(m.get(&tag("path")).unwrap_or(&Edn::Nil).to_owned()),
-          action: Box::new(m.get(&tag("action")).unwrap_or(&Edn::Nil).to_owned()),
-          data: Box::new(m.get(&tag("data")).unwrap_or(&Edn::Nil).to_owned()),
+          target: extract_event_target(m),
           position: read_position(m, "position")?,
           area: extract_touch_area_shape(m)?,
           fill_style: extract_fill_style(m)?,
@@ -758,9 +737,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
         }),
         "key-listener" => Ok(Shape::KeyListener {
           key: read_string(m, "key")?,
-          path: Box::new(m.get(&tag("path")).unwrap_or(&Edn::Nil).to_owned()),
-          action: Box::new(m.get(&tag("action")).unwrap_or(&Edn::Nil).to_owned()),
-          data: Box::new(m.get(&tag("data")).unwrap_or(&Edn::Nil).to_owned()),
+          target: extract_event_target(m),
         }),
         "rotate" => {
           let c = m.get(&tag("children"));
