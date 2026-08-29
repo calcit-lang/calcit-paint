@@ -84,6 +84,16 @@
             {} (:return 'Unit)
               :args $ [] 'T
               :generics $ [] 'T
+        |validate-scene $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn validate-scene (scene)
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |validate_scene scene
+          :examples $ []
+          :schema $ :: 'Fn
+            {}
+              :args $ [] 'T
+              :generics $ [] 'T
+              :return $ :: 'List 'String
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.core $ :require
@@ -132,6 +142,7 @@
                 {} (:text "|Text layout / 文本排版") (:size 24) (:font-family |monospace) (:weight 700) (:style :italic) (:baseline :middle)
               println $ measure-paragraph!
                 {} (:text "|Paragraph measurement / 段落测量") (:max-width 260) (:size 20) (:line-height 28) (:max-lines 2) (:ellipsis "|…")
+              validate-scene-demo!
               render!
           :examples $ []
           :schema $ :: 'Fn
@@ -450,10 +461,34 @@
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ []
+        |validate-scene-demo! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn validate-scene-demo! () $ let
+                valid-scene $ {} (:type :group)
+                  :children $ []
+                    {} (:type :rounded-rect) (:width 160) (:height 70) (:radius 12)
+                valid-diagnostics $ validate-scene valid-scene
+                invalid-diagnostics $ validate-scene
+                  {} (:type :group)
+                    :children $ []
+                      {} $ :type :unknown-demo-shape
+                      {} (:type :group)
+                        :children $ [] true
+              if (empty? valid-diagnostics) (println "|scene validation passed / 场景校验通过")
+                raise $ str "|unexpected diagnostics for valid scene: " valid-diagnostics
+              if
+                = 2 $ count invalid-diagnostics
+                println "|expected validation diagnostics / 预期校验诊断: " invalid-diagnostics
+                raise $ str "|expected two invalid-scene diagnostics, got: " invalid-diagnostics
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ []
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.main $ :require
-            calcit-paint.core :refer $ launch-canvas! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png!
+            calcit-paint.core :refer $ launch-canvas! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene
     |calcit-paint.util $ %{} 'FileEntry
       :defs $ {}
         |get-dylib-ext $ %{} 'CodeEntry (:doc |)

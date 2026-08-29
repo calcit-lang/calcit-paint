@@ -22,6 +22,7 @@ calcit-paint.core/push-drawing-data! |reset-canvas! nil
 calcit-paint.core/push-drawing-data! |render-canvas! shape-data
 calcit-paint.core/measure-text! text-options
 calcit-paint.core/measure-paragraph! paragraph-options
+calcit-paint.core/validate-scene scene-data
 calcit-paint.core/render-to-png! offscreen-options
 calcit-paint.core/focus! |focus-id
 calcit-paint.core/focused? |focus-id
@@ -582,6 +583,40 @@ directory; startup itself does not write the file.
 
 默认 scene 会显示 cached badge；按 Shift+P 会显式调用 `export-offscreen-demo!`，在当前
 工作目录生成 `offscreen-demo.png`，程序启动本身不会写出该文件。
+
+### Scene validation and diagnostics / 场景校验与诊断
+
+`validate-scene` runs the same strict shape decoder used by windowed and
+offscreen rendering. It returns `List<String>`: an empty list means the scene is
+valid; every invalid sibling contributes one stable, structural-path diagnostic
+such as `$.children[1].children[0]: expected a map, got true`. `nil` remains the
+compatible empty scene. Valid scenes keep their existing rendering behavior.
+
+`validate-scene` 使用窗口渲染与离屏渲染共用的严格 shape decoder，返回
+`List<String>`：空列表表示 scene 合法；同级非法节点会分别产生稳定、可定位的结构路径
+诊断，例如 `$.children[1].children[0]: expected a map, got true`。`nil` 继续作为兼容的
+空 scene，合法 scene 的既有渲染行为不变。
+
+```cirru.no-check
+let
+    scene $ {} (:type :group)
+      :children $ []
+        {} (:type :rounded-rect) (:width 160) (:height 70) (:radius 12)
+    diagnostics $ validate-scene scene
+  println diagnostics
+```
+
+Invalid nested shapes are no longer replaced with empty groups. Windowed
+rendering reports the strict failure on stderr, while `render-to-png!` returns
+the same diagnostic and does not write a partial PNG. Renderer diagnostics and
+unknown drawing operations never print to stdout. The default Calcit entry runs
+`validate-scene-demo!` before opening the window and prints both a passing scene
+and two expected nested failures, so the API is exercised by the normal demo.
+
+非法嵌套 shape 不再被静默替换为空 group。窗口渲染会将严格校验失败写到 stderr；
+`render-to-png!` 返回相同诊断，且不会写出不完整 PNG。渲染诊断与未知绘制操作均不再
+污染 stdout。默认 Calcit 入口会在打开窗口前实际运行 `validate-scene-demo!`，打印一个
+通过的 scene 和两个预期的嵌套错误，因此正常 demo 会真实覆盖该 API。
 
 ### Calcit type boundaries / Calcit 类型边界
 

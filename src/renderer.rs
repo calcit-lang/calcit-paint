@@ -66,6 +66,50 @@ const MAX_OFFSCREEN_PIXELS: usize = 16 * 1024 * 1024;
 const SUBTREE_CACHE_LIMIT_BYTES: usize = 32 * 1024 * 1024;
 const SUBTREE_CACHE_MAX_ENTRIES: usize = 32;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct SceneDiagnostic {
+  path: String,
+  message: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct SceneDiagnostics(Vec<SceneDiagnostic>);
+
+impl SceneDiagnostics {
+  fn at(path: &str, message: impl Into<String>) -> Self {
+    Self(vec![SceneDiagnostic {
+      path: path.to_owned(),
+      message: message.into(),
+    }])
+  }
+
+  fn into_messages(self) -> Vec<String> {
+    self
+      .0
+      .into_iter()
+      .map(|diagnostic| format!("{}: {}", diagnostic.path, diagnostic.message))
+      .collect()
+  }
+
+  fn with_default_path(mut self, path: &str) -> Self {
+    for diagnostic in &mut self.0 {
+      if diagnostic.path.is_empty() {
+        diagnostic.path = path.to_owned();
+      }
+    }
+    self
+  }
+}
+
+impl From<String> for SceneDiagnostics {
+  fn from(message: String) -> Self {
+    Self(vec![SceneDiagnostic {
+      path: String::new(),
+      message,
+    }])
+  }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum RenderMode {
   Interactive,
@@ -561,21 +605,16 @@ pub fn draw_page(
 
     let mut shown_shape = false;
     for (call_op, arg) in messages {
-      // println!("op: {} {:?}", call_op, arg);
       match (&*call_op, arg) {
         ("render-canvas!", tree) => {
           shown_shape = true;
-          match extract_shape(&tree) {
-            Ok(shape) => draw_shape(canvas, &shape, &Transform::identity())?,
-            Err(failure) => {
-              println!("Failed to extract shape: {}", failure)
-            }
-          }
+          let shape = extract_shape(&tree)?;
+          draw_shape(canvas, &shape, &Transform::identity())?;
         }
         ("reset-canvas!", tree) => {
           reset_page(canvas, extract_color(&tree)?)?;
         }
-        _ => println!("Unknown op: {}", call_op),
+        _ => return Err(format!("unknown paint operation: {call_op}")),
       }
     }
     if shown_shape {
@@ -1007,8 +1046,18 @@ fn draw_shape_with_mode(
 }
 
 fn extract_shape(tree: &Edn) -> Result<Shape, String> {
-  // println!("extracting shape: {:?} -- {:?}", tag("type"), tree);
-  match tree {
+  extract_shape_at(tree, "$").map_err(|diagnostics| diagnostics.into_messages().join("\n"))
+}
+
+pub fn validate_scene(tree: &Edn) -> Vec<String> {
+  match extract_shape_at(tree, "$") {
+    Ok(_) => vec![],
+    Err(diagnostics) => diagnostics.into_messages(),
+  }
+}
+
+fn extract_shape_at(tree: &Edn, path: &str) -> Result<Shape, SceneDiagnostics> {
+  let result: Result<Shape, SceneDiagnostics> = (|| match tree {
     Edn::Map(m) => match m.get(&tag("type")) {
       Some(Edn::Tag(name)) => match name.ref_str() {
         "rectangle" | "rect" => Ok(Shape::Rectangle {
@@ -1061,7 +1110,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
         }),
         "group" => {
           let c = m.get(&tag("children"));
-          let children = extract_children(c)?;
+          let children = extract_children(c, path)?;
 
           Ok(Shape::Group {
             position: read_position(m, "position")?,
@@ -1078,7 +1127,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
             position: read_position(m, "position")?,
             width,
             height,
-            children: extract_children(m.get(&tag("children")))?,
+            children: extract_children(m.get(&tag("children")), path)?,
           })
         }
         // "arc" => Ok(Shape::Arc {
@@ -1139,7 +1188,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
         }),
         "rotate" => {
           let c = m.get(&tag("children"));
-          let children = extract_children(c)?;
+          let children = extract_children(c, path)?;
 
           Ok(Shape::Rotate {
             radius: read_f32(m, "radius")?,
@@ -1148,7 +1197,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
         }
         "scale" => {
           let c = m.get(&tag("children"));
-          let children = extract_children(c)?;
+          let children = extract_children(c, path)?;
 
           Ok(Shape::Scale {
             factor: read_f32(m, "factor")?,
@@ -1157,7 +1206,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
         }
         "translate" => {
           let c = m.get(&tag("children"));
-          let children = extract_children(c)?;
+          let children = extract_children(c, path)?;
 
           Ok(Shape::Translate {
             x: read_f32(m, "x")?,
@@ -1169,21 +1218,21 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           position: read_position(m, "position")?,
           width: read_non_negative_f32(m, "width")?,
           height: read_non_negative_f32(m, "height")?,
-          children: extract_children(m.get(&tag("children")))?,
+          children: extract_children(m.get(&tag("children")), path)?,
         }),
         "opacity" => {
           let alpha = read_f32(m, "alpha")?;
           if !(0.0..=1.0).contains(&alpha) {
-            return Err(format!("opacity alpha must be between 0 and 1, got {alpha}"));
+            return Err(format!("opacity alpha must be between 0 and 1, got {alpha}").into());
           }
           Ok(Shape::Opacity {
             alpha,
-            children: extract_children(m.get(&tag("children")))?,
+            children: extract_children(m.get(&tag("children")), path)?,
           })
         }
         "blend" => Ok(Shape::Blend {
           mode: read_blend_mode(m, "mode")?,
-          children: extract_children(m.get(&tag("children")))?,
+          children: extract_children(m.get(&tag("children")), path)?,
         }),
         "image" => {
           let crop = match m.get(&tag("crop")) {
@@ -1204,17 +1253,18 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
             crop,
           })
         }
-        _ => Err(format!("unknown kind: {}", name)),
+        _ => Err(format!("unknown kind: {name}").into()),
       },
-      Some(a) => Err(format!("unknown kind value, {}", a)),
-      None => Err(String::from("nil type")),
+      Some(value) => Err(format!("unknown kind value, {value}").into()),
+      None => Err(String::from("nil type").into()),
     },
     Edn::Nil => Ok(Shape::Group {
       position: Vector2D::new(0.0, 0.0),
       children: vec![],
     }),
-    _ => Err(format!("expected a map, got {}", tree)),
-  }
+    _ => Err(format!("expected a map, got {tree}").into()),
+  })();
+  result.map_err(|diagnostics| diagnostics.with_default_path(path))
 }
 
 fn validate_non_negative(name: &str, value: f32) -> Result<f32, String> {
@@ -1229,26 +1279,28 @@ fn read_non_negative_f32(tree: &EdnMapView, key: &str) -> Result<f32, String> {
   validate_non_negative(key, read_f32(tree, key)?)
 }
 
-fn extract_children(children: Option<&Edn>) -> Result<Vec<Shape>, String> {
-  let empty_group = Shape::Group {
-    position: Vector2D::new(0.0, 0.0),
-    children: vec![],
-  };
+fn extract_children(children: Option<&Edn>, parent_path: &str) -> Result<Vec<Shape>, SceneDiagnostics> {
   match children {
     Some(Edn::List(EdnListView(xs))) => {
-      let mut ys = vec![];
-      for x in xs {
-        match extract_shape(x) {
-          Ok(v) => ys.push(v),
-          Err(failure) => {
-            println!("Failed extracting: {}\n  in {}", failure, x);
-            ys.push(empty_group.to_owned());
-          }
+      let mut shapes = Vec::with_capacity(xs.len());
+      let mut diagnostics = vec![];
+      for (index, child) in xs.iter().enumerate() {
+        let child_path = format!("{parent_path}.children[{index}]");
+        match extract_shape_at(child, &child_path) {
+          Ok(shape) => shapes.push(shape),
+          Err(child_diagnostics) => diagnostics.extend(child_diagnostics.0),
         }
       }
-      Ok(ys)
+      if diagnostics.is_empty() {
+        Ok(shapes)
+      } else {
+        Err(SceneDiagnostics(diagnostics))
+      }
     }
-    Some(a) => Err(format!("invalid children: {}", a)),
+    Some(value) => Err(SceneDiagnostics::at(
+      &format!("{parent_path}.children"),
+      format!("expected a list, got {value}"),
+    )),
     None => Ok(vec![]),
   }
 }
@@ -1557,6 +1609,49 @@ mod tests {
       ("path", Edn::Str("unused.png".into())),
     ]);
     assert!(render_to_png(&missing_scene).unwrap_err().contains("requires :scene"));
+  }
+
+  #[test]
+  fn validates_scene_with_stable_nested_paths_and_all_sibling_failures() {
+    assert!(validate_scene(&map([("type", Edn::tag("group")), ("children", list([])),])).is_empty());
+    assert_eq!(validate_scene(&Edn::Number(3.0)), vec!["$: expected a map, got 3"]);
+
+    let invalid = map([
+      ("type", Edn::tag("group")),
+      (
+        "children",
+        list([
+          map([("type", Edn::tag("missing-shape"))]),
+          map([("type", Edn::tag("group")), ("children", list([Edn::Bool(true)]))]),
+        ]),
+      ),
+    ]);
+    let diagnostics = validate_scene(&invalid);
+    assert_eq!(
+      diagnostics,
+      vec![
+        "$.children[0]: unknown kind: missing-shape",
+        "$.children[1].children[0]: expected a map, got true",
+      ]
+    );
+    assert_eq!(extract_shape(&invalid).unwrap_err(), diagnostics.join("\n"));
+
+    let invalid_children = map([("type", Edn::tag("group")), ("children", Edn::Str("not-a-list".into()))]);
+    assert_eq!(
+      validate_scene(&invalid_children),
+      vec!["$.children: expected a list, got |not-a-list"]
+    );
+
+    let path = std::env::temp_dir().join(format!("calcit-paint-invalid-scene-{}.png", std::process::id()));
+    let request = map([
+      ("width", Edn::Number(8.0)),
+      ("height", Edn::Number(8.0)),
+      ("path", Edn::Str(path.to_string_lossy().into_owned().into())),
+      ("scene", invalid),
+    ]);
+    let error = render_to_png(&request).unwrap_err();
+    assert!(error.contains("$.children[0]: unknown kind: missing-shape"));
+    assert!(!path.exists());
   }
 
   #[test]

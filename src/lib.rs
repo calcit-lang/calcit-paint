@@ -45,7 +45,7 @@ mod touches;
 calcit_native_ffi::export_buffer_abi_v1!();
 calcit_native_ffi::export_async_abi_v1!();
 
-use cirru_edn::Edn;
+use cirru_edn::{Edn, EdnListView};
 
 struct Env {
   surface: Surface,
@@ -515,6 +515,20 @@ fn render_to_png(args: Vec<Edn>) -> Result<Edn, String> {
 
 calcit_native_ffi::export_edn_buffer_method_v1!(render_to_png_calcit_ffi_v1, render_to_png);
 
+fn validate_scene(args: Vec<Edn>) -> Result<Edn, String> {
+  let [scene] = args.as_slice() else {
+    return Err(format!("validate-scene expected one scene value, got: {args:?}"));
+  };
+  Ok(Edn::List(EdnListView(
+    renderer::validate_scene(scene)
+      .into_iter()
+      .map(|message| Edn::Str(message.into()))
+      .collect(),
+  )))
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(validate_scene_calcit_ffi_v1, validate_scene);
+
 /// Own the host thread while the paint event loop is running.
 ///
 /// # Safety
@@ -585,6 +599,8 @@ mod tests {
     assert!(measure_paragraph(vec![Edn::Nil]).is_err());
     assert!(render_to_png(vec![]).is_err());
     assert!(render_to_png(vec![Edn::Nil]).is_err());
+    assert!(validate_scene(vec![]).is_err());
+    assert_eq!(validate_scene(vec![Edn::Nil]).unwrap(), Edn::List(EdnListView(vec![])));
   }
 
   #[test]
