@@ -1,4 +1,5 @@
 
 yarn.lock -diff linguist-generated
 Cargo.lock -diff linguist-generated
+config/calcit-quality.json -diff linguist-generated
 resources/*.ttf

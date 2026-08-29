@@ -13,9 +13,14 @@ use lazy_static::lazy_static;
 type Transform = euclid::default::Transform2D<f32>;
 
 use skia_safe::canvas::{SaveLayerRec, SrcRectConstraint};
+use skia_safe::font_style::{Slant, Weight, Width};
+use skia_safe::textlayout::{
+  FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextAlign as SkParagraphAlign,
+  TextDirection as SkTextDirection, TextStyle as ParagraphTextStyle,
+};
 use skia_safe::{
-  gradient, Color, Color4f, Data, Font, Image, Paint, PaintStyle, PathBuilder, PathEffect, RRect, Rect, Shader,
-  TextBlob, TileMode,
+  gradient, Color, Color4f, Data, Font, FontMgr, FontStyle, Image, Paint, PaintStyle, PathBuilder, PathEffect, RRect,
+  Rect, Shader, TextBlob, TileMode,
 };
 
 #[derive(Clone)]
@@ -36,12 +41,15 @@ lazy_static! {
 use crate::{
   color::extract_color,
   extracter::{
-    extract_fill_style, extract_polyline_stroke_style, extract_position, extract_stroke_style,
-    extract_touch_area_shape, read_blend_mode, read_bool, read_color, read_f32, read_optional_f32, read_points,
-    read_position, read_string, read_text_align, tag,
+    extract_event_target, extract_fill_style, extract_paragraph_layout, extract_polyline_stroke_style,
+    extract_position, extract_stroke_style, extract_text_style, extract_touch_area_shape, read_blend_mode, read_bool,
+    read_color, read_f32, read_optional_f32, read_points, read_position, read_string, read_text_align, tag,
   },
   key_listener,
-  primes::{DashPattern, PaintPathTo, PaintSource, Shape, StrokeStyle, TouchAreaShape},
+  primes::{
+    DashPattern, PaintPathTo, PaintSource, ParagraphLayout, Shape, StrokeStyle, TextAlign, TextBaseline, TextDirection,
+    TextSlant, TextStyle, TouchAreaShape,
+  },
 };
 
 // TODO Stack
@@ -59,6 +67,140 @@ pub fn reset_page(_canvas: &skia_safe::canvas::Canvas, color: Color) -> Result<(
 pub fn get_bg_color() -> Color {
   let c = BG_COLOR.read().unwrap();
   c.to_owned()
+}
+
+fn create_text_font(style: &TextStyle, size: f32) -> Result<Font, String> {
+  if !size.is_finite() || size <= 0.0 {
+    return Err(format!("text size must be a finite positive number, got {size}"));
+  }
+  let slant = match &style.slant {
+    TextSlant::Normal => Slant::Upright,
+    TextSlant::Italic => Slant::Italic,
+  };
+  let font_style = FontStyle::new(Weight::from(style.weight), Width::NORMAL, slant);
+  let font_mgr = FontMgr::new();
+  // A requested family can be absent on another desktop. In that case retain
+  // the requested weight/slant while asking Skia for the platform default.
+  let typeface = font_mgr
+    .legacy_make_typeface(style.family.as_deref(), font_style)
+    .or_else(|| font_mgr.legacy_make_typeface(None, font_style))
+    .ok_or_else(|| "Skia could not resolve a default typeface".to_owned())?;
+  Ok(Font::new(typeface, size))
+}
+
+fn text_x_offset(align: &TextAlign, width: f32) -> f32 {
+  match align {
+    TextAlign::Left => 0.0,
+    TextAlign::Center => -0.5 * width,
+    TextAlign::Right => -width,
+  }
+}
+
+fn text_baseline_y(y: f32, style: &TextStyle, font: &Font) -> f32 {
+  let (_, metrics) = font.metrics();
+  match &style.baseline {
+    TextBaseline::Alphabetic => y,
+    TextBaseline::Top => y - metrics.ascent,
+    TextBaseline::Middle => y - 0.5 * (metrics.ascent + metrics.descent),
+    TextBaseline::Bottom => y - metrics.descent,
+  }
+}
+
+pub fn measure_text(data: &Edn) -> Result<Edn, String> {
+  let Edn::Map(data) = data else {
+    return Err(format!("measure-text expects one map, got {data}"));
+  };
+  let text = read_string(data, "text")?;
+  let size = read_f32(data, "size")?;
+  let style = extract_text_style(data)?;
+  let font = create_text_font(&style, size)?;
+  let (width, _) = font.measure_str(&text, None);
+  let (line_height, metrics) = font.metrics();
+  let mut result = EdnMapView::default();
+  result.insert(tag("width"), Edn::Number(width as f64));
+  result.insert(tag("height"), Edn::Number((metrics.descent - metrics.ascent) as f64));
+  result.insert(tag("line-height"), Edn::Number(line_height as f64));
+  result.insert(tag("ascent"), Edn::Number(metrics.ascent as f64));
+  result.insert(tag("descent"), Edn::Number(metrics.descent as f64));
+  result.insert(tag("leading"), Edn::Number(metrics.leading as f64));
+  result.insert(tag("baseline"), Edn::Number((-metrics.ascent) as f64));
+  Ok(Edn::Map(result))
+}
+
+fn build_paragraph(layout: &ParagraphLayout, color: Color) -> Paragraph {
+  let slant = match layout.style.slant {
+    TextSlant::Normal => Slant::Upright,
+    TextSlant::Italic => Slant::Italic,
+  };
+  let font_style = FontStyle::new(Weight::from(layout.style.weight), Width::NORMAL, slant);
+  let mut text_style = ParagraphTextStyle::new();
+  text_style
+    .set_color(color)
+    .set_font_style(font_style)
+    .set_font_size(layout.size);
+  if let Some(family) = &layout.style.family {
+    text_style.set_font_families(&[family]);
+  }
+  if let Some(line_height) = layout.line_height {
+    text_style
+      .set_height(line_height / layout.size)
+      .set_height_override(true);
+  }
+
+  let mut paragraph_style = ParagraphStyle::new();
+  paragraph_style
+    .set_text_style(&text_style)
+    .set_text_align(match layout.align {
+      TextAlign::Left => SkParagraphAlign::Left,
+      TextAlign::Center => SkParagraphAlign::Center,
+      TextAlign::Right => SkParagraphAlign::Right,
+    })
+    .set_text_direction(match layout.direction {
+      TextDirection::Ltr => SkTextDirection::LTR,
+      TextDirection::Rtl => SkTextDirection::RTL,
+    })
+    .set_max_lines(layout.max_lines);
+  if let Some(ellipsis) = &layout.ellipsis {
+    paragraph_style.set_ellipsis(ellipsis);
+  }
+
+  let mut fonts = FontCollection::new();
+  fonts.set_default_font_manager(FontMgr::new(), None);
+  let mut builder = ParagraphBuilder::new(&paragraph_style, fonts);
+  builder.add_text(&layout.text);
+  let mut paragraph = builder.build();
+  paragraph.layout(layout.max_width);
+  paragraph
+}
+
+pub fn measure_paragraph(data: &Edn) -> Result<Edn, String> {
+  let Edn::Map(data) = data else {
+    return Err(format!("measure-paragraph expects one map, got {data}"));
+  };
+  let layout = extract_paragraph_layout(data)?;
+  let paragraph = build_paragraph(&layout, Color::BLACK);
+  let mut result = EdnMapView::default();
+  result.insert(tag("width"), Edn::Number(paragraph.longest_line() as f64));
+  result.insert(tag("height"), Edn::Number(paragraph.height() as f64));
+  result.insert(tag("line-count"), Edn::Number(paragraph.line_number() as f64));
+  result.insert(tag("max-width"), Edn::Number(paragraph.max_width() as f64));
+  result.insert(
+    tag("min-intrinsic-width"),
+    Edn::Number(paragraph.min_intrinsic_width() as f64),
+  );
+  result.insert(
+    tag("max-intrinsic-width"),
+    Edn::Number(paragraph.max_intrinsic_width() as f64),
+  );
+  result.insert(
+    tag("alphabetic-baseline"),
+    Edn::Number(paragraph.alphabetic_baseline() as f64),
+  );
+  result.insert(
+    tag("ideographic-baseline"),
+    Edn::Number(paragraph.ideographic_baseline() as f64),
+  );
+  Ok(Edn::Map(result))
 }
 
 fn load_image(file_path: &str) -> Result<Option<Image>, String> {
@@ -364,28 +506,32 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
       position,
       size,
       color,
-      // weight: _w,
       align,
+      style,
     } => {
       // canvas.set_transform(tr);
       // https://github.com/jrmuizel/raqote/issues/179
       // for now we have to by pass bug in text rendering
       // canvas.set_transform(&Transform::identity());
 
-      let mut font = Font::default();
-      font.set_size(*size);
-      let text_blob = TextBlob::new(text, &font).unwrap();
+      let font = create_text_font(style, *size)?;
+      let text_blob = TextBlob::new(text, &font).ok_or_else(|| "failed to create text blob".to_owned())?;
 
       let mut paint = Paint::default();
       paint.set_anti_alias(true);
       paint.set_style(PaintStyle::Fill).set_color(*color);
 
-      let x_offset = match align {
-        crate::primes::TextAlign::Left => 0.0,
-        crate::primes::TextAlign::Center => -0.5 * text_blob.bounds().width(),
-        crate::primes::TextAlign::Right => -text_blob.bounds().width(),
-      };
-      canvas.draw_text_blob(text_blob, (position.x + x_offset, position.y), &paint);
+      let x_offset = text_x_offset(align, text_blob.bounds().width());
+      let y = text_baseline_y(position.y, style, &font);
+      canvas.draw_text_blob(text_blob, (position.x + x_offset, y), &paint);
+    }
+    Shape::Paragraph {
+      position,
+      color,
+      layout,
+    } => {
+      let paragraph = build_paragraph(layout, *color);
+      paragraph.paint(canvas, (position.x, position.y));
     }
     Shape::Polyline {
       position,
@@ -434,9 +580,7 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
     }
     Shape::TouchArea {
       position,
-      action,
-      data,
-      path,
+      target,
       line_style,
       fill_style,
       area,
@@ -470,27 +614,10 @@ fn draw_shape(canvas: &skia_safe::canvas::Canvas, tree: &Shape, tr: &Transform) 
           }
         }
       }
-      touches::add_touch_area(
-        position.to_owned(),
-        area.to_owned(),
-        (**action).to_owned(),
-        (**path).to_owned(),
-        (**data).to_owned(),
-        tr,
-      );
+      touches::add_touch_area(position.to_owned(), area.to_owned(), target.to_owned(), tr);
     }
-    Shape::KeyListener {
-      key,
-      action,
-      path,
-      data,
-    } => {
-      key_listener::add_key_listener(
-        key.to_owned(),
-        (**action).to_owned(),
-        (**path).to_owned(),
-        (**data).to_owned(),
-      );
+    Shape::KeyListener { key, target } => {
+      key_listener::add_key_listener(key.to_owned(), target.to_owned());
     }
     Shape::PaintOps {
       path: ops_path,
@@ -675,16 +802,19 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           fill_style: extract_fill_style(m)?,
           line_style: extract_stroke_style(m)?,
         }),
-        "text" => {
-          Ok(Shape::Text {
-            text: read_string(m, "text")?,
-            position: read_position(m, "position")?,
-            size: read_f32(m, "size")?,
-            color: read_color(m, "color")?,
-            // weight: read_string(m, "weight")?, // TODO
-            align: read_text_align(m, "align")?,
-          })
-        }
+        "text" => Ok(Shape::Text {
+          text: read_string(m, "text")?,
+          position: read_position(m, "position")?,
+          size: read_f32(m, "size")?,
+          color: read_color(m, "color")?,
+          align: read_text_align(m, "align")?,
+          style: extract_text_style(m)?,
+        }),
+        "paragraph" | "text-block" => Ok(Shape::Paragraph {
+          position: read_position(m, "position")?,
+          color: read_color(m, "color")?,
+          layout: extract_paragraph_layout(m)?,
+        }),
         "polyline" => Ok(Shape::Polyline {
           position: read_position(m, "position")?,
           skip_first: read_bool(m, "skip-first?")?,
@@ -692,9 +822,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
           line_style: extract_polyline_stroke_style(m)?,
         }),
         "touch-area" => Ok(Shape::TouchArea {
-          path: Box::new(m.get(&tag("path")).unwrap_or(&Edn::Nil).to_owned()),
-          action: Box::new(m.get(&tag("action")).unwrap_or(&Edn::Nil).to_owned()),
-          data: Box::new(m.get(&tag("data")).unwrap_or(&Edn::Nil).to_owned()),
+          target: extract_event_target(m),
           position: read_position(m, "position")?,
           area: extract_touch_area_shape(m)?,
           fill_style: extract_fill_style(m)?,
@@ -702,9 +830,7 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
         }),
         "key-listener" => Ok(Shape::KeyListener {
           key: read_string(m, "key")?,
-          path: Box::new(m.get(&tag("path")).unwrap_or(&Edn::Nil).to_owned()),
-          action: Box::new(m.get(&tag("action")).unwrap_or(&Edn::Nil).to_owned()),
-          data: Box::new(m.get(&tag("data")).unwrap_or(&Edn::Nil).to_owned()),
+          target: extract_event_target(m),
         }),
         "rotate" => {
           let c = m.get(&tag("children"));
@@ -904,6 +1030,33 @@ mod tests {
     Edn::List(EdnListView(values.into_iter().collect()))
   }
 
+  fn text_style() -> TextStyle {
+    TextStyle {
+      family: None,
+      weight: 400,
+      slant: TextSlant::Normal,
+      baseline: TextBaseline::Alphabetic,
+    }
+  }
+
+  fn paragraph_data(text: &str, max_width: f64) -> Edn {
+    map([
+      ("text", Edn::Str(text.into())),
+      ("max-width", Edn::Number(max_width)),
+      ("size", Edn::Number(20.0)),
+    ])
+  }
+
+  fn metric(data: &Edn, key: &str) -> f64 {
+    let Edn::Map(values) = data else {
+      panic!("expected measurement map, got {data}");
+    };
+    let Some(Edn::Number(value)) = values.get(&tag(key)) else {
+      panic!("expected numeric :{key} in {data}");
+    };
+    *value
+  }
+
   #[test]
   fn extracts_new_skia_shapes() {
     let rounded = map([
@@ -982,5 +1135,238 @@ mod tests {
   fn supports_explicit_path_close() {
     assert_eq!(extract_paint_op(&[Edn::tag("close-path")]), Ok(PaintPathTo::Close));
     assert!(extract_paint_op(&[Edn::tag("close"), Edn::Nil]).is_err());
+  }
+
+  #[test]
+  fn text_alignment_uses_the_requested_anchor() {
+    assert_eq!(text_x_offset(&TextAlign::Left, 120.0), 0.0);
+    assert_eq!(text_x_offset(&TextAlign::Center, 120.0), -60.0);
+    assert_eq!(text_x_offset(&TextAlign::Right, 120.0), -120.0);
+  }
+
+  #[test]
+  fn extracts_legacy_and_extended_text_shapes() {
+    let legacy = map([
+      ("type", Edn::tag("text")),
+      ("text", Edn::Str("Demo".into())),
+      ("position", list([Edn::Number(10.0), Edn::Number(20.0)])),
+      ("size", Edn::Number(24.0)),
+      ("color", list([Edn::Number(0.0), Edn::Number(0.0), Edn::Number(100.0)])),
+      ("align", Edn::tag("center")),
+      ("weight", Edn::Str("300".into())),
+    ]);
+    assert!(matches!(
+      extract_shape(&legacy),
+      Ok(Shape::Text {
+        style: TextStyle {
+          family: None,
+          weight: 300,
+          slant: TextSlant::Normal,
+          baseline: TextBaseline::Alphabetic,
+        },
+        ..
+      })
+    ));
+
+    let extended = map([
+      ("type", Edn::tag("text")),
+      ("text", Edn::Str("Layout".into())),
+      ("position", list([Edn::Number(10.0), Edn::Number(20.0)])),
+      ("size", Edn::Number(24.0)),
+      ("color", list([Edn::Number(0.0), Edn::Number(0.0), Edn::Number(100.0)])),
+      ("align", Edn::tag("left")),
+      ("font-family", Edn::Str("monospace".into())),
+      ("weight", Edn::Number(700.0)),
+      ("style", Edn::tag("italic")),
+      ("baseline", Edn::tag("top")),
+    ]);
+    assert!(matches!(
+      extract_shape(&extended),
+      Ok(Shape::Text {
+        style: TextStyle {
+          family: Some(_),
+          weight: 700,
+          slant: TextSlant::Italic,
+          baseline: TextBaseline::Top,
+        },
+        ..
+      })
+    ));
+  }
+
+  #[test]
+  fn extracts_paragraph_shape_and_text_block_alias() {
+    for kind in ["paragraph", "text-block"] {
+      let paragraph = map([
+        ("type", Edn::tag(kind)),
+        ("text", Edn::Str("Calcit 段落".into())),
+        ("position", list([Edn::Number(12.0), Edn::Number(24.0)])),
+        ("max-width", Edn::Number(240.0)),
+        ("size", Edn::Number(20.0)),
+        (
+          "color",
+          list([Edn::Number(200.0), Edn::Number(80.0), Edn::Number(90.0)]),
+        ),
+        ("align", Edn::tag("center")),
+        ("direction", Edn::tag("ltr")),
+        ("line-height", Edn::Number(30.0)),
+        ("max-lines", Edn::Number(2.0)),
+        ("ellipsis", Edn::Str("…".into())),
+      ]);
+      assert!(matches!(
+        extract_shape(&paragraph),
+        Ok(Shape::Paragraph {
+          layout: ParagraphLayout {
+            align: TextAlign::Center,
+            direction: TextDirection::Ltr,
+            line_height: Some(30.0),
+            max_lines: Some(2),
+            ..
+          },
+          ..
+        })
+      ));
+    }
+  }
+
+  #[test]
+  fn paragraph_layout_handles_empty_cjk_and_rtl_text() {
+    for text in ["", "中文段落可以安全换行", "مرحبا بالعالم"] {
+      let measured = measure_paragraph(&paragraph_data(text, 140.0)).unwrap();
+      for key in [
+        "width",
+        "height",
+        "line-count",
+        "max-width",
+        "min-intrinsic-width",
+        "max-intrinsic-width",
+        "alphabetic-baseline",
+        "ideographic-baseline",
+      ] {
+        assert!(metric(&measured, key).is_finite(), "non-finite :{key} for {text:?}");
+      }
+    }
+
+    let Edn::Map(mut rtl) = paragraph_data("مرحبا بالعالم", 140.0) else {
+      unreachable!();
+    };
+    rtl.insert(tag("direction"), Edn::tag("rtl"));
+    rtl.insert(tag("align"), Edn::tag("right"));
+    assert!(measure_paragraph(&Edn::Map(rtl)).is_ok());
+  }
+
+  #[test]
+  fn paragraph_respects_newlines_max_lines_and_measurement_metrics() {
+    let explicit_break = paragraph_data("first line\nsecond line", 500.0);
+    let measured = measure_paragraph(&explicit_break).unwrap();
+    assert_eq!(metric(&measured, "line-count"), 2.0);
+
+    let Edn::Map(mut truncated) =
+      paragraph_data("one two three four five six seven eight nine ten eleven twelve", 90.0)
+    else {
+      unreachable!();
+    };
+    truncated.insert(tag("max-lines"), Edn::Number(2.0));
+    truncated.insert(tag("ellipsis"), Edn::Str("…".into()));
+    let layout = extract_paragraph_layout(&truncated).unwrap();
+    let paragraph = build_paragraph(&layout, Color::BLACK);
+    assert_eq!(paragraph.line_number(), 2);
+    assert!(paragraph.did_exceed_max_lines());
+
+    let measured = measure_paragraph(&Edn::Map(truncated)).unwrap();
+    assert_eq!(metric(&measured, "line-count"), paragraph.line_number() as f64);
+    assert_eq!(metric(&measured, "height"), paragraph.height() as f64);
+    assert_eq!(metric(&measured, "width"), paragraph.longest_line() as f64);
+  }
+
+  #[test]
+  fn paragraph_rejects_invalid_layout_constraints() {
+    assert!(measure_paragraph(&paragraph_data("bad width", 0.0))
+      .unwrap_err()
+      .contains("max-width"));
+
+    let Edn::Map(mut invalid_height) = paragraph_data("bad height", 120.0) else {
+      unreachable!();
+    };
+    invalid_height.insert(tag("line-height"), Edn::Number(-1.0));
+    assert!(measure_paragraph(&Edn::Map(invalid_height))
+      .unwrap_err()
+      .contains("line-height"));
+
+    let Edn::Map(mut orphan_ellipsis) = paragraph_data("bad ellipsis", 120.0) else {
+      unreachable!();
+    };
+    orphan_ellipsis.insert(tag("ellipsis"), Edn::Str("…".into()));
+    assert!(measure_paragraph(&Edn::Map(orphan_ellipsis))
+      .unwrap_err()
+      .contains("requires :max-lines"));
+  }
+
+  #[test]
+  fn text_font_falls_back_and_honors_supported_weights() {
+    let missing_family = TextStyle {
+      family: Some("Calcit Paint Missing Family".into()),
+      weight: 700,
+      slant: TextSlant::Italic,
+      baseline: TextBaseline::Alphabetic,
+    };
+    assert!(create_text_font(&missing_family, 18.0).is_ok());
+    assert!(create_text_font(
+      &TextStyle {
+        weight: 100,
+        ..text_style()
+      },
+      18.0,
+    )
+    .is_ok());
+    assert!(create_text_font(
+      &TextStyle {
+        weight: 900,
+        ..text_style()
+      },
+      18.0,
+    )
+    .is_ok());
+  }
+
+  #[test]
+  fn text_baselines_and_empty_measurement_are_stable() {
+    let font = create_text_font(&text_style(), 20.0).unwrap();
+    let (_, metrics) = font.metrics();
+    let top = text_baseline_y(
+      100.0,
+      &TextStyle {
+        baseline: TextBaseline::Top,
+        ..text_style()
+      },
+      &font,
+    );
+    let middle = text_baseline_y(
+      100.0,
+      &TextStyle {
+        baseline: TextBaseline::Middle,
+        ..text_style()
+      },
+      &font,
+    );
+    let bottom = text_baseline_y(
+      100.0,
+      &TextStyle {
+        baseline: TextBaseline::Bottom,
+        ..text_style()
+      },
+      &font,
+    );
+    assert!((top - (100.0 - metrics.ascent)).abs() < f32::EPSILON);
+    assert!((middle - (100.0 - 0.5 * (metrics.ascent + metrics.descent))).abs() < f32::EPSILON);
+    assert!((bottom - (100.0 - metrics.descent)).abs() < f32::EPSILON);
+
+    let measured = measure_text(&map([("text", Edn::Str("".into())), ("size", Edn::Number(20.0))])).unwrap();
+    let Edn::Map(measured) = measured else {
+      panic!("expected text metrics map")
+    };
+    assert_eq!(measured.get(&tag("width")), Some(&Edn::Number(0.0)));
+    assert!(matches!(measured.get(&tag("height")), Some(Edn::Number(height)) if *height > 0.0));
+    assert!(matches!(measured.get(&tag("baseline")), Some(Edn::Number(offset)) if *offset > 0.0));
   }
 }

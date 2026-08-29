@@ -11,21 +11,43 @@
         |launch-canvas! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn launch-canvas! (cb)
-              &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas cb
+              &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas $ fn (event) (cb event) :handled
+              , &unit
           :examples $ []
           :schema $ :: 'Fn
-            {} (:return 'Nil)
+            {} (:return 'Unit)
               :args $ []
-                :: 'Fn $ {} (:return 'Dynamic)
+                :: 'Fn $ {} (:return 'R)
                   :args $ [] 'Dynamic
+              :generics $ [] 'R
+        |measure-paragraph! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn measure-paragraph! (data)
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_paragraph data
+          :examples $ []
+          :schema $ :: 'Fn
+            {}
+              :args $ [] (:: 'Map 'Tag 'Dynamic)
+              :return $ :: 'Map 'Tag 'Number
+        |measure-text! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn measure-text! (data)
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_text data
+          :examples $ []
+          :schema $ :: 'Fn
+            {}
+              :args $ [] (:: 'Map 'Tag 'Dynamic)
+              :return $ :: 'Map 'Tag 'Number
         |push-drawing-data! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn push-drawing-data! (op data)
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |push_drawing_data op data
+              , &unit
           :examples $ []
           :schema $ :: 'Fn
-            {} (:return 'Nil)
-              :args $ [] 'String 'Dynamic
+            {} (:return 'Unit)
+              :args $ [] 'String 'T
+              :generics $ [] 'T
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.core $ :require
@@ -35,10 +57,15 @@
       :defs $ {}
         |main! $ %{} 'CodeEntry (:doc |)
           :code $ quote
-            defn main! () (println |started) (render!)
+            defn main! () (println |started)
+              println $ measure-text!
+                {} (:text "|Text layout / 文本排版") (:size 24) (:font-family |monospace) (:weight 700) (:style :italic) (:baseline :middle)
+              println $ measure-paragraph!
+                {} (:text "|Paragraph measurement / 段落测量") (:max-width 260) (:size 20) (:line-height 28) (:max-lines 2) (:ellipsis "|…")
+              render!
           :examples $ []
           :schema $ :: 'Fn
-            {} (:return 'Nil)
+            {} (:return 'Unit)
               :args $ []
         |reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote
@@ -95,6 +122,33 @@
                     :size 40
                     :weight |300
                     :align :center
+                  {} (:type :group)
+                    :children $ []
+                      {} (:type :text) (:text "|Bold italic · top")
+                        :position $ [] 530 110
+                        :color $ [] 42 90 92
+                        :size 24
+                        :font-family |monospace
+                        :weight 700
+                        :style :italic
+                        :baseline :top
+                        :align :left
+                      {} (:type :text) (:text "|Regular · middle")
+                        :position $ [] 530 158
+                        :color $ [] 170 76 96
+                        :size 24
+                        :font-family |monospace
+                        :weight 400
+                        :baseline :middle
+                        :align :left
+                      {} (:type :text) (:text "|Light · bottom")
+                        :position $ [] 530 206
+                        :color $ [] 42 90 88
+                        :size 24
+                        :font-family |monospace
+                        :weight 300
+                        :baseline :bottom
+                        :align :left
                   {} (:type :polyline)
                     :position $ [] 480 200
                     :color $ [] 0 0 100 1
@@ -107,7 +161,7 @@
                           * 80 $ sin (* 1.9 i)
                     :join :round
                     :cap :round
-                  {} (:type :touch-area) (:radius 10) (:action nil) (:path nil) (:data nil)
+                  {} (:type :touch-area) (:radius 10)
                     :position $ [] 200 200
                     :fill-color $ [] 40 80 80
                   {} (:type :key-listener) (:key |D) (:action :keyboard)
@@ -133,7 +187,7 @@
                                 :fill-color $ [] 200 80 80
                   {} (:type :scale) (:factor 2.5)
                     :children $ []
-                      {} (:type :touch-area) (:radius 10) (:action nil) (:path nil) (:data nil)
+                      {} (:type :touch-area) (:radius 10)
                         :position $ [] 200 200
                         :fill-color $ [] 40 80 80
                   {} (:type :group)
@@ -207,6 +261,34 @@
                       {} (:type :key-listener) (:key |I) (:action :input-demo)
                         :path $ [] :demo :keyboard
                         :data :keyboard-demo
+                  {} (:type :group)
+                    :children $ []
+                      {} (:type :paragraph) (:text "|Calcit Paint paragraph\n中文段落 · explicit newline")
+                        :position $ [] 40 610
+                        :max-width 300
+                        :color $ [] 42 90 92
+                        :size 20
+                        :line-height 28
+                        :align :left
+                      {} (:type :paragraph) (:text "|A constrained paragraph demonstrates Unicode-safe wrapping and ellipsis. 受限宽度段落展示安全换行与省略号。")
+                        :position $ [] 380 610
+                        :max-width 320
+                        :color $ [] 170 76 96
+                        :size 18
+                        :line-height 26
+                        :max-lines 2
+                        :ellipsis "|…"
+                        :align :center
+                      {} (:type :paragraph) (:text "|مرحبا بالعالم · تخطيط النص من اليمين إلى اليسار")
+                        :position $ [] 740 610
+                        :max-width 320
+                        :color $ [] 200 82 90
+                        :size 20
+                        :line-height 30
+                        :max-lines 2
+                        :ellipsis "|…"
+                        :direction :rtl
+                        :align :right
                   {} (:type :image) (:file-path |resources/calcit.png) (:x 400) (:y 40) (:w 80) (:h 80)
                     ; :crop $ {} (:x 0) (:y 0) (:w 200) (:h 200)
               launch-canvas! $ fn (event)
@@ -216,14 +298,15 @@
                     println |event: event
                     :redraw $ render!
                   println |event: event
+                , &unit
           :examples $ []
           :schema $ :: 'Fn
-            {} (:return 'Nil)
+            {} (:return 'Unit)
               :args $ []
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.main $ :require
-            calcit-paint.core :refer $ launch-canvas! push-drawing-data!
+            calcit-paint.core :refer $ launch-canvas! push-drawing-data! measure-text! measure-paragraph!
     |calcit-paint.util $ %{} 'FileEntry
       :defs $ {}
         |get-dylib-ext $ %{} 'CodeEntry (:doc |)

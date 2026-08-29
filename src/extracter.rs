@@ -8,11 +8,29 @@ use skia_safe::{BlendMode, Color};
 
 use crate::{
   color::extract_color,
-  primes::{DashPattern, GradientStop, PaintSource, StrokeStyle, TextAlign, TouchAreaShape},
+  primes::{
+    DashPattern, EventTarget, GradientStop, PaintSource, ParagraphLayout, StrokeStyle, TextAlign, TextBaseline,
+    TextDirection, TextSlant, TextStyle, TouchAreaShape,
+  },
 };
 
 pub fn tag(s: &str) -> Edn {
   Edn::tag(s)
+}
+
+pub fn extract_event_target(tree: &EdnMapView) -> EventTarget {
+  EventTarget {
+    action: read_optional_edn(tree, "action"),
+    path: read_optional_edn(tree, "path"),
+    data: read_optional_edn(tree, "data"),
+  }
+}
+
+fn read_optional_edn(tree: &EdnMapView, key: &str) -> Option<Edn> {
+  match tree.get(&tag(key)) {
+    None | Some(Edn::Nil) => None,
+    Some(value) => Some(value.to_owned()),
+  }
 }
 
 pub fn read_f32(tree: &EdnMapView, key: &str) -> Result<f32, String> {
@@ -355,6 +373,121 @@ pub fn read_text_align(tree: &EdnMapView, key: &str) -> Result<TextAlign, String
   }
 }
 
+fn read_optional_text_align(tree: &EdnMapView, key: &str) -> Result<Option<TextAlign>, String> {
+  match tree.get(&tag(key)) {
+    Some(_) => read_text_align(tree, key).map(Some),
+    None => Ok(None),
+  }
+}
+
+fn read_text_direction(tree: &EdnMapView, key: &str) -> Result<TextDirection, String> {
+  match tree.get(&tag(key)) {
+    Some(Edn::Tag(direction)) => match direction.ref_str() {
+      "ltr" => Ok(TextDirection::Ltr),
+      "rtl" => Ok(TextDirection::Rtl),
+      _ => Err(format!("unsupported text direction: {direction}")),
+    },
+    Some(value) => Err(format!("text direction must be a tag, got {value}")),
+    None => Ok(TextDirection::Ltr),
+  }
+}
+
+fn read_optional_string(tree: &EdnMapView, key: &str) -> Result<Option<String>, String> {
+  match tree.get(&tag(key)) {
+    Some(Edn::Str(value)) => Ok(Some(value.to_string())),
+    Some(Edn::Nil) | None => Ok(None),
+    Some(value) => Err(format!("{key} must be a string, got {value}")),
+  }
+}
+
+fn read_optional_positive_usize(tree: &EdnMapView, key: &str) -> Result<Option<usize>, String> {
+  match tree.get(&tag(key)) {
+    Some(Edn::Number(value))
+      if value.is_finite() && value.fract() == 0.0 && *value >= 1.0 && *value <= usize::MAX as f64 =>
+    {
+      Ok(Some(*value as usize))
+    }
+    Some(value) => Err(format!("{key} must be a positive integer, got {value}")),
+    None => Ok(None),
+  }
+}
+
+pub fn extract_paragraph_layout(tree: &EdnMapView) -> Result<ParagraphLayout, String> {
+  let size = validate_positive("paragraph size", read_f32(tree, "size")?)?;
+  let max_width = validate_positive("paragraph max-width", read_f32(tree, "max-width")?)?;
+  let line_height = read_optional_f32(tree, "line-height")?
+    .map(|value| validate_positive("paragraph line-height", value))
+    .transpose()?;
+  let max_lines = read_optional_positive_usize(tree, "max-lines")?;
+  let ellipsis = read_optional_string(tree, "ellipsis")?;
+  if ellipsis.is_some() && max_lines.is_none() {
+    return Err("paragraph :ellipsis requires :max-lines".to_owned());
+  }
+  Ok(ParagraphLayout {
+    text: read_string(tree, "text")?,
+    max_width,
+    size,
+    align: read_optional_text_align(tree, "align")?.unwrap_or(TextAlign::Left),
+    direction: read_text_direction(tree, "direction")?,
+    style: extract_text_style(tree)?,
+    line_height,
+    max_lines,
+    ellipsis,
+  })
+}
+
+pub fn extract_text_style(tree: &EdnMapView) -> Result<TextStyle, String> {
+  let family = match tree.get(&tag("font-family")) {
+    Some(Edn::Str(family)) => Some(family.to_string()),
+    Some(Edn::Nil) | None => None,
+    Some(value) => return Err(format!("font-family must be a string, got {value}")),
+  };
+  let weight = match tree.get(&tag("weight")) {
+    Some(Edn::Number(weight)) => read_font_weight(*weight, "weight")?,
+    // The original demo used a string weight before this option was implemented.
+    Some(Edn::Str(weight)) => weight
+      .parse::<f64>()
+      .map_err(|_| format!("weight must be a number between 100 and 900, got {weight}"))
+      .and_then(|weight| read_font_weight(weight, "weight"))?,
+    Some(value) => return Err(format!("weight must be a number between 100 and 900, got {value}")),
+    None => 400,
+  };
+  let slant = match tree.get(&tag("style")) {
+    Some(Edn::Tag(style)) => match style.ref_str() {
+      "normal" => TextSlant::Normal,
+      "italic" => TextSlant::Italic,
+      _ => return Err(format!("unsupported text style: {style}")),
+    },
+    Some(value) => return Err(format!("text style must be a tag, got {value}")),
+    None => TextSlant::Normal,
+  };
+  let baseline = match tree.get(&tag("baseline")) {
+    Some(Edn::Tag(baseline)) => match baseline.ref_str() {
+      "alphabetic" => TextBaseline::Alphabetic,
+      "top" => TextBaseline::Top,
+      "middle" => TextBaseline::Middle,
+      "bottom" => TextBaseline::Bottom,
+      _ => return Err(format!("unsupported text baseline: {baseline}")),
+    },
+    Some(value) => return Err(format!("text baseline must be a tag, got {value}")),
+    None => TextBaseline::Alphabetic,
+  };
+  Ok(TextStyle {
+    family,
+    weight,
+    slant,
+    baseline,
+  })
+}
+
+fn read_font_weight(weight: f64, field: &str) -> Result<i32, String> {
+  if weight.is_finite() && weight.fract() == 0.0 && (100.0..=900.0).contains(&weight) {
+    Ok(weight as i32)
+  } else {
+    Err(format!("{field} must be an integer between 100 and 900, got {weight}"))
+  }
+}
+
 pub fn read_line_join(tree: &EdnMapView, key: &str) -> Result<Join, String> {
   match tree.get(&tag(key)) {
     Some(Edn::Tag(k)) => match k.ref_str() {
@@ -448,6 +581,28 @@ mod tests {
   }
 
   #[test]
+  fn treats_missing_and_nil_event_target_fields_as_optional() {
+    assert_eq!(extract_event_target(&EdnMapView::default()), EventTarget::default());
+
+    let explicit_nil = map([("action", Edn::Nil), ("path", Edn::Nil), ("data", Edn::Nil)]);
+    assert_eq!(extract_event_target(map_view(&explicit_nil)), EventTarget::default());
+
+    let populated = map([
+      ("action", Edn::tag("drag")),
+      ("path", Edn::tag("canvas")),
+      ("data", Edn::Number(1.0)),
+    ]);
+    assert_eq!(
+      extract_event_target(map_view(&populated)),
+      EventTarget {
+        action: Some(Edn::tag("drag")),
+        path: Some(Edn::tag("canvas")),
+        data: Some(Edn::Number(1.0)),
+      }
+    );
+  }
+
+  #[test]
   fn keeps_legacy_solid_fill_and_stroke() {
     let shape = map([
       ("fill-color", color(20.0)),
@@ -520,6 +675,55 @@ mod tests {
         offset: 2.0,
       })
     );
+  }
+
+  #[test]
+  fn extracts_text_style_defaults_and_legacy_weight() {
+    let defaults = map([]);
+    assert_eq!(
+      extract_text_style(map_view(&defaults)),
+      Ok(TextStyle {
+        family: None,
+        weight: 400,
+        slant: TextSlant::Normal,
+        baseline: TextBaseline::Alphabetic,
+      })
+    );
+
+    let explicit = map([
+      ("font-family", Edn::Str("monospace".into())),
+      // The pre-existing runnable demo used string weights.
+      ("weight", Edn::Str("300".into())),
+      ("style", Edn::tag("italic")),
+      ("baseline", Edn::tag("middle")),
+    ]);
+    assert_eq!(
+      extract_text_style(map_view(&explicit)),
+      Ok(TextStyle {
+        family: Some("monospace".into()),
+        weight: 300,
+        slant: TextSlant::Italic,
+        baseline: TextBaseline::Middle,
+      })
+    );
+  }
+
+  #[test]
+  fn rejects_invalid_text_style_options() {
+    let invalid_weight = map([("weight", Edn::Number(250.5))]);
+    assert!(extract_text_style(map_view(&invalid_weight))
+      .unwrap_err()
+      .contains("integer between 100 and 900"));
+
+    let invalid_style = map([("style", Edn::tag("oblique"))]);
+    assert!(extract_text_style(map_view(&invalid_style))
+      .unwrap_err()
+      .contains("unsupported text style"));
+
+    let invalid_baseline = map([("baseline", Edn::tag("hanging"))]);
+    assert!(extract_text_style(map_view(&invalid_baseline))
+      .unwrap_err()
+      .contains("unsupported text baseline"));
   }
 
   #[test]

@@ -8,7 +8,7 @@ It runs [Calcit](https://github.com/calcit-lang/calcit) and is driven by the can
 
 项目直接运行 [Calcit](https://github.com/calcit-lang/calcit)，并以规范的
 `calcit.cirru` Snapshot 作为源码。默认场景包含可直接看到效果的渐变、虚线描边和
-混合模式 demo。
+混合模式、输入事件和文本排版 demo。
 
 ```bash
 ./build.sh
@@ -20,9 +20,12 @@ Available APIs:
 ```cirru.no-check
 calcit-paint.core/push-drawing-data! |reset-canvas! nil
 calcit-paint.core/push-drawing-data! |render-canvas! shape-data
+calcit-paint.core/measure-text! text-options
+calcit-paint.core/measure-paragraph! paragraph-options
 
 calcit-paint.core/launch-canvas! $ fn (event)
   println "|rendering to canvas..."
+  &unit
 ```
 
 ### Native FFI / 原生 FFI
@@ -235,18 +238,142 @@ Circle {
   :line-width 4
 ```
 
-- Text, using `text`
+#### Text layout / 文本排版
 
-```rust
-Text {
-  text: String,
-  position: Vec2,
-  size: f32,
-  // weight: String, // TODO
-  color: Color,
-  // align: TextAlign,
-},
+`text` accepts the required `:text`, `:position`, `:size`, `:color`, and
+`:align` fields, plus the following optional text-layout fields. The default
+behaviour is compatible with existing text shapes: a 400-weight, upright,
+platform-default font is drawn with `:alphabetic` baseline.
+
+`text` 需要 `:text`、`:position`、`:size`、`:color` 和 `:align`；还支持以下可选
+排版字段。缺省行为与旧 text shape 兼容：使用平台默认字体、400 字重、常规样式，并以
+`:alphabetic` 基线绘制。
+
+| Field / 字段 | Values / 取值 | Default / 默认值 |
+| --- | --- | --- |
+| `:font-family` | Font-family string / 字体族字符串 | System default / 系统默认字体 |
+| `:weight` | Integer from `100` to `900` / `100` 至 `900` 的整数 | `400` |
+| `:style` | `:normal`, `:italic` | `:normal` |
+| `:baseline` | `:alphabetic`, `:top`, `:middle`, `:bottom` | `:alphabetic` |
+| `:align` | `:left`, `:center`, `:right` | Required / 必填 |
+
+```cirru.no-check
+{} (:type :text) (:text "|Bold italic · top")
+  :position $ [] 530 110
+  :color $ [] 42 90 92
+  :size 24
+  :font-family |monospace
+  :weight 700
+  :style :italic
+  :baseline :top
+  :align :left
 ```
+
+`position` is the selected alignment anchor on the selected baseline. Thus
+`:top`, `:middle`, and `:bottom` keep those respective visual locations stable;
+`:alphabetic` preserves Skia's traditional text origin. A requested font family
+that is not installed is not an error: Skia falls back to the platform default
+while retaining the requested weight and style as closely as available.
+
+`position` 是所选对齐方式和基线的锚点。`:top`、`:middle`、`:bottom` 会稳定对应的
+视觉位置；`:alphabetic` 则保持 Skia 传统的文字原点。若请求的字体族未安装，不会报错：
+Skia 会回退到平台默认字体，并尽可能保留请求的字重和样式。
+
+Weights must be integral values in the inclusive `100..900` range; unknown
+styles or baselines are rejected with field-specific errors. For compatibility,
+legacy numeric string weights such as `|300` are also accepted, but new code
+should use numbers.
+
+字重必须是 `100..900`（含边界）范围的整数；未知样式或基线会返回指向字段的错误。为
+兼容旧代码，`|300` 这样的数字字符串字重仍可用；新代码应使用数字。
+
+`calcit-paint.core/measure-text!` measures text without drawing it. It accepts a
+map with `:text`, `:size`, and the same optional font fields above, and returns
+an EDN map with `:width`, `:height`, `:line-height`, `:ascent`, `:descent`,
+`:leading`, and `:baseline`. `:baseline` is the distance from the line box top
+to the alphabetic baseline; an empty string has zero width and retains its font
+line metrics.
+
+`calcit-paint.core/measure-text!` 可在不绘制时测量文本。它接收包含 `:text`、`:size`
+及上述可选字体字段的 map，返回带有 `:width`、`:height`、`:line-height`、`:ascent`、
+`:descent`、`:leading` 和 `:baseline` 的 EDN map。`:baseline` 表示从行框顶部到
+alphabetic 基线的距离；空字符串宽度为零，仍保留对应字体的行度量。
+
+```cirru.no-check
+measure-text! $ {}
+  :text "|Text layout / 文本排版"
+  :size 24
+  :font-family |monospace
+  :weight 700
+  :style :italic
+  :baseline :middle
+```
+
+Run `./build.sh` followed by `calcit ./calcit.cirru` to run the maintained
+Calcit demo. It prints the measurement map before opening the canvas, then
+displays bold italic/top, regular/middle, and light/bottom text samples.
+
+执行 `./build.sh` 后运行 `calcit ./calcit.cirru` 即可启动维护中的 Calcit demo。
+它会在打开画布前打印测量 map，并显示粗斜体/top、常规/middle、细体/bottom 三组文本。
+
+#### Paragraph layout and international text / 段落布局与国际化文本
+
+Use `:paragraph` (or the `:text-block` alias) for wrapping and multi-line text.
+It uses Skia Paragraph/TextLayout with ICU/BiDi shaping; it never slices UTF-8
+bytes as a fallback. The existing single-line `:text` shape and
+`measure-text!` API remain unchanged.
+
+使用 `:paragraph`（或别名 `:text-block`）绘制自动换行和多行文本。实现直接使用带
+ICU/BiDi shaping 的 Skia Paragraph/TextLayout，不会通过切分 UTF-8 字节来降级处理。
+现有单行 `:text` shape 与 `measure-text!` API 保持不变。
+
+```cirru.no-check
+{} (:type :paragraph) (:text "|Calcit Paint paragraph\n中文段落 · explicit newline")
+  :position $ [] 40 610
+  :max-width 300
+  :color $ [] 42 90 92
+  :size 20
+  :line-height 28
+  :align :left
+  :direction :ltr
+  :max-lines 2
+  :ellipsis |…
+```
+
+`position` is the top-left corner of the paragraph layout box. `:max-width`
+and `:size` must be finite positive numbers. `:line-height`, when present, is
+an absolute logical-pixel height and must also be positive. `:align` accepts
+`:left`, `:center`, or `:right` and defaults to `:left`; `:direction` accepts
+`:ltr` or `:rtl` and defaults to `:ltr`. `:max-lines` must be a positive
+integer. A string `:ellipsis` requires `:max-lines`, which prevents a silently
+ineffective truncation option. Font family, weight, style, and color behave the
+same as on single-line text.
+
+`position` 表示段落布局框的左上角。`:max-width` 与 `:size` 必须是有限正数；可选的
+`:line-height` 是以逻辑像素表示的绝对行高，也必须为正数。`:align` 支持 `:left`、
+`:center`、`:right`，默认 `:left`；`:direction` 支持 `:ltr`、`:rtl`，默认 `:ltr`。
+`:max-lines` 必须为正整数；字符串 `:ellipsis` 必须与 `:max-lines` 一起使用，避免配置
+省略号却不生效。字体族、字重、样式和颜色沿用单行文本语义。
+
+`measure-paragraph!` accepts the layout fields above (drawing-only
+`:position`, `:color`, and `:type` are unnecessary) and returns a homogeneous
+`Map<Tag, Number>` containing `:width`, `:height`, `:line-count`, `:max-width`,
+`:min-intrinsic-width`, `:max-intrinsic-width`, `:alphabetic-baseline`, and
+`:ideographic-baseline`. Drawing and measurement use the same layout helper.
+
+`measure-paragraph!` 接收上述布局字段（不需要仅绘制使用的 `:position`、`:color`、
+`:type`），返回同构的 `Map<Tag, Number>`，字段包括 `:width`、`:height`、
+`:line-count`、`:max-width`、`:min-intrinsic-width`、`:max-intrinsic-width`、
+`:alphabetic-baseline` 与 `:ideographic-baseline`。绘制与测量共用同一布局实现。
+
+The maintained default Calcit demo prints paragraph metrics and renders three
+real paragraph shapes: Chinese/English with an explicit newline, constrained
+two-line ellipsis, and right-to-left Arabic. Run it with the commands at the
+top of this README.
+
+维护中的默认 Calcit demo 会打印段落度量，并实际绘制三组 paragraph shape：含显式
+换行的中英文、受限为两行并带省略号的段落，以及从右向左的阿拉伯文。使用 README
+开头的命令即可运行。
 
 - Paint operations, with `ops`
 
@@ -318,9 +445,11 @@ For handling events:
 
 ```rust
 TouchArea {
-  path: Calcit,
-  action: Calcit,
-  data: Calcit,
+  target: EventTarget {
+    action: Option<Calcit>,
+    path: Option<Calcit>,
+    data: Option<Calcit>,
+  },
   position: Vec2,
   // children: Vec<Shape>, // TODO
   area: TouchAreaShape,
@@ -334,12 +463,49 @@ TouchArea {
 ```rust
 KeyListener {
   key: String,
-  action: Calcit,
-  path: Calcit,
-  data: Calcit,
+  target: EventTarget {
+    action: Option<Calcit>,
+    path: Option<Calcit>,
+    data: Option<Calcit>,
+  },
   // children: Vec<Shape>, // TODO
 },
 ```
+
+`:action`, `:path`, and `:data` are optional on both shape maps. Omitting a
+field and passing an explicit `nil` are equivalent. Internally Paint stores
+them as `Option<Edn>`; when a touch area or key listener matches, the emitted
+event still contains all three legacy keys and uses `nil` for absent values.
+This keeps existing event consumers compatible while allowing new Calcit demos
+to omit meaningless placeholders.
+
+`:action`、`:path` 与 `:data` 在两类 shape map 中均为可选字段；省略字段与显式传入
+`nil` 等价。Paint 内部使用 `Option<Edn>` 存储；当 touch area 或 key listener
+命中时，发出的事件仍保留这三个历史字段，缺失值以 `nil` 表示。因此旧事件消费代码
+保持兼容，而新的 Calcit demo 不再需要填写无意义的占位值。
+
+### Calcit type boundaries / Calcit 类型边界
+
+Public wrappers use explicit `Unit` returns for side effects. Drawing payloads
+are generic because each operation accepts a different EDN shape, while text
+and paragraph measurement return `Map<Tag, Number>`. Three `Dynamic` slots
+remain by design: the blocking callback first receives legacy `nil` and then
+heterogeneous event maps, while text-option and paragraph-option map values are
+heterogeneous. Callback result type `R` remains generic; `launch-canvas!`
+discards that result inside an adapter and
+returns the serializable `:handled` tag to the blocking ABI because Calcit
+`Unit` is intentionally not Cirru EDN. These boundaries are tracked by the
+reviewed quality baseline rather than being misrepresented as homogeneous
+values or JS FFI.
+
+公开 wrapper 的副作用返回值均显式声明为 `Unit`。不同绘制操作接收不同 EDN shape，
+因此 drawing payload 使用泛型；单行文字与段落测量结果均明确为 `Map<Tag, Number>`。
+目前仅有三个 `Dynamic` 是有意保留的真实框架边界：blocking callback 会先收到兼容
+旧行为的 `nil`、随后收到异构事件 map；单行文字与段落选项 map 的 value 也为异构
+数据。callback 返回类型 `R` 仍为泛型；`launch-canvas!` 在内部 adapter 中丢弃该结果，
+并向 blocking ABI 返回
+可序列化的 `:handled` tag，因为 Calcit `Unit` 本身并不是 Cirru EDN。这些边界由已审核
+的质量基线跟踪，而不会被错误标成同构类型或 JS FFI。
 
 ### Input events / 输入事件
 

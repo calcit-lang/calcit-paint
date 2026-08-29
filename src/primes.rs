@@ -14,6 +14,47 @@ pub enum TextAlign {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub enum TextDirection {
+  Ltr,
+  Rtl,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum TextSlant {
+  Normal,
+  Italic,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum TextBaseline {
+  Alphabetic,
+  Top,
+  Middle,
+  Bottom,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct TextStyle {
+  pub family: Option<String>,
+  pub weight: i32,
+  pub slant: TextSlant,
+  pub baseline: TextBaseline,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ParagraphLayout {
+  pub text: String,
+  pub max_width: f32,
+  pub size: f32,
+  pub align: TextAlign,
+  pub direction: TextDirection,
+  pub style: TextStyle,
+  pub line_height: Option<f32>,
+  pub max_lines: Option<usize>,
+  pub ellipsis: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum PaintPathTo {
   Move(Point2D<f32, f32>),
   Line(Point2D<f32, f32>),
@@ -57,6 +98,13 @@ pub struct StrokeStyle {
   pub join: Join,
   pub miter_limit: f32,
   pub dash: Option<DashPattern>,
+}
+
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct EventTarget {
+  pub action: Option<Edn>,
+  pub path: Option<Edn>,
+  pub data: Option<Edn>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -108,9 +156,14 @@ pub enum Shape {
     text: String,
     position: Vector2D<f32, f32>,
     size: f32,
-    // weight: String, // TODO
     color: Color,
     align: TextAlign,
+    style: TextStyle,
+  },
+  Paragraph {
+    position: Vector2D<f32, f32>,
+    color: Color,
+    layout: ParagraphLayout,
   },
   // Arc {
   //   position: Vector2D<f32,f32>,
@@ -133,9 +186,7 @@ pub enum Shape {
     line_style: StrokeStyle,
   },
   TouchArea {
-    path: Box<Edn>,
-    action: Box<Edn>,
-    data: Box<Edn>,
+    target: EventTarget,
     position: Vector2D<f32, f32>,
     // children: Vec<Shape>, // TODO
     area: TouchAreaShape,
@@ -144,9 +195,7 @@ pub enum Shape {
   },
   KeyListener {
     key: String, // TODO modifier
-    path: Box<Edn>,
-    action: Box<Edn>,
-    data: Box<Edn>,
+    target: EventTarget,
     // children: Vec<Shape>, // TODO
   },
   Translate {

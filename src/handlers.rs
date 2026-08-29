@@ -8,7 +8,7 @@ use winit::{
   keyboard::{Key, ModifiersState, PhysicalKey},
 };
 
-use crate::{extracter::tag, key_listener, touches};
+use crate::{extracter::tag, key_listener, primes::EventTarget, touches};
 
 fn map_view(pairs: impl IntoIterator<Item = (Edn, Edn)>) -> EdnMapView {
   let mut map = EdnMapView::default();
@@ -128,6 +128,17 @@ fn add_button_fields(info: &mut EdnMapView, button: MouseButton) {
   }
 }
 
+fn add_target_fields(info: &mut EdnMapView, target: &EventTarget) {
+  extend_map(
+    info,
+    [
+      (tag("action"), target.action.clone().unwrap_or(Edn::Nil)),
+      (tag("path"), target.path.clone().unwrap_or(Edn::Nil)),
+      (tag("data"), target.data.clone().unwrap_or(Edn::Nil)),
+    ],
+  );
+}
+
 pub fn handle_mouse_down(input: &mut InputState, button: MouseButton, at: Duration) -> Edn {
   let clicks = input.click_count(button, at);
   let position = input.position;
@@ -136,21 +147,8 @@ pub fn handle_mouse_down(input: &mut InputState, button: MouseButton, at: Durati
   add_button_fields(&mut info, button);
 
   if let Some(target) = touches::find_touch_area(position) {
-    extend_map(
-      &mut info,
-      [
-        (tag("action"), target.action.to_owned()),
-        (tag("path"), target.path.to_owned()),
-        (tag("data"), target.data.to_owned()),
-      ],
-    );
-    touches::track_mouse_drag(
-      position,
-      button,
-      target.action.to_owned(),
-      target.path.to_owned(),
-      target.data,
-    );
+    add_target_fields(&mut info, &target.target);
+    touches::track_mouse_drag(position, button, target.target);
   }
 
   Edn::Map(info)
@@ -164,12 +162,10 @@ pub fn handle_mouse_up(input: &InputState, button: MouseButton) -> Edn {
 
   if let Some(tracked_state) = touches::read_mouse_tracked_state().filter(|state| state.button == button) {
     let p0 = tracked_state.position;
+    add_target_fields(&mut info, &tracked_state.target);
     extend_map(
       &mut info,
       [
-        (tag("action"), tracked_state.action),
-        (tag("path"), tracked_state.path),
-        (tag("data"), tracked_state.data),
         (tag("dx"), Edn::Number((position.x - p0.x) as f64)),
         (tag("dy"), Edn::Number((position.y - p0.y) as f64)),
       ],
@@ -192,12 +188,10 @@ pub fn handle_mouse_move(position: Vector2D<f32, f32>, input: &mut InputState) -
     if let Some(tracked_state) = touches::read_mouse_tracked_state() {
       let p0 = tracked_state.position;
       let button = tracked_state.button;
+      add_target_fields(&mut info, &tracked_state.target);
       extend_map(
         &mut info,
         [
-          (tag("action"), tracked_state.action),
-          (tag("path"), tracked_state.path),
-          (tag("data"), tracked_state.data),
           (tag("button"), tag(mouse_button_name(button))),
           (tag("dx"), Edn::Number((position.x - p0.x) as f64)),
           (tag("dy"), Edn::Number((position.y - p0.y) as f64)),
@@ -217,12 +211,10 @@ pub fn handle_mouse_leave(input: &InputState) -> Edn {
   if let Some(tracked_state) = touches::take_mouse_drag() {
     let p0 = tracked_state.position;
     let button = tracked_state.button;
+    add_target_fields(&mut info, &tracked_state.target);
     extend_map(
       &mut info,
       [
-        (tag("action"), tracked_state.action),
-        (tag("path"), tracked_state.path),
-        (tag("data"), tracked_state.data),
         (tag("button"), tag(mouse_button_name(button))),
         (tag("cancelled?"), Edn::Bool(true)),
         (tag("dx"), Edn::Number((input.position.x - p0.x) as f64)),
@@ -263,14 +255,7 @@ pub fn handle_keyboard(
     let mut hits: Vec<Edn> = vec![];
     for target in targets {
       let mut info = base.clone();
-      extend_map(
-        &mut info,
-        [
-          (tag("action"), target.action),
-          (tag("path"), target.path),
-          (tag("data"), target.data),
-        ],
-      );
+      add_target_fields(&mut info, &target.target);
       hits.push(Edn::Map(info));
     }
     hits
@@ -432,9 +417,11 @@ mod tests {
     touches::add_touch_area(
       Vector2D::new(20.0, 30.0),
       crate::primes::TouchAreaShape::Circle(10.0),
-      tag("drag"),
-      tag("path"),
-      tag("data"),
+      EventTarget {
+        action: Some(tag("drag")),
+        path: Some(tag("path")),
+        data: Some(tag("data")),
+      },
       &crate::touches::Transform::identity(),
     );
     handle_mouse_down(&mut state, MouseButton::Left, Duration::ZERO);
@@ -444,6 +431,28 @@ mod tests {
     assert_eq!(leave.get(&tag("cancelled?")), Some(&Edn::Bool(true)));
     assert_eq!(leave.get(&tag("dx")), Some(&Edn::Number(30.0)));
     assert!(touches::read_mouse_tracked_state().is_none());
+    touches::reset_touches_stack();
+  }
+
+  #[test]
+  fn preserves_nil_fields_for_optional_event_targets() {
+    let _guard = POINTER_TEST_LOCK.lock().unwrap();
+    touches::release_mouse_drag();
+    touches::reset_touches_stack();
+    let mut state = input(Vector2D::new(20.0, 30.0));
+    touches::add_touch_area(
+      Vector2D::new(20.0, 30.0),
+      crate::primes::TouchAreaShape::Circle(10.0),
+      EventTarget::default(),
+      &crate::touches::Transform::identity(),
+    );
+
+    let down = event_map(handle_mouse_down(&mut state, MouseButton::Left, Duration::ZERO));
+    assert_eq!(down.get(&tag("action")), Some(&Edn::Nil));
+    assert_eq!(down.get(&tag("path")), Some(&Edn::Nil));
+    assert_eq!(down.get(&tag("data")), Some(&Edn::Nil));
+
+    touches::release_mouse_drag();
     touches::reset_touches_stack();
   }
 

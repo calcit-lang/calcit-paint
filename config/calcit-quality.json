@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 2,
+  "scope": {
+    "namespace": null,
+    "namespacePrefix": null,
+    "includeDependencies": false
+  },
+  "metrics": {
+    "typeNone": 0,
+    "typeNotFull": 3,
+    "schemaDynamic": 3,
+    "codeDynamic": 0,
+    "codeNil": 0,
+    "unresolved": 3,
+    "declaredOptional": 0,
+    "deprecatedCalls": 0,
+    "unsafeCoerce": 0
+  },
+  "definitions": {
+    "calcit-paint.core/launch-canvas!": {
+      "typeNone": 0,
+      "typeNotFull": 1,
+      "schemaDynamic": 1,
+      "codeDynamic": 0,
+      "codeNil": 0,
+      "unresolved": 1,
+      "declaredOptional": 0,
+      "deprecatedCalls": 0,
+      "unsafeCoerce": 0
+    },
+    "calcit-paint.core/measure-paragraph!": {
+      "typeNone": 0,
+      "typeNotFull": 1,
+      "schemaDynamic": 1,
+      "codeDynamic": 0,
+      "codeNil": 0,
+      "unresolved": 1,
+      "declaredOptional": 0,
+      "deprecatedCalls": 0,
+      "unsafeCoerce": 0
+    },
+    "calcit-paint.core/measure-text!": {
+      "typeNone": 0,
+      "typeNotFull": 1,
+      "schemaDynamic": 1,
+      "codeDynamic": 0,
+      "codeNil": 0,
+      "unresolved": 1,
+      "declaredOptional": 0,
+      "deprecatedCalls": 0,
+      "unsafeCoerce": 0
+    }
+  }
+}
