@@ -107,6 +107,14 @@ pub struct EventTarget {
   pub data: Option<Edn>,
 }
 
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct ShortcutModifiers {
+  pub shift: bool,
+  pub control: bool,
+  pub alt: bool,
+  pub super_key: bool,
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Shape {
   Rectangle {
@@ -194,9 +202,21 @@ pub enum Shape {
     fill_style: Option<PaintSource>,
   },
   KeyListener {
-    key: String, // TODO modifier
+    key: String,
+    modifiers: Option<ShortcutModifiers>,
+    focus_id: Option<String>,
     target: EventTarget,
     // children: Vec<Shape>, // TODO
+  },
+  FocusArea {
+    id: String,
+    target: EventTarget,
+    position: Vector2D<f32, f32>,
+    area: TouchAreaShape,
+    tab_index: i32,
+    text_input: bool,
+    line_style: Option<StrokeStyle>,
+    fill_style: Option<PaintSource>,
   },
   Translate {
     x: f32,

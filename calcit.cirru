@@ -8,6 +8,32 @@
   :files $ {}
     |calcit-paint.core $ %{} 'FileEntry
       :defs $ {}
+        |blur! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn blur! ()
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |clear_focus
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ []
+        |focus! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn focus! (id)
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |request_focus id
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'String
+        |focused? $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn focused? (id)
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |focused id
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Bool)
+              :args $ [] 'String
         |launch-canvas! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn launch-canvas! (cb)
@@ -289,14 +315,60 @@
                         :ellipsis "|…"
                         :direction :rtl
                         :align :right
+                  {} (:type :group)
+                    :children $ []
+                      {} (:type :focus-area) (:focus-id |field-a) (:tab-index 0) (:text-input? true)
+                        :position $ [] 180 450
+                        :dx 140
+                        :dy 32
+                        :action :focus-demo
+                        :path $ [] :field-a
+                        :data :ime-field
+                        :fill-color $ [] 215 70 45
+                        :line-color $ [] 215 88 76
+                        :line-width 3
+                      {} (:type :text) (:text "|Focus A · IME text input")
+                        :position $ [] 180 450
+                        :color $ [] 0 0 98
+                        :size 18
+                        :baseline :middle
+                        :align :center
+                      {} (:type :focus-area) (:focus-id |field-b) (:tab-index 1) (:text-input? true)
+                        :position $ [] 180 525
+                        :dx 140
+                        :dy 32
+                        :action :focus-demo
+                        :path $ [] :field-b
+                        :data :ime-field
+                        :fill-color $ [] 165 65 42
+                        :line-color $ [] 165 88 74
+                        :line-width 3
+                      {} (:type :text) (:text "|Focus B · Tab / Shift+Tab")
+                        :position $ [] 180 525
+                        :color $ [] 0 0 98
+                        :size 18
+                        :baseline :middle
+                        :align :center
+                      {} (:type :key-listener) (:key |K) (:action :focus-first)
+                        :modifiers $ {} (:shift? true)
+                        :data :shortcut-demo
+                      {} (:type :key-listener) (:key |Enter) (:focus-id |field-a) (:action :field-submit) (:data :focus-scoped-key)
+                      {} (:type :text) (:text "|Click a field, press Tab, type with IME; Shift+K focuses A")
+                        :position $ [] 180 580
+                        :color $ [] 45 18 96
+                        :size 14
+                        :align :center
                   {} (:type :image) (:file-path |resources/calcit.png) (:x 400) (:y 40) (:w 80) (:h 80)
                     ; :crop $ {} (:x 0) (:y 0) (:w 200) (:h 200)
               launch-canvas! $ fn (event)
                 if (map? event)
-                  case-default
-                    .unwrap-or (get event :type) :unknown
-                    println |event: event
-                    :redraw $ render!
+                  if
+                    = :focus-first $ .unwrap-or (get event :action) :none
+                    focus! |field-a
+                    case-default
+                      .unwrap-or (get event :type) :unknown
+                      println |event: event
+                      :redraw $ render!
                   println |event: event
                 , &unit
           :examples $ []
@@ -306,7 +378,7 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.main $ :require
-            calcit-paint.core :refer $ launch-canvas! push-drawing-data! measure-text! measure-paragraph!
+            calcit-paint.core :refer $ launch-canvas! push-drawing-data! measure-text! measure-paragraph! focus!
     |calcit-paint.util $ %{} 'FileEntry
       :defs $ {}
         |get-dylib-ext $ %{} 'CodeEntry (:doc |)
