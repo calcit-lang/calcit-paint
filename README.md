@@ -418,20 +418,53 @@ Polyline {
 },
 ```
 
-- Image, using `image`, and `Rect` from Skia
+- Image presentation / 图片展示，使用 `image` 与 Skia `Rect`
 
 ```rust
 Image {
   file_path: String,
   x: f32, y: f32, w: f32, h: f32,
-  crop: Rect {
-    x: f32, y: f32, w: f32, h: f32
-  }
+  crop: Option<Rect>, // Calcit map fields: :x, :y, :w, :h
+  fit: ImageFit,
+  sampling: ImageSampling,
 }
 ```
 
-Decoded images are cached and automatically reloaded when file size or
-modification time changes.
+The destination `:x` and `:y` must be finite; `:w` and `:h` must be finite and
+positive. `:fit` is an optional tag:
+
+| `:fit` | English | 中文 |
+| --- | --- | --- |
+| `:fill` (default) | Stretch to the destination rectangle; preserves the legacy behavior. | 拉伸到目标矩形；保持旧版本行为。 |
+| `:contain` | Preserve aspect ratio and center the complete image inside the destination. | 保持宽高比，在目标矩形内居中显示完整图片。 |
+| `:cover` | Preserve aspect ratio, fill the destination, and crop the source from the center. | 保持宽高比并填满目标矩形，从源图中心裁切。 |
+
+`:sampling` is also optional. `:nearest` is the compatibility-preserving
+default, `:linear` uses linear filtering, and `:cubic` uses Skia's Mitchell
+cubic resampler. / `:sampling` 同样可省略；兼容默认值为 `:nearest`，
+`:linear` 使用线性过滤，`:cubic` 使用 Skia 的 Mitchell 三次重采样。
+
+`:crop` may be omitted or set to `nil`. When present it must be a map with
+finite non-negative `:x` / `:y` and finite positive `:w` / `:h`. Scene
+validation checks this structure without doing file I/O; after decoding, the
+renderer also verifies that the crop stays inside the actual image and reports
+the structural shape path on failure. / `:crop` 可以省略或设为 `nil`；存在时
+必须是 map，其中 `:x` / `:y` 为有限非负数，`:w` / `:h` 为有限正数。
+场景校验不读取文件，解码后渲染器会继续检查裁切范围是否位于真实图片内，
+错误信息会包含结构化 shape 路径。
+
+Decoded images use an LRU cache capped at 64 entries and 64 MiB of estimated
+RGBA memory (`width * height * 4`). File-size or modification-time changes
+invalidate an entry; an oversized image is still rendered but is not cached.
+Missing files keep the legacy log-and-skip behavior. / 解码图片使用 LRU 缓存，
+上限为 64 项及 64 MiB 预估 RGBA 内存（`width * height * 4`）。文件大小或
+修改时间变化会使缓存失效；超限单图仍可渲染，但不会进入缓存。文件缺失时
+保持原有的记录错误并跳过渲染行为。
+
+The runnable `calcit-paint.main/render!` demo exercises legacy fill/nearest,
+contain/linear, and cropped cover/cubic in one scene. / 可运行的
+`calcit-paint.main/render!` demo 在同一场景中覆盖旧版 fill/nearest、
+contain/linear，以及带 crop 的 cover/cubic。
 
 - Cached group, using `cached-group` (alias: `static-group`)
 
