@@ -32,7 +32,7 @@ jobs:
       - name: Audit C-safe exports
         run: |
           symbols=$(nm -D --defined-only dylibs/libcalcit_paint.so | awk '{print $3}')
-          for symbol in calcit_ffi_buffer_version calcit_ffi_async_version calcit_ffi_buffer_free push_drawing_data_calcit_ffi_v1 measure_text_calcit_ffi_v1 measure_paragraph_calcit_ffi_v1 render_to_png_calcit_ffi_v1 request_focus_calcit_ffi_v1 clear_focus_calcit_ffi_v1 focused_calcit_ffi_v1 launch_canvas_calcit_ffi_blocking_v1; do
+          for symbol in calcit_ffi_buffer_version calcit_ffi_async_version calcit_ffi_buffer_free push_drawing_data_calcit_ffi_v1 measure_text_calcit_ffi_v1 measure_paragraph_calcit_ffi_v1 render_to_png_calcit_ffi_v1 validate_scene_calcit_ffi_v1 request_focus_calcit_ffi_v1 clear_focus_calcit_ffi_v1 focused_calcit_ffi_v1 launch_canvas_calcit_ffi_blocking_v1; do
             echo "$symbols" | grep -Fx "$symbol"
           done
           for legacy in launch_canvas push_drawing_data abi_version; do
