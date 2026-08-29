@@ -1,10 +1,10 @@
 #[macro_use]
 extern crate lazy_static;
 
-use std::cell::RefCell;
 use std::ffi::CString;
 use std::num::NonZeroU32;
 use std::sync::RwLock;
+use std::time::Instant;
 
 use euclid::Vector2D;
 use gl::types::*;
@@ -27,7 +27,7 @@ use winit::{
   dpi::LogicalSize,
   event::{ElementState, KeyEvent, MouseScrollDelta, WindowEvent},
   event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
-  keyboard::{Key, NamedKey, PhysicalKey},
+  keyboard::{Key, ModifiersState, NamedKey, PhysicalKey},
   window::{Window, WindowAttributes, WindowId},
 };
 
@@ -81,7 +81,8 @@ struct PaintApplication<F> {
   fb_info: FramebufferInfo,
   num_samples: usize,
   stencil_size: usize,
-  mouse_position: RefCell<Vector2D<f32, f32>>,
+  input: handlers::InputState,
+  started_at: Instant,
   scale_factor: f32,
   first_paint: bool,
   smoke_once: bool,
@@ -179,25 +180,32 @@ where
             position.x as f32 / self.scale_factor,
             position.y as f32 / self.scale_factor,
           ),
-          &self.mouse_position,
+          &mut self.input,
         );
         if let Some(event) = event {
           self.dispatch(event);
           self.env.window.request_redraw();
         }
       }
-      WindowEvent::MouseInput { state, .. } => {
+      WindowEvent::CursorLeft { .. } => {
+        self.dispatch(handlers::handle_mouse_leave(&self.input));
+        self.env.window.request_redraw();
+      }
+      WindowEvent::MouseInput { state, button, .. } => {
         let event = match state {
-          ElementState::Pressed => handlers::handle_mouse_down(&self.mouse_position),
-          ElementState::Released => handlers::handle_mouse_up(&self.mouse_position),
+          ElementState::Pressed => handlers::handle_mouse_down(&mut self.input, button, self.started_at.elapsed()),
+          ElementState::Released => handlers::handle_mouse_up(&self.input, button),
         };
         self.dispatch(event);
         self.env.window.request_redraw();
       }
       WindowEvent::MouseWheel { delta, .. } => {
         let event = match delta {
-          MouseScrollDelta::LineDelta(dx, dy) => handlers::handle_mouse_wheel(dx as f64, dy as f64, "line"),
+          MouseScrollDelta::LineDelta(dx, dy) => {
+            handlers::handle_mouse_wheel(&self.input, dx as f64, dy as f64, "line")
+          }
           MouseScrollDelta::PixelDelta(position) => handlers::handle_mouse_wheel(
+            &self.input,
             position.x / self.scale_factor as f64,
             position.y / self.scale_factor as f64,
             "pixel",
@@ -205,6 +213,9 @@ where
         };
         self.dispatch(event);
         self.env.window.request_redraw();
+      }
+      WindowEvent::ModifiersChanged(modifiers) => {
+        self.input.set_modifiers(modifiers.state());
       }
       WindowEvent::KeyboardInput {
         event: KeyEvent {
@@ -224,7 +235,7 @@ where
           PhysicalKey::Code(code) => code as u32 as f64,
           PhysicalKey::Unidentified(_) => 0.0,
         };
-        for event in handlers::handle_keyboard(&name, key_code, state) {
+        for event in handlers::handle_keyboard(&name, key_code, &physical_key, state, self.input.modifiers()) {
           self.dispatch(event);
         }
         self.env.window.request_redraw();
@@ -342,7 +353,8 @@ fn launch_canvas_impl(handler: impl Fn(Vec<Edn>) -> Result<Edn, String>) -> Resu
     fb_info,
     num_samples,
     stencil_size,
-    mouse_position: RefCell::new(Vector2D::new(0.0, 0.0)),
+    input: handlers::InputState::new(Vector2D::new(0.0, 0.0), ModifiersState::empty()),
+    started_at: Instant::now(),
     scale_factor,
     first_paint: true,
     smoke_once: std::env::var_os("CALCIT_PAINT_SMOKE_ONCE").is_some(),

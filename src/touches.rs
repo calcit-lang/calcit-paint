@@ -2,6 +2,7 @@ use std::sync::RwLock;
 
 use cirru_edn::Edn;
 use euclid::{Point2D, Vector2D};
+use winit::event::MouseButton;
 
 use crate::primes::TouchAreaShape;
 
@@ -25,6 +26,7 @@ pub struct TouchArea {
 #[derive(Debug, PartialEq, Clone)]
 pub struct MouseDragState {
   pub position: Vector2D<f32, f32>,
+  pub button: MouseButton,
   pub action: Edn,
   pub path: Edn,
   pub data: Edn,
@@ -60,8 +62,9 @@ pub fn read_mouse_tracked_state() -> Option<MouseDragState> {
   MOUSE_DRAG_TRACKED.read().unwrap().to_owned()
 }
 
-pub fn track_mouse_drag(down_position: Vector2D<f32, f32>, action: Edn, path: Edn, data: Edn) {
+pub fn track_mouse_drag(down_position: Vector2D<f32, f32>, button: MouseButton, action: Edn, path: Edn, data: Edn) {
   let item = MouseDragState {
+    button,
     data,
     action,
     path,
@@ -74,6 +77,11 @@ pub fn track_mouse_drag(down_position: Vector2D<f32, f32>, action: Edn, path: Ed
 pub fn release_mouse_drag() {
   let mut state = MOUSE_DRAG_TRACKED.write().unwrap();
   *state = None;
+}
+
+pub fn take_mouse_drag() -> Option<MouseDragState> {
+  let mut state = MOUSE_DRAG_TRACKED.write().unwrap();
+  state.take()
 }
 
 pub fn find_touch_area(p0: Vector2D<f32, f32>) -> Option<TouchArea> {
