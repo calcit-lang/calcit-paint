@@ -81,6 +81,13 @@ pub struct StrokeStyle {
   pub dash: Option<DashPattern>,
 }
 
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct EventTarget {
+  pub action: Option<Edn>,
+  pub path: Option<Edn>,
+  pub data: Option<Edn>,
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Shape {
   Rectangle {
@@ -155,9 +162,7 @@ pub enum Shape {
     line_style: StrokeStyle,
   },
   TouchArea {
-    path: Box<Edn>,
-    action: Box<Edn>,
-    data: Box<Edn>,
+    target: EventTarget,
     position: Vector2D<f32, f32>,
     // children: Vec<Shape>, // TODO
     area: TouchAreaShape,
@@ -166,9 +171,7 @@ pub enum Shape {
   },
   KeyListener {
     key: String, // TODO modifier
-    path: Box<Edn>,
-    action: Box<Edn>,
-    data: Box<Edn>,
+    target: EventTarget,
     // children: Vec<Shape>, // TODO
   },
   Translate {

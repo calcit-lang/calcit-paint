@@ -24,6 +24,7 @@ calcit-paint.core/measure-text! text-options
 
 calcit-paint.core/launch-canvas! $ fn (event)
   println "|rendering to canvas..."
+  &unit
 ```
 
 ### Native FFI / 原生 FFI
@@ -384,9 +385,11 @@ For handling events:
 
 ```rust
 TouchArea {
-  path: Calcit,
-  action: Calcit,
-  data: Calcit,
+  target: EventTarget {
+    action: Option<Calcit>,
+    path: Option<Calcit>,
+    data: Option<Calcit>,
+  },
   position: Vec2,
   // children: Vec<Shape>, // TODO
   area: TouchAreaShape,
@@ -400,12 +403,47 @@ TouchArea {
 ```rust
 KeyListener {
   key: String,
-  action: Calcit,
-  path: Calcit,
-  data: Calcit,
+  target: EventTarget {
+    action: Option<Calcit>,
+    path: Option<Calcit>,
+    data: Option<Calcit>,
+  },
   // children: Vec<Shape>, // TODO
 },
 ```
+
+`:action`, `:path`, and `:data` are optional on both shape maps. Omitting a
+field and passing an explicit `nil` are equivalent. Internally Paint stores
+them as `Option<Edn>`; when a touch area or key listener matches, the emitted
+event still contains all three legacy keys and uses `nil` for absent values.
+This keeps existing event consumers compatible while allowing new Calcit demos
+to omit meaningless placeholders.
+
+`:action`、`:path` 与 `:data` 在两类 shape map 中均为可选字段；省略字段与显式传入
+`nil` 等价。Paint 内部使用 `Option<Edn>` 存储；当 touch area 或 key listener
+命中时，发出的事件仍保留这三个历史字段，缺失值以 `nil` 表示。因此旧事件消费代码
+保持兼容，而新的 Calcit demo 不再需要填写无意义的占位值。
+
+### Calcit type boundaries / Calcit 类型边界
+
+Public wrappers use explicit `Unit` returns for side effects. Drawing payloads
+are generic because each operation accepts a different EDN shape, while text
+measurement returns `Map<Tag, Number>`. Two `Dynamic` slots remain by design:
+the blocking callback first receives legacy `nil` and then heterogeneous event
+maps, while text-option map values are heterogeneous. Callback result type `R`
+remains generic; `launch-canvas!` discards that result inside an adapter and
+returns the serializable `:handled` tag to the blocking ABI because Calcit
+`Unit` is intentionally not Cirru EDN. These boundaries are tracked by the
+reviewed quality baseline rather than being misrepresented as homogeneous
+values or JS FFI.
+
+公开 wrapper 的副作用返回值均显式声明为 `Unit`。不同绘制操作接收不同 EDN shape，
+因此 drawing payload 使用泛型；文字测量结果则明确为 `Map<Tag, Number>`。目前仅有
+两个 `Dynamic` 是有意保留的真实框架边界：blocking callback 会先收到兼容旧行为的
+`nil`、随后收到异构事件 map；文字选项 map 的 value 也为异构数据。callback 返回类型
+`R` 仍为泛型；`launch-canvas!` 在内部 adapter 中丢弃该结果，并向 blocking ABI 返回
+可序列化的 `:handled` tag，因为 Calcit `Unit` 本身并不是 Cirru EDN。这些边界由已审核
+的质量基线跟踪，而不会被错误标成同构类型或 JS FFI。
 
 ### Input events / 输入事件
 

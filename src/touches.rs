@@ -1,10 +1,9 @@
 use std::sync::RwLock;
 
-use cirru_edn::Edn;
 use euclid::{Point2D, Vector2D};
 use winit::event::MouseButton;
 
-use crate::primes::TouchAreaShape;
+use crate::primes::{EventTarget, TouchAreaShape};
 
 pub type Transform = euclid::default::Transform2D<f32>;
 
@@ -15,9 +14,7 @@ lazy_static! {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TouchArea {
-  pub path: Edn,
-  pub action: Edn,
-  pub data: Edn,
+  pub target: EventTarget,
   pub position: Vector2D<f32, f32>,
   pub area: TouchAreaShape,
   pub transform: Transform,
@@ -27,9 +24,7 @@ pub struct TouchArea {
 pub struct MouseDragState {
   pub position: Vector2D<f32, f32>,
   pub button: MouseButton,
-  pub action: Edn,
-  pub path: Edn,
-  pub data: Edn,
+  pub target: EventTarget,
 }
 
 pub fn reset_touches_stack() {
@@ -37,20 +32,11 @@ pub fn reset_touches_stack() {
   stack.clear()
 }
 
-pub fn add_touch_area(
-  position: Vector2D<f32, f32>,
-  area: TouchAreaShape,
-  action: Edn,
-  path: Edn,
-  data: Edn,
-  transform: &Transform,
-) {
+pub fn add_touch_area(position: Vector2D<f32, f32>, area: TouchAreaShape, target: EventTarget, transform: &Transform) {
   let mut stack = TOUCH_ITEMS_STACK.write().unwrap();
 
   let item = TouchArea {
-    action,
-    path,
-    data,
+    target,
     position: position.to_owned(),
     area,
     transform: transform.to_owned(),
@@ -62,12 +48,10 @@ pub fn read_mouse_tracked_state() -> Option<MouseDragState> {
   MOUSE_DRAG_TRACKED.read().unwrap().to_owned()
 }
 
-pub fn track_mouse_drag(down_position: Vector2D<f32, f32>, button: MouseButton, action: Edn, path: Edn, data: Edn) {
+pub fn track_mouse_drag(down_position: Vector2D<f32, f32>, button: MouseButton, target: EventTarget) {
   let item = MouseDragState {
     button,
-    data,
-    action,
-    path,
+    target,
     position: down_position,
   };
   let mut state = MOUSE_DRAG_TRACKED.write().unwrap();

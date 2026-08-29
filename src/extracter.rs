@@ -9,12 +9,28 @@ use skia_safe::{BlendMode, Color};
 use crate::{
   color::extract_color,
   primes::{
-    DashPattern, GradientStop, PaintSource, StrokeStyle, TextAlign, TextBaseline, TextSlant, TextStyle, TouchAreaShape,
+    DashPattern, EventTarget, GradientStop, PaintSource, StrokeStyle, TextAlign, TextBaseline, TextSlant, TextStyle,
+    TouchAreaShape,
   },
 };
 
 pub fn tag(s: &str) -> Edn {
   Edn::tag(s)
+}
+
+pub fn extract_event_target(tree: &EdnMapView) -> EventTarget {
+  EventTarget {
+    action: read_optional_edn(tree, "action"),
+    path: read_optional_edn(tree, "path"),
+    data: read_optional_edn(tree, "data"),
+  }
+}
+
+fn read_optional_edn(tree: &EdnMapView, key: &str) -> Option<Edn> {
+  match tree.get(&tag(key)) {
+    None | Some(Edn::Nil) => None,
+    Some(value) => Some(value.to_owned()),
+  }
 }
 
 pub fn read_f32(tree: &EdnMapView, key: &str) -> Result<f32, String> {
@@ -499,6 +515,28 @@ mod tests {
   fn map_view(value: &Edn) -> &EdnMapView {
     let Edn::Map(value) = value else { panic!("expected map") };
     value
+  }
+
+  #[test]
+  fn treats_missing_and_nil_event_target_fields_as_optional() {
+    assert_eq!(extract_event_target(&EdnMapView::default()), EventTarget::default());
+
+    let explicit_nil = map([("action", Edn::Nil), ("path", Edn::Nil), ("data", Edn::Nil)]);
+    assert_eq!(extract_event_target(map_view(&explicit_nil)), EventTarget::default());
+
+    let populated = map([
+      ("action", Edn::tag("drag")),
+      ("path", Edn::tag("canvas")),
+      ("data", Edn::Number(1.0)),
+    ]);
+    assert_eq!(
+      extract_event_target(map_view(&populated)),
+      EventTarget {
+        action: Some(Edn::tag("drag")),
+        path: Some(Edn::tag("canvas")),
+        data: Some(Edn::Number(1.0)),
+      }
+    );
   }
 
   #[test]
