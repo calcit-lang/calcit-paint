@@ -8,7 +8,7 @@ use winit::{
   keyboard::{Key, ModifiersState, PhysicalKey},
 };
 
-use crate::{extracter::tag, focus, key_listener, primes::EventTarget, touches};
+use crate::{extracter::tag, focus, frame::FrameTiming, key_listener, primes::EventTarget, touches};
 
 fn map_view(pairs: impl IntoIterator<Item = (Edn, Edn)>) -> EdnMapView {
   let mut map = EdnMapView::default();
@@ -227,6 +227,21 @@ pub fn handle_window_focus(focused: bool) -> Vec<Edn> {
     }
   }
   events
+}
+
+pub fn handle_frame(timing: FrameTiming, width: f64, height: f64, scale_factor: f64) -> Edn {
+  Edn::Map(map_view([
+    (tag("type"), tag("frame")),
+    (tag("frame"), Edn::Number(timing.number as f64)),
+    (
+      tag("timestamp-ms"),
+      Edn::Number(timing.timestamp.as_secs_f64() * 1000.0),
+    ),
+    (tag("delta-ms"), Edn::Number(timing.delta.as_secs_f64() * 1000.0)),
+    (tag("width"), Edn::Number(width)),
+    (tag("height"), Edn::Number(height)),
+    (tag("scale-factor"), Edn::Number(scale_factor)),
+  ]))
 }
 
 pub fn handle_ime(ime: Ime) -> Vec<Edn> {
@@ -626,6 +641,27 @@ mod tests {
 
     touches::release_mouse_drag();
     touches::reset_touches_stack();
+  }
+
+  #[test]
+  fn frame_event_exposes_monotonic_timing_and_window_metrics() {
+    let event = event_map(handle_frame(
+      FrameTiming {
+        number: 7,
+        timestamp: Duration::from_millis(1250),
+        delta: Duration::from_millis(16),
+      },
+      640.0,
+      480.0,
+      2.0,
+    ));
+    assert_eq!(event.get(&tag("type")), Some(&tag("frame")));
+    assert_eq!(event.get(&tag("frame")), Some(&Edn::Number(7.0)));
+    assert_eq!(event.get(&tag("timestamp-ms")), Some(&Edn::Number(1250.0)));
+    assert_eq!(event.get(&tag("delta-ms")), Some(&Edn::Number(16.0)));
+    assert_eq!(event.get(&tag("width")), Some(&Edn::Number(640.0)));
+    assert_eq!(event.get(&tag("height")), Some(&Edn::Number(480.0)));
+    assert_eq!(event.get(&tag("scale-factor")), Some(&Edn::Number(2.0)));
   }
 
   #[test]
