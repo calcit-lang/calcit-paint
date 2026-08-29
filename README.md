@@ -8,7 +8,7 @@ It runs [Calcit](https://github.com/calcit-lang/calcit) and is driven by the can
 
 项目直接运行 [Calcit](https://github.com/calcit-lang/calcit)，并以规范的
 `calcit.cirru` Snapshot 作为源码。默认场景包含可直接看到效果的渐变、虚线描边和
-混合模式、输入事件和文本排版 demo。
+混合模式、输入事件、文本排版、离屏导出和静态子树缓存 demo。
 
 ```bash
 ./build.sh
@@ -22,6 +22,7 @@ calcit-paint.core/push-drawing-data! |reset-canvas! nil
 calcit-paint.core/push-drawing-data! |render-canvas! shape-data
 calcit-paint.core/measure-text! text-options
 calcit-paint.core/measure-paragraph! paragraph-options
+calcit-paint.core/render-to-png! offscreen-options
 calcit-paint.core/focus! |focus-id
 calcit-paint.core/focused? |focus-id
 calcit-paint.core/blur!
@@ -430,6 +431,19 @@ Image {
 Decoded images are cached and automatically reloaded when file size or
 modification time changes.
 
+- Cached group, using `cached-group` (alias: `static-group`)
+
+```rust
+CachedGroup {
+  cache_key: String,
+  revision: i32,
+  position: Vec2,
+  width: i32,
+  height: i32,
+  children: Vec<Shape>,
+}
+```
+
 - Clip rect, using `clip-rect`, clips all children to its rectangular bounds.
 
 - Opacity, using `opacity`, composites all children as one layer. `alpha` must
@@ -506,11 +520,75 @@ to omit meaningless placeholders.
 命中时，发出的事件仍保留这三个历史字段，缺失值以 `nil` 表示。因此旧事件消费代码
 保持兼容，而新的 Calcit demo 不再需要填写无意义的占位值。
 
+### Offscreen rendering and snapshots / 离屏渲染与快照
+
+`render-to-png!` renders the same shape maps through a CPU raster surface and
+writes one PNG to the explicit `:path`. Nothing is written unless this function
+is called. The destination parent must already exist, and an existing file at
+that exact path is replaced. `:scene` is required (`:shape` is an alias), while
+`:background` defaults to transparent.
+
+`render-to-png!` 使用同一套 shape map 和 CPU raster surface 绘制，并只向显式
+`:path` 写入一个 PNG；没有调用该函数就不会写文件。目标父目录必须已经存在，指定路径
+上的旧文件会被替换。必须提供 `:scene`（`:shape` 是兼容别名），`:background` 默认透明。
+
+```cirru.no-check
+render-to-png! $ {}
+  :path |snapshot.png
+  :width 320
+  :height 180
+  :background $ [] 225 25 12
+  :scene $ {} (:type :group)
+    :children $ []
+      {} (:type :rectangle) (:position ([] 20 20)) (:width 120) (:height 80)
+        :fill-color $ [] 205 70 42
+```
+
+Width and height are integer logical pixels from `1` through `4096`, with a
+total limit of `16,777,216` pixels. One logical pixel maps to one raster pixel.
+The surface contract is CPU-backed RGBA8888, premultiplied alpha, and sRGB;
+the window GPU surface is not part of the snapshot contract. Offscreen drawing
+does not register touch, key, or focus targets. Geometry-only scenes are stable
+enough for exact RGBA key-pixel and full pixel-hash assertions. PNG encoder
+bytes, system font fallback, text shaping, and decoded external images may vary
+across Skia/platform versions, so CI snapshots keep those out of cross-platform
+exact hashes or maintain platform-specific baselines.
+
+宽高必须是 `1` 到 `4096` 的整数逻辑像素，总像素数不超过 `16,777,216`；一个逻辑
+像素对应一个 raster 像素。快照契约固定为 CPU-backed RGBA8888、预乘 alpha 与 sRGB，
+不包含窗口 GPU surface。离屏绘制不会注册 touch、key 或 focus target。纯几何 scene
+可以断言精确关键 RGBA 像素和完整 pixel hash；PNG encoder bytes、系统字体 fallback、
+文字 shaping 及外部图片解码可能随 Skia/平台版本变化，因此跨平台 CI 的精确 hash 应避开
+这些内容，或使用分平台 baseline。
+
+`cached-group` is an optional CPU-raster prototype for static children. Its
+children use local coordinates and the resulting image is placed at
+`:position`. A cache hit requires the same `:cache-key`, `:revision`, `:width`,
+and `:height`; callers must increment `:revision` whenever children or dependent
+resources change. The process-wide LRU is bounded to 32 entries and 32 MiB
+(`width × height × 4` bytes per entry). Interactive descendants are rejected
+instead of silently losing events. This explicit invalidation model avoids
+walking and hashing arbitrary heterogeneous EDN on every frame.
+
+`cached-group` 是面向静态 children 的可选 CPU raster 原型；children 使用局部坐标，
+缓存图片再放置到 `:position`。只有 `:cache-key`、`:revision`、`:width`、`:height`
+全部相同才会命中；children 或依赖资源变化时，调用方必须递增 `:revision`。进程级 LRU
+上限为 32 个 entry、32 MiB（每项占 `width × height × 4` 字节）。交互子节点会直接报错，
+不会静默丢失事件。显式 revision 避免每帧遍历并 hash 任意异构 EDN。
+
+The default scene shows a cached badge. Press Shift+P to explicitly run
+`export-offscreen-demo!` and create `offscreen-demo.png` in the current working
+directory; startup itself does not write the file.
+
+默认 scene 会显示 cached badge；按 Shift+P 会显式调用 `export-offscreen-demo!`，在当前
+工作目录生成 `offscreen-demo.png`，程序启动本身不会写出该文件。
+
 ### Calcit type boundaries / Calcit 类型边界
 
-Public wrappers use explicit `Unit` returns for side effects. Drawing payloads
-are generic because each operation accepts a different EDN shape, while text
-and paragraph measurement return `Map<Tag, Number>`. Three `Dynamic` slots
+Public wrappers use explicit `Unit` returns for side effects. Drawing and
+offscreen-export payloads are generic because each operation accepts a
+different EDN shape, while text and paragraph measurement return
+`Map<Tag, Number>`. Three `Dynamic` slots
 remain by design: the blocking callback first receives legacy `nil` and then
 heterogeneous event maps, while text-option and paragraph-option map values are
 heterogeneous. Callback result type `R` remains generic; `launch-canvas!`
@@ -520,8 +598,8 @@ returns the serializable `:handled` tag to the blocking ABI because Calcit
 reviewed quality baseline rather than being misrepresented as homogeneous
 values or JS FFI.
 
-公开 wrapper 的副作用返回值均显式声明为 `Unit`。不同绘制操作接收不同 EDN shape，
-因此 drawing payload 使用泛型；单行文字与段落测量结果均明确为 `Map<Tag, Number>`。
+公开 wrapper 的副作用返回值均显式声明为 `Unit`。不同绘制与离屏导出操作接收不同 EDN
+shape，因此 payload 使用泛型；单行文字与段落测量结果均明确为 `Map<Tag, Number>`。
 目前仅有三个 `Dynamic` 是有意保留的真实框架边界：blocking callback 会先收到兼容
 旧行为的 `nil`、随后收到异构事件 map；单行文字与段落选项 map 的 value 也为异构
 数据。callback 返回类型 `R` 仍为泛型；`launch-canvas!` 在内部 adapter 中丢弃该结果，
@@ -679,12 +757,13 @@ Run the bundled scene with `calcit ./calcit.cirru`, then click or drag the
 "Pointer event demo" panel, hold a modifier, or press `I`. Two additional
 focus areas demonstrate click focus, Tab/Shift+Tab traversal, IME input,
 focus-scoped Enter, and a Shift+K shortcut that calls `focus!`. The callback
-prints the live event maps to the Calcit terminal.
+prints the live event maps to the Calcit terminal. Shift+P explicitly exports
+the offscreen demo PNG.
 
 运行 `calcit ./calcit.cirru` 后，点击或拖拽 “Pointer event demo” 面板、按住任意
 modifier，或按下 `I`。新增的两个 focus area 还会实际演示点击聚焦、Tab/Shift+Tab、
 IME 输入、焦点限定 Enter，以及调用 `focus!` 的 Shift+K 快捷键；callback 会把实时
-事件 map 打印到 Calcit terminal。
+事件 map 打印到 Calcit terminal。Shift+P 会显式导出离屏 demo PNG。
 
 - Rotate
 

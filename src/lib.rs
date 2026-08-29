@@ -505,6 +505,16 @@ fn measure_paragraph(args: Vec<Edn>) -> Result<Edn, String> {
 
 calcit_native_ffi::export_edn_buffer_method_v1!(measure_paragraph_calcit_ffi_v1, measure_paragraph);
 
+fn render_to_png(args: Vec<Edn>) -> Result<Edn, String> {
+  let [data] = args.as_slice() else {
+    return Err(format!("render-to-png expected one options map, got: {args:?}"));
+  };
+  renderer::render_to_png(data)?;
+  Ok(Edn::Nil)
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(render_to_png_calcit_ffi_v1, render_to_png);
+
 /// Own the host thread while the paint event loop is running.
 ///
 /// # Safety
@@ -573,6 +583,8 @@ mod tests {
     assert!(measure_text(vec![Edn::Nil]).is_err());
     assert!(measure_paragraph(vec![]).is_err());
     assert!(measure_paragraph(vec![Edn::Nil]).is_err());
+    assert!(render_to_png(vec![]).is_err());
+    assert!(render_to_png(vec![Edn::Nil]).is_err());
   }
 
   #[test]
