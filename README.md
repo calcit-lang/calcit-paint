@@ -446,7 +446,44 @@ CachedGroup {
 }
 ```
 
-- Clip rect, using `clip-rect`, clips all children to its rectangular bounds.
+- Hierarchical clips / 层级裁剪
+
+`clip-rect` clips all descendants to rectangular bounds. `clip-rounded-rect`
+(alias: `clip-rounded-rectangle`) uses the same `:radius` or independent
+`:radius-x` / `:radius-y` fields as `rounded-rect`. Width, height, and radii
+must be finite non-negative numbers. Radii larger than half the corresponding
+dimension are clamped consistently by Skia painting and Paint hit testing; a
+zero width or height produces an empty visual and interactive clip.
+
+`clip-rect` 将所有后代裁剪到矩形边界；`clip-rounded-rect`（别名
+`clip-rounded-rectangle`）使用与 `rounded-rect` 相同的 `:radius`，或分别使用
+`:radius-x` / `:radius-y`。宽、高和半径必须是有限非负数；超过对应尺寸一半的半径会
+在 Skia 绘制与 Paint 命中测试中一致地收窄；宽或高为零时，视觉与交互 clip 均为空。
+
+```cirru.no-check
+{} (:type :clip-rounded-rect) (:radius 20)
+  :position $ [] 220 80
+  :width 260
+  :height 160
+  :children $ []
+    {} (:type :translate) (:x 30) (:y 0)
+      :children $ []
+        {} (:type :touch-area) (:dx 65) (:dy 18) (:cursor :pointer)
+          :position $ [] 415 210
+          :action :clipped-target
+```
+
+Clips are hierarchical intersections and retain the transform active at each
+clip node. The same nested clip stack constrains Skia painting, hover/cursor
+selection, pointer down, and pointer-triggered focus. This prevents invisible
+content outside a scroll panel or rounded card from remaining interactive.
+Singular clip transforms reject hits safely. Keyboard/programmatic focus remains
+available because clipping affects pointer hit testing, not logical tab order.
+
+裁剪按层级取交集，并保留每个 clip 节点处生效的 transform。同一组嵌套 clip stack
+同时约束 Skia 绘制、hover/cursor、pointer down 与指针触发的 focus，避免滚动面板或
+圆角卡片之外的不可见内容仍可交互。退化且不可逆的 clip transform 会安全地拒绝命中。
+键盘与程序化 focus 仍然可用，因为裁剪只影响指针命中，不改变逻辑 tab 顺序。
 
 - Opacity, using `opacity`, composites all children as one layer. `alpha` must
   be between `0` and `1`:
@@ -745,6 +782,18 @@ hover 在重绘之间保持不变。若 hovered target 被移除，Paint 会先�
 同一位置新露出的目标。指针离开窗口时仍发送兼容的 `:mouse-leave`，同时发送目标的
 `:pointer-leave`，并恢复默认系统光标。
 
+Both topmost selection and hover reconciliation honor every ancestor
+`clip-rect` / `clip-rounded-rect`. Changing a clip while the pointer is
+stationary can therefore emit leave/enter on the next rendered scene. An
+already established pointer capture continues routing to its target while that
+target remains mounted; releasing capture immediately reconciles against the
+new clip stack.
+
+最上层目标选择与 hover reconcile 都会遵守所有祖先 `clip-rect` /
+`clip-rounded-rect`。因此，即使指针静止，下一次 scene 渲染改变 clip 后也可能发送
+leave/enter。已经建立的 pointer capture 在目标仍存在时继续路由；释放 capture 后会立刻
+按新的 clip stack 重新计算 hover。
+
 Pressing a mouse button inside a touch area establishes pointer capture for that
 button. Captured `:mouse-move` and the matching `:mouse-up` continue to use the
 original target outside its hit geometry and include `:captured? true`, the
@@ -761,14 +810,17 @@ hover。目标移除、指针离开窗口或窗口失焦时会发送 `:pointer-c
 `:cancelled? true`，reason 分别为 `:target-removed`、`:window-leave` 或
 `:window-blur`。Capture 仅定义事件路由，不会限制或锁定物理光标。
 
-The bundled runnable demo contains overlapping `:grab` and `:crosshair` areas.
-Move across them, press and drag outside either region, then release; the status
-line shows hover/capture transitions. Updates use coalesced `request-frame!`
-requests, so event bursts do not queue duplicate scenes.
+The bundled runnable demo contains overlapping `:grab` and `:crosshair` areas,
+plus a translated touch target partially hidden by a rounded clip. Move across
+the visible clip edge, then test the invisible continuation outside it; hover
+and the system cursor stop exactly at the painted boundary. Press and drag
+outside a target to verify that capture still routes until release. The status
+line shows all transitions, with updates coalesced through `request-frame!`.
 
-随仓库提供的可运行 demo 包含重叠的 `:grab` 与 `:crosshair` 区域。可在两者之间移动，
-按下后拖出区域再释放；状态行会显示 hover/capture 转换。更新通过合并的
-`request-frame!` 请求完成，因此连续事件不会重复排队 scene。
+随仓库提供的可运行 demo 包含重叠的 `:grab` / `:crosshair` 区域，以及部分隐藏在圆角
+clip 内、经过 translate 的 touch target。沿可见裁剪边缘移动，再测试边缘外不可见的延伸
+区域，hover 与系统光标会准确止于绘制边界；按下后拖出目标则仍会捕获到释放为止。状态行
+展示全部转换，并通过合并的 `request-frame!` 更新。
 
 Keyboard events include layout-aware `:name`, legacy numeric `:key-code`,
 portable `:physical-key`, and `:modifiers`. `:name` is the logical key and can
@@ -894,6 +946,13 @@ IME 输入、焦点限定 Enter，以及调用 `focus!` 的 Shift+K 快捷键；
 事件 map 打印到 Calcit terminal。Shift+P 会显式导出离屏 demo PNG。
 
 - Rotate
+
+`radius` is an angle in radians. Paint converts it to Skia's degree-based
+canvas API while retaining radians in hit-test transforms, so drawing and
+interaction share the same rotation.
+
+`radius` 是以弧度表示的角度。Paint 会为 Skia 以 degree 为单位的 canvas API 做转换，
+同时在命中 transform 中保留 radians，因此绘制与交互使用同一旋转。
 
 ```rust
 Rotate {

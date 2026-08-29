@@ -195,11 +195,20 @@
                     :position $ [] 120 300
                     :radius 40
                     :fill-color $ [] 0 80 70
-                  {} (:type :clip-rect)
+                  {} (:type :clip-rounded-rect)
                     :position $ [] 220 80
                     :width 260
                     :height 160
+                    :radius 24
                     :children $ []
+                      {} (:type :rounded-rect)
+                        :position $ [] 220 80
+                        :width 260
+                        :height 160
+                        :radius 24
+                        :fill-color $ [] 220 32 22
+                        :line-color $ [] 220 70 62
+                        :line-width 3
                       {} (:type :opacity) (:alpha 0.85)
                         :children $ []
                           {} (:type :rounded-rect)
@@ -222,6 +231,23 @@
                             :sweep-angle 160
                             :line-color $ [] 120 80 70
                             :line-width 5
+                      {} (:type :translate) (:x 30) (:y 0)
+                        :children $ []
+                          {} (:type :touch-area) (:dx 65) (:dy 18)
+                            :position $ [] 415 210
+                            :action :input-demo
+                            :path $ [] :demo :clip
+                            :data :clipped-target
+                            :cursor :pointer
+                            :fill-color $ [] 285 74 54
+                            :line-color $ [] 285 92 82
+                            :line-width 2
+                          {} (:type :text) (:text "|Clipped hit area →")
+                            :position $ [] 415 210
+                            :color $ [] 0 0 98
+                            :size 13
+                            :baseline :middle
+                            :align :center
                   {} (:type :text) (:text |Demo)
                     :position $ [] 140 40
                     :color $ [] 0 80 100

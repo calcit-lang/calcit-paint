@@ -2,7 +2,10 @@ use std::sync::RwLock;
 
 use euclid::{Point2D, Vector2D};
 
-use crate::primes::{EventTarget, TouchAreaShape};
+use crate::{
+  hit_test::{clips_contain, ClipRegion},
+  primes::{EventTarget, TouchAreaShape},
+};
 
 pub type Transform = euclid::default::Transform2D<f32>;
 
@@ -20,6 +23,7 @@ pub struct FocusArea {
   pub position: Vector2D<f32, f32>,
   pub area: TouchAreaShape,
   pub transform: Transform,
+  pub clips: Vec<ClipRegion>,
   pub tab_index: i32,
   pub text_input: bool,
   pub(crate) order: usize,
@@ -130,6 +134,9 @@ pub fn focus_at(position: Vector2D<f32, f32>) -> Option<FocusTransition> {
     let state = FOCUS_STATE.read().unwrap();
     let point = Point2D::new(position.x, position.y);
     state.areas.iter().rev().find_map(|item| {
+      if !clips_contain(&item.clips, position) {
+        return None;
+      }
       let local = item.transform.inverse()?.transform_point(point);
       let hit = match item.area {
         TouchAreaShape::Rect(dx, dy) => {
@@ -216,6 +223,7 @@ mod tests {
       position: Vector2D::new(0.0, 0.0),
       area: TouchAreaShape::Rect(20.0, 10.0),
       transform: Transform::identity(),
+      clips: vec![],
       tab_index,
       text_input: false,
       order: 0,
@@ -258,5 +266,27 @@ mod tests {
     assert!(register_focus_area(area("field", 1))
       .unwrap_err()
       .contains("duplicate focus-id"));
+  }
+
+  #[test]
+  fn pointer_focus_respects_clip_regions() {
+    let _guard = FOCUS_TEST_LOCK.lock().unwrap();
+    reset_for_test();
+    begin_frame();
+    let mut clipped = area("field", 0);
+    clipped.position = Vector2D::new(30.0, 20.0);
+    clipped.clips.push(ClipRegion {
+      shape: crate::hit_test::ClipShape::Rect {
+        position: Vector2D::new(20.0, 10.0),
+        width: 20.0,
+        height: 20.0,
+      },
+      transform: Transform::identity(),
+    });
+    register_focus_area(clipped).unwrap();
+
+    assert!(focus_at(Vector2D::new(15.0, 20.0)).is_none());
+    assert!(!has_focus());
+    assert_eq!(focus_at(Vector2D::new(30.0, 20.0)).unwrap().to.unwrap().id, "field");
   }
 }

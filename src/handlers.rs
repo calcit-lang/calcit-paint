@@ -622,6 +622,7 @@ mod tests {
       position: Vector2D::new(x, 20.0),
       area: crate::primes::TouchAreaShape::Rect(20.0, 10.0),
       transform: focus::Transform::identity(),
+      clips: vec![],
       tab_index,
       text_input,
       order: 0,
@@ -739,6 +740,7 @@ mod tests {
       },
       None,
       &crate::touches::Transform::identity(),
+      &[],
     );
     handle_mouse_down(&mut state, MouseButton::Left, Duration::ZERO);
     handle_mouse_move(Vector2D::new(50.0, 40.0), &mut state);
@@ -772,6 +774,7 @@ mod tests {
       EventTarget::default(),
       None,
       &crate::touches::Transform::identity(),
+      &[],
     );
 
     let down = event_map(handle_mouse_down(&mut state, MouseButton::Left, Duration::ZERO));
@@ -795,6 +798,7 @@ mod tests {
       },
       Some(cursor),
       &crate::touches::Transform::identity(),
+      &[],
     );
   }
 
