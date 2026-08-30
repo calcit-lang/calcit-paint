@@ -43,6 +43,7 @@ mod key_listener;
 mod primes;
 mod renderer;
 mod touches;
+mod window_lifecycle;
 
 calcit_native_ffi::export_buffer_abi_v1!();
 calcit_native_ffi::export_async_abi_v1!();
@@ -62,9 +63,6 @@ impl Drop for Env {
     self.gr_context.release_resources_and_abandon();
   }
 }
-
-const WIDTH: u32 = 1100;
-const HEIGHT: u32 = 760;
 
 lazy_static! {
   static ref NEXT_DRAWING_DATA: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
@@ -97,6 +95,7 @@ struct PaintApplication<F> {
   occluded: bool,
   minimized: bool,
   suspended: bool,
+  close_dispatched: bool,
 }
 
 impl<F> PaintApplication<F>
@@ -121,6 +120,68 @@ where
   fn dispatch_all(&mut self, events: Vec<Edn>) {
     for event in events {
       self.dispatch(event);
+    }
+  }
+
+  fn request_exit(&mut self, event_loop: &ActiveEventLoop, reason: &str) {
+    if !self.close_dispatched {
+      self.close_dispatched = true;
+      match window_lifecycle::begin_close() {
+        Ok(_) => self.dispatch(handlers::handle_window_close(reason)),
+        Err(error) => eprintln!("failed marking paint window as closing: {error}"),
+      }
+    }
+    event_loop.exit();
+  }
+
+  fn apply_window_requests(&mut self, event_loop: &ActiveEventLoop) {
+    loop {
+      let mut requests = match window_lifecycle::take_requests() {
+        Ok(requests) => requests,
+        Err(error) => {
+          eprintln!("failed reading paint window requests: {error}");
+          return;
+        }
+      };
+      if requests.is_empty() {
+        return;
+      }
+      while let Some(request) = requests.pop_front() {
+        match request {
+          window_lifecycle::WindowRequest::SetTitle(title) => {
+            self.env.window.set_title(&title);
+            self.dispatch(handlers::handle_window_title_request(&title));
+          }
+          window_lifecycle::WindowRequest::RequestSize { width, height } => {
+            let actual = self.env.window.request_inner_size(LogicalSize::new(width, height));
+            if let Some(size) = actual {
+              let minimized = size.width == 0 || size.height == 0;
+              if self.minimized != minimized {
+                self.minimized = minimized;
+                self.reset_frame_timing();
+              }
+              if !minimized {
+                if let Err(error) = self.resize(size.width, size.height) {
+                  eprintln!("failed to apply confirmed paint window size: {error}");
+                  self.request_exit(event_loop, "render-error");
+                  return;
+                }
+                self.env.window.request_redraw();
+              }
+            }
+            self.dispatch(handlers::handle_window_size_request(
+              width,
+              height,
+              self.scale_factor as f64,
+              actual.map(|size| (size.width, size.height)),
+            ));
+          }
+          window_lifecycle::WindowRequest::Close => {
+            self.request_exit(event_loop, "requested");
+            return;
+          }
+        }
+      }
     }
   }
 
@@ -231,9 +292,9 @@ where
     self.env.gr_context.flush_and_submit();
     if let Err(error) = self.env.gl_surface.swap_buffers(&self.env.gl_context) {
       eprintln!("failed to swap OpenGL buffers: {error}");
-      event_loop.exit();
+      self.request_exit(event_loop, "render-error");
     } else if self.smoke_once {
-      event_loop.exit();
+      self.request_exit(event_loop, "smoke");
     }
   }
 }
@@ -267,7 +328,7 @@ where
     }
 
     match event {
-      WindowEvent::CloseRequested => event_loop.exit(),
+      WindowEvent::CloseRequested => self.request_exit(event_loop, "system"),
       WindowEvent::Resized(size) => {
         let minimized = size.width == 0 || size.height == 0;
         if self.minimized != minimized {
@@ -276,19 +337,25 @@ where
         }
         let width = size.width as f64 / self.scale_factor as f64;
         let height = size.height as f64 / self.scale_factor as f64;
-        self.dispatch(handlers::handle_resize(width, height));
+        self.dispatch(handlers::handle_resize(width, height, self.scale_factor as f64));
         if minimized {
           return;
         }
         if let Err(error) = self.resize(size.width, size.height) {
           eprintln!("failed to resize paint surface: {error}");
-          event_loop.exit();
+          self.request_exit(event_loop, "render-error");
           return;
         }
         self.env.window.request_redraw();
       }
       WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
         self.scale_factor = scale_factor as f32;
+        let size = self.env.window.inner_size();
+        self.dispatch(handlers::handle_scale_factor(
+          size.width as f64 / scale_factor,
+          size.height as f64 / scale_factor,
+          scale_factor,
+        ));
         self.env.window.request_redraw();
       }
       WindowEvent::CursorMoved { position, .. } => {
@@ -378,7 +445,7 @@ where
           && !focus::has_focus()
           && !focus::is_composing()
         {
-          event_loop.exit();
+          self.request_exit(event_loop, "escape");
           return;
         }
         let name = handlers::name_key(&logical_key);
@@ -397,16 +464,31 @@ where
   }
 
   fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+    self.apply_window_requests(event_loop);
     event_loop.set_control_flow(ControlFlow::Wait);
+  }
+
+  fn exiting(&mut self, event_loop: &ActiveEventLoop) {
+    if !self.close_dispatched {
+      self.request_exit(event_loop, "event-loop");
+    }
   }
 }
 
-fn launch_canvas_impl(handler: impl Fn(Vec<Edn>) -> Result<Edn, String>) -> Result<Edn, String> {
+fn launch_canvas_impl(
+  options: window_lifecycle::WindowStartupOptions,
+  handler: impl Fn(Vec<Edn>) -> Result<Edn, String>,
+) -> Result<Edn, String> {
   let _ = env_logger::try_init();
+  let _active_window = window_lifecycle::activate()?;
   let event_loop = create_event_loop()?;
-  let window_attributes = WindowAttributes::default()
-    .with_inner_size(LogicalSize::new(WIDTH, HEIGHT))
-    .with_title("Calcit Paint");
+  let mut window_attributes = WindowAttributes::default()
+    .with_inner_size(LogicalSize::new(options.width, options.height))
+    .with_title(options.title)
+    .with_resizable(options.resizable);
+  if let (Some(min_width), Some(min_height)) = (options.min_width, options.min_height) {
+    window_attributes = window_attributes.with_min_inner_size(LogicalSize::new(min_width, min_height));
+  }
   let template = ConfigTemplateBuilder::new().with_alpha_size(8);
   let display_builder = DisplayBuilder::new().with_window_attributes(window_attributes.into());
   let (window, gl_config) = display_builder
@@ -516,6 +598,7 @@ fn launch_canvas_impl(handler: impl Fn(Vec<Edn>) -> Result<Edn, String>) -> Resu
     occluded: false,
     minimized: false,
     suspended: false,
+    close_dispatched: false,
   };
   touches::reset_pointer_state();
   let _active_frame_loop = frame::activate()?;
@@ -649,6 +732,38 @@ fn validate_scene(args: Vec<Edn>) -> Result<Edn, String> {
 
 calcit_native_ffi::export_edn_buffer_method_v1!(validate_scene_calcit_ffi_v1, validate_scene);
 
+fn set_window_title(args: Vec<Edn>) -> Result<Edn, String> {
+  let [Edn::Str(title)] = args.as_slice() else {
+    return Err(format!("set-window-title expected one title string, got: {args:?}"));
+  };
+  window_lifecycle::queue_title(title.to_string())?;
+  Ok(Edn::Nil)
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(set_window_title_calcit_ffi_v1, set_window_title);
+
+fn request_window_size(args: Vec<Edn>) -> Result<Edn, String> {
+  let [Edn::Number(width), Edn::Number(height)] = args.as_slice() else {
+    return Err(format!(
+      "request-window-size expected logical width and height numbers, got: {args:?}"
+    ));
+  };
+  window_lifecycle::queue_size(*width, *height)?;
+  Ok(Edn::Nil)
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(request_window_size_calcit_ffi_v1, request_window_size);
+
+fn close_window(args: Vec<Edn>) -> Result<Edn, String> {
+  if !args.is_empty() {
+    return Err(format!("close-window expected no arguments, got: {args:?}"));
+  }
+  window_lifecycle::queue_close()?;
+  Ok(Edn::Nil)
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(close_window_calcit_ffi_v1, close_window);
+
 /// Own the host thread while the paint event loop is running.
 ///
 /// # Safety
@@ -666,7 +781,32 @@ pub unsafe extern "C" fn launch_canvas_calcit_ffi_blocking_v1(
   // SAFETY: the adapter validates descriptors and owns the call until the event loop returns.
   unsafe {
     ffi::run_blocking_adapter(request_ptr, request_len, task, host, output, |_args, task, host| {
-      launch_canvas_impl(|args| ffi::invoke_blocking_callback(host, task, args))
+      launch_canvas_impl(window_lifecycle::WindowStartupOptions::default(), |args| {
+        ffi::invoke_blocking_callback(host, task, args)
+      })
+    })
+  }
+}
+
+/// Own the host thread while a configured paint event loop is running.
+///
+/// # Safety
+///
+/// Request bytes and descriptors must remain readable and `output` writable
+/// for this call. Host function pointers must follow blocking protocol v1.
+#[no_mangle]
+pub unsafe extern "C" fn launch_canvas_with_options_calcit_ffi_blocking_v1(
+  request_ptr: *const u8,
+  request_len: usize,
+  task: *const ffi::CalcitFfiAsyncTaskV1,
+  host: *const ffi::CalcitFfiBlockingHostV1,
+  output: *mut ffi::CalcitFfiBuffer,
+) -> i32 {
+  // SAFETY: the adapter validates descriptors and owns the call until the event loop returns.
+  unsafe {
+    ffi::run_blocking_adapter(request_ptr, request_len, task, host, output, |args, task, host| {
+      let options = window_lifecycle::parse_startup_options(&args)?;
+      launch_canvas_impl(options, |args| ffi::invoke_blocking_callback(host, task, args))
     })
   }
 }
@@ -731,5 +871,15 @@ mod tests {
     assert!(clear_focus(vec![Edn::Nil]).is_err());
     assert!(focused(vec![]).is_err());
     assert!(focused(vec![Edn::Nil]).is_err());
+  }
+
+  #[test]
+  fn window_lifecycle_ffi_rejects_invalid_requests() {
+    assert!(set_window_title(vec![Edn::Nil]).is_err());
+    assert!(request_window_size(vec![Edn::Number(640.0)]).is_err());
+    assert!(request_window_size(vec![Edn::Number(0.0), Edn::Number(480.0)])
+      .unwrap_err()
+      .contains("finite positive"));
+    assert!(close_window(vec![Edn::Nil]).is_err());
   }
 }

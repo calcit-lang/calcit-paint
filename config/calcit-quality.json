@@ -7,17 +7,28 @@
   },
   "metrics": {
     "typeNone": 0,
-    "typeNotFull": 3,
-    "schemaDynamic": 3,
+    "typeNotFull": 4,
+    "schemaDynamic": 4,
     "codeDynamic": 0,
     "codeNil": 0,
-    "unresolved": 3,
+    "unresolved": 4,
     "declaredOptional": 0,
     "deprecatedCalls": 0,
     "unsafeCoerce": 0
   },
   "definitions": {
     "calcit-paint.core/launch-canvas!": {
+      "typeNone": 0,
+      "typeNotFull": 1,
+      "schemaDynamic": 1,
+      "codeDynamic": 0,
+      "codeNil": 0,
+      "unresolved": 1,
+      "declaredOptional": 0,
+      "deprecatedCalls": 0,
+      "unsafeCoerce": 0
+    },
+    "calcit-paint.core/launch-canvas-with-options!": {
       "typeNone": 0,
       "typeNotFull": 1,
       "schemaDynamic": 1,
