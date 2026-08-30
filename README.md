@@ -850,12 +850,12 @@ runnable demo uses configured startup options; press `T` to change its title,
 callback receives the closed `PaintEvent` enum instead of legacy `nil` and
 heterogeneous maps. Startup is `(:ready)`; every payload-bearing variant uses a
 nominal struct, and `match` checks variant names, payload arity, and exhaustiveness.
-The bundled runnable demo uses this entry and matches all 30 variants.
+The bundled runnable demo uses this entry and matches all 31 variants.
 
 新 Calcit 应用优先使用 `launch-canvas-typed!`。callback 接收封闭的 `PaintEvent`
 enum，不再接收旧版 `nil` 与异构 map。启动事件为 `(:ready)`；所有带 payload 的 variant
 都使用 nominal struct，`match` 会检查 variant 名称、payload 数量与穷尽性。仓库内可运行
-demo 已切换到该入口，并完整匹配全部 30 个 variant。
+demo 已切换到该入口，并完整匹配全部 31 个 variant。
 
 Payloads are grouped by domain: `PaintPointerEvent`, `PaintKeyboardEvent`,
 `PaintFocusEvent`, `PaintTextInputEvent`, `PaintFileEvent`, `PaintFrameEvent`,
@@ -899,6 +899,18 @@ native transport 会先产生私有的 `PaintEventFfi<Map<Tag, Dynamic>>` envelo
 字段、未知 event variant 或不支持的 window operation 都会明确失败。
 `launch-canvas!` 与 `launch-canvas-with-options!` 保持源码兼容，并继续发送原有 map
 协议。
+
+After `:ready`, Paint emits one `:window-theme` observation. Its nominal
+`PaintWindowThemeEvent` payload contains `:theme` (`:light`, `:dark`, or
+`:unknown`) and `:initial? true`. Later winit system-theme changes emit the same
+variant with `:initial? false` and request redraw. The typed decoder rejects any
+other theme tag; compatible callbacks receive the stable map form.
+
+在 `:ready` 之后，Paint 会发送一次 `:window-theme` 观测事件。其 nominal
+`PaintWindowThemeEvent` payload 包含 `:theme`（`:light`、`:dark` 或 `:unknown`）
+以及 `:initial? true`。之后 winit 的系统主题变化会以相同 variant 发送
+`:initial? false` 并请求重绘。强类型 decoder 会拒绝其他 theme tag；兼容 callback
+继续接收稳定的 map 形式。
 
 ### Calcit type boundaries / Calcit 类型边界
 
@@ -1176,13 +1188,16 @@ focus areas demonstrate click focus, Tab/Shift+Tab traversal, IME input,
 focus-scoped Enter, and a Shift+K shortcut that calls `focus!`. The callback
 prints live nominal events to the Calcit terminal. Shift+P explicitly exports
 the offscreen demo PNG. Shift+C writes the clipboard sample and Shift+V reads it
-back into the visible demo status.
+back into the visible demo status. The title/status line also shows the initial
+system theme and changes its background/accent palette when the operating-system
+theme changes.
 
 运行 `calcit ./calcit.cirru` 后，点击或拖拽 “Pointer event demo” 面板、按住任意
 modifier，或按下 `I`。新增的两个 focus area 还会实际演示点击聚焦、Tab/Shift+Tab、
 IME 输入、焦点限定 Enter，以及调用 `focus!` 的 Shift+K 快捷键；callback 会把实时
 nominal event 打印到 Calcit terminal。Shift+P 会显式导出离屏 demo PNG。
-Shift+C 会写入剪贴板样例，Shift+V 会将其读回到可见 demo 状态。
+Shift+C 会写入剪贴板样例，Shift+V 会将其读回到可见 demo 状态。标题/状态行还会显示
+初始系统主题，并在操作系统主题变化时切换背景与强调色。
 
 - Rotate
 

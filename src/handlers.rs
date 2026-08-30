@@ -7,6 +7,7 @@ use euclid::Vector2D;
 use winit::{
   event::{ElementState, Ime, MouseButton},
   keyboard::{Key, ModifiersState, PhysicalKey},
+  window::Theme,
 };
 
 use crate::{extracter::tag, focus, frame::FrameTiming, key_listener, primes::EventTarget, touches};
@@ -568,6 +569,19 @@ pub fn handle_scale_factor(w: f64, h: f64, scale_factor: f64) -> Edn {
   ]))
 }
 
+pub fn handle_window_theme(theme: Option<Theme>, initial: bool) -> Edn {
+  let theme = match theme {
+    Some(Theme::Light) => "light",
+    Some(Theme::Dark) => "dark",
+    None => "unknown",
+  };
+  Edn::Map(map_view([
+    (tag("type"), tag("window-theme")),
+    (tag("theme"), tag(theme)),
+    (tag("initial?"), Edn::Bool(initial)),
+  ]))
+}
+
 pub fn handle_window_title_request(title: &str) -> Edn {
   Edn::Map(map_view([
     (tag("type"), tag("window-request")),
@@ -1060,6 +1074,22 @@ mod tests {
       };
       assert_eq!(close.get(&tag("type")), Some(&tag("window-close")));
       assert_eq!(close.get(&tag("reason")), Some(&tag(reason)));
+    }
+  }
+
+  #[test]
+  fn window_theme_events_distinguish_initial_and_runtime_observations() {
+    for (theme, initial, expected) in [
+      (Some(Theme::Light), true, "light"),
+      (Some(Theme::Dark), false, "dark"),
+      (None, true, "unknown"),
+    ] {
+      let Edn::Map(event) = handle_window_theme(theme, initial) else {
+        panic!("theme must be an event map");
+      };
+      assert_eq!(event.get(&tag("type")), Some(&tag("window-theme")));
+      assert_eq!(event.get(&tag("theme")), Some(&tag(expected)));
+      assert_eq!(event.get(&tag("initial?")), Some(&Edn::Bool(initial)));
     }
   }
 

@@ -91,6 +91,7 @@ struct PaintApplication<F> {
   frame_clock: frame::FrameClock,
   scale_factor: f32,
   first_paint: bool,
+  initial_theme_dispatched: bool,
   smoke_once: bool,
   ime_allowed: bool,
   cursor_icon: CursorIcon,
@@ -291,6 +292,12 @@ where
     }
     self.sync_ime();
 
+    if !self.initial_theme_dispatched {
+      self.initial_theme_dispatched = true;
+      self.dispatch(handlers::handle_window_theme(self.env.window.theme(), true));
+      self.env.window.request_redraw();
+    }
+
     self.env.gr_context.flush_and_submit();
     if let Err(error) = self.env.gl_surface.swap_buffers(&self.env.gl_context) {
       eprintln!("failed to swap OpenGL buffers: {error}");
@@ -358,6 +365,10 @@ where
           size.height as f64 / scale_factor,
           scale_factor,
         ));
+        self.env.window.request_redraw();
+      }
+      WindowEvent::ThemeChanged(theme) => {
+        self.dispatch(handlers::handle_window_theme(Some(theme), false));
         self.env.window.request_redraw();
       }
       WindowEvent::CursorMoved { position, .. } => {
@@ -615,6 +626,7 @@ fn launch_canvas_impl(
     frame_clock: frame::FrameClock::new(started_at),
     scale_factor,
     first_paint: true,
+    initial_theme_dispatched: false,
     smoke_once: std::env::var_os("CALCIT_PAINT_SMOKE_ONCE").is_some(),
     ime_allowed: false,
     cursor_icon: CursorIcon::default(),
