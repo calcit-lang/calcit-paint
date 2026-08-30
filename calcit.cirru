@@ -8,10 +8,24 @@
   :files $ {}
     'calcit-paint.core $ %{} 'FileEntry
       :defs $ {}
+        'WindowOptions $ %{} 'CodeEntry (:doc "|Strict startup configuration for the single Paint window.")
+          :code $ quote
+            defstruct WindowOptions (:title 'String) (:width 'Number) (:height 'Number) (:min-width 'Number) (:min-height 'Number) (:resizable? 'Bool)
+          :examples $ []
+          :schema $ :: 'StructDef
         'blur! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn blur! ()
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |clear_focus
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ []
+        'close-window! $ %{} 'CodeEntry (:doc "|Queue an orderly close request for the active Paint window.")
+          :code $ quote
+            defn close-window! ()
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |close_window
               , &unit
           :examples $ []
           :schema $ :: 'Fn
@@ -43,6 +57,18 @@
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ []
+                :: 'Fn $ {} (:return 'R)
+                  :args $ [] 'Dynamic
+              :generics $ [] 'R
+        'launch-canvas-with-options! $ %{} 'CodeEntry (:doc "|Launch the blocking single-window event loop with nominal startup options.")
+          :code $ quote
+            defn launch-canvas-with-options! (options cb)
+              &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas_with_options options $ fn (event) (cb event) :handled
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'calcit-paint.core/WindowOptions
                 :: 'Fn $ {} (:return 'R)
                   :args $ [] 'Dynamic
               :generics $ [] 'R
@@ -93,6 +119,24 @@
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ []
+        'request-window-size! $ %{} 'CodeEntry (:doc "|Queue a positive finite logical-size request for the active Paint window.")
+          :code $ quote
+            defn request-window-size! (width height)
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |request_window_size width height
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'Number 'Number
+        'set-window-title! $ %{} 'CodeEntry (:doc "|Queue a title update for serialized application on the active event loop.")
+          :code $ quote
+            defn set-window-title! (title)
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |set_window_title title
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'String
         'validate-scene $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn validate-scene (scene)
@@ -537,6 +581,16 @@
                         :size 15
                         :align :center
                       {} (:type :key-listener) (:key |A) (:action :toggle-animation)
+                  {} (:type :group)
+                    :children $ []
+                      {} (:type :text) (:text "|T title · S resize · Q close / 标题 · 尺寸 · 关闭")
+                        :position $ [] 900 215
+                        :color $ [] 195 62 92
+                        :size 13
+                        :align :center
+                      {} (:type :key-listener) (:key |T) (:action :window-title)
+                      {} (:type :key-listener) (:key |S) (:action :window-size)
+                      {} (:type :key-listener) (:key |Q) (:action :window-close)
                   {} (:type :cached-group) (:cache-key |window-static-badge) (:revision 1)
                     :position $ [] 900 80
                     :width 170
@@ -564,7 +618,7 @@
                         :color $ [] 0 0 86
                         :size 13
                         :align :left
-              if start-loop? $ launch-canvas!
+              if start-loop? $ launch-canvas-with-options! (WindowOptions :title "|Calcit Paint · lifecycle demo / 生命周期演示" :width 1100 :height 760 :min-width 720 :min-height 520 :resizable? true)
                 fn (event)
                   if (map? event)
                     case-default
@@ -581,6 +635,9 @@
                       :focus-first $ focus! |field-a
                       :export-snapshot $ export-offscreen-demo!
                       :toggle-animation $ toggle-animation!
+                      :window-title $ set-window-title! "|Calcit Paint · title updated / 标题已更新"
+                      :window-size $ request-window-size! 980 700
+                      :window-close $ close-window!
                       :input-demo $ do
                         reset! *pointer-status $ str-spaced (get event :type) (get event :path) |captured? (get event :captured?)
                         reset! *pointer-dirty? true
@@ -629,7 +686,7 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.main $ :require
-            calcit-paint.core :refer $ launch-canvas! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene request-frame!
+            calcit-paint.core :refer $ WindowOptions launch-canvas-with-options! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene request-frame! set-window-title! request-window-size! close-window!
     'calcit-paint.util $ %{} 'FileEntry
       :defs $ {}
         'get-dylib-ext $ %{} 'CodeEntry (:doc |)

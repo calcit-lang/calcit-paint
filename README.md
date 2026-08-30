@@ -38,6 +38,14 @@ calcit-paint.core/focused? |focus-id
 
 calcit-paint.core/blur!
 
+calcit-paint.core/launch-canvas-with-options!
+
+calcit-paint.core/set-window-title!
+
+calcit-paint.core/request-window-size!
+
+calcit-paint.core/close-window!
+
 calcit-paint.core/launch-canvas! $ fn (event) (println "|rendering to canvas...") (&unit)
 ```
 
@@ -758,26 +766,84 @@ chaining without a busy loop.
 随仓库提供的可运行 demo 会在启动时请求一帧，随后保持空闲。按 `A` 可开始或暂停圆形
 动画，用于演示不依赖 busy loop 的显式逐帧调度。
 
+### Window lifecycle / 窗口生命周期
+
+`launch-canvas!` remains compatible: it opens one resizable 1100×760 logical-pixel
+window titled `Calcit Paint`, without an explicit minimum size. New applications
+can pass the nominal `WindowOptions` value to `launch-canvas-with-options!`.
+Every field is required and checked at the native boundary: dimensions must be
+finite and positive, minimum dimensions cannot exceed the initial dimensions,
+and maps or unrelated structs are rejected. Paint intentionally remains a
+single-window module; a second launch fails explicitly.
+
+`launch-canvas!` 保持兼容：它仍打开一个标题为 `Calcit Paint`、逻辑尺寸为
+1100×760、可调整大小且没有显式最小尺寸的单窗口。新应用可以把 nominal
+`WindowOptions` 传给 `launch-canvas-with-options!`。所有字段都必须提供，并会在
+native 边界严格校验：尺寸必须是有限正数，最小尺寸不得超过初始尺寸，map 或其他
+struct 会被拒绝。Paint 仍有意保持单窗口模型，重复启动会明确报错。
+
+```cirru.no-check
+launch-canvas-with-options!
+  WindowOptions (:title "|My Paint window") (:width 1100) (:height 760) (:min-width 720) (:min-height 520) (:resizable? true)
+  fn (event)
+    case-default (get event :type) (println event)
+      :key-down $ case-default (get event :key) nil
+        |T $ set-window-title! "|Updated title"
+        |S $ request-window-size! 980 700
+        |Q $ close-window!
+```
+
+Runtime requests are valid only while a launch callback is active. They enter a
+FIFO queue and are applied on the event loop after the current callback returns,
+so a request never re-enters that callback. A successful `Unit` return means
+“queued”, not “accepted by the platform”. Title updates produce an applied
+`:window-request` event. A size request produces either `:status :confirmed`
+with logical `:actual-width`, `:actual-height`, and `:matched?`, or
+`:status :pending` with those acknowledgement fields set to `nil`; a subsequent
+`:resize` event is authoritative. `:matched? false` reports a clamped or denied
+platform result. Resize events now also include `:scale-factor`, and display
+scale changes emit `:type :scale-factor` with the current logical size.
+
+运行期请求仅能在 launch callback 活跃期间调用。请求进入 FIFO 队列，并在当前
+callback 返回后由 event loop 串行应用，因此不会重入 callback。成功返回 `Unit` 只表示
+“已入队”，不表示平台已经接受。标题更新会产生 applied 的 `:window-request` 事件。
+尺寸请求会产生两类确认：`:status :confirmed` 携带逻辑尺寸
+`:actual-width`、`:actual-height` 和 `:matched?`；`:status :pending` 时这些确认字段为
+`nil`，后续 `:resize` 才是权威结果。`:matched? false` 表示平台进行了限制或拒绝。
+`:resize` 现在也包含 `:scale-factor`，显示缩放变化会发送包含当前逻辑尺寸的
+`:type :scale-factor` 事件。
+
+Closing emits exactly one `{:type :window-close :reason ...}` event before the
+event loop returns. Reasons are `:requested`, `:system`, `:escape`,
+`:render-error`, `:smoke`, or the defensive `:event-loop` fallback. The bundled
+runnable demo uses configured startup options; press `T` to change its title,
+`S` to request 980×700, and `Q` to close it safely.
+
+关闭前会且仅会发送一次 `{:type :window-close :reason ...}` 事件，随后 event loop
+返回。reason 可能为 `:requested`、`:system`、`:escape`、`:render-error`、`:smoke`
+或兜底的 `:event-loop`。仓库内可运行 demo 已使用启动配置；按 `T` 修改标题，按 `S`
+请求 980×700，按 `Q` 安全关闭。
+
 ### Calcit type boundaries / Calcit 类型边界
 
 Public wrappers use explicit `Unit` returns for side effects. Drawing and
 offscreen-export payloads are generic because each operation accepts a
 different EDN shape, while text and paragraph measurement return
-`Map<Tag, Number>`. Three `Dynamic` slots
-remain by design: the blocking callback first receives legacy `nil` and then
-heterogeneous event maps, while text-option and paragraph-option map values are
-heterogeneous. Callback result type `R` remains generic; `launch-canvas!`
-discards that result inside an adapter and
-returns the serializable `:handled` tag to the blocking ABI because Calcit
+`Map<Tag, Number>`. Four `Dynamic` slots
+remain by design: the two compatible blocking launch APIs first deliver legacy
+`nil` and then heterogeneous event maps, while text-option and paragraph-option
+map values are heterogeneous. Callback result type `R` remains generic; both
+launch APIs discard that result inside an adapter and
+return the serializable `:handled` tag to the blocking ABI because Calcit
 `Unit` is intentionally not Cirru EDN. These boundaries are tracked by the
 reviewed quality baseline rather than being misrepresented as homogeneous
 values or JS FFI.
 
 公开 wrapper 的副作用返回值均显式声明为 `Unit`。不同绘制与离屏导出操作接收不同 EDN
 shape，因此 payload 使用泛型；单行文字与段落测量结果均明确为 `Map<Tag, Number>`。
-目前仅有三个 `Dynamic` 是有意保留的真实框架边界：blocking callback 会先收到兼容
-旧行为的 `nil`、随后收到异构事件 map；单行文字与段落选项 map 的 value 也为异构
-数据。callback 返回类型 `R` 仍为泛型；`launch-canvas!` 在内部 adapter 中丢弃该结果，
+目前仅有四个 `Dynamic` 是有意保留的真实框架边界：两个兼容的 blocking launch API
+都会先送达旧行为的 `nil`、随后送达异构事件 map；单行文字与段落选项 map 的 value
+也为异构数据。callback 返回类型 `R` 仍为泛型；两个 launch API 都在内部 adapter 中丢弃该结果，
 并向 blocking ABI 返回
 可序列化的 `:handled` tag，因为 Calcit `Unit` 本身并不是 Cirru EDN。这些边界由已审核
 的质量基线跟踪，而不会被错误标成同构类型或 JS FFI。

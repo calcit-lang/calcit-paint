@@ -547,14 +547,73 @@ pub fn physical_key_name(key: &PhysicalKey) -> String {
   }
 }
 
-pub fn handle_resize(w: f64, h: f64) -> Edn {
+pub fn handle_resize(w: f64, h: f64, scale_factor: f64) -> Edn {
   let info = map_view([
     (tag("type"), tag("resize")),
     (tag("width"), Edn::Number(w)),
     (tag("height"), Edn::Number(h)),
+    (tag("scale-factor"), Edn::Number(scale_factor)),
   ]);
 
   Edn::Map(info)
+}
+
+pub fn handle_scale_factor(w: f64, h: f64, scale_factor: f64) -> Edn {
+  Edn::Map(map_view([
+    (tag("type"), tag("scale-factor")),
+    (tag("width"), Edn::Number(w)),
+    (tag("height"), Edn::Number(h)),
+    (tag("scale-factor"), Edn::Number(scale_factor)),
+  ]))
+}
+
+pub fn handle_window_title_request(title: &str) -> Edn {
+  Edn::Map(map_view([
+    (tag("type"), tag("window-request")),
+    (tag("operation"), tag("set-title")),
+    (tag("status"), tag("applied")),
+    (tag("title"), Edn::str(title)),
+  ]))
+}
+
+pub fn handle_window_size_request(
+  requested_width: f64,
+  requested_height: f64,
+  scale_factor: f64,
+  actual_physical: Option<(u32, u32)>,
+) -> Edn {
+  let (status, actual_width, actual_height, matched) = match actual_physical {
+    Some((width, height)) => {
+      let width = width as f64 / scale_factor;
+      let height = height as f64 / scale_factor;
+      let tolerance = 0.5 / scale_factor;
+      (
+        tag("confirmed"),
+        Edn::Number(width),
+        Edn::Number(height),
+        Edn::Bool((width - requested_width).abs() <= tolerance && (height - requested_height).abs() <= tolerance),
+      )
+    }
+    None => (tag("pending"), Edn::Nil, Edn::Nil, Edn::Nil),
+  };
+  Edn::Map(map_view([
+    (tag("type"), tag("window-request")),
+    (tag("operation"), tag("request-size")),
+    (tag("status"), status),
+    (tag("requested-width"), Edn::Number(requested_width)),
+    (tag("requested-height"), Edn::Number(requested_height)),
+    (tag("actual-width"), actual_width),
+    (tag("actual-height"), actual_height),
+    (tag("matched?"), matched),
+    (tag("scale-factor"), Edn::Number(scale_factor)),
+  ]))
+}
+
+pub fn handle_window_close(reason: &str) -> Edn {
+  Edn::Map(map_view([
+    (tag("type"), tag("window-close")),
+    (tag("reason"), tag(reason)),
+  ]))
 }
 
 pub fn handle_mouse_wheel(input: &InputState, dx: f64, dy: f64, unit: &str) -> Edn {
@@ -930,11 +989,47 @@ mod tests {
 
   #[test]
   fn resize_event_is_not_optional() {
-    let Edn::Map(event) = handle_resize(640.0, 480.0) else {
+    let Edn::Map(event) = handle_resize(640.0, 480.0, 2.0) else {
       panic!("resize must be an event map");
     };
     assert_eq!(event.get(&tag("type")), Some(&tag("resize")));
     assert_eq!(event.get(&tag("width")), Some(&Edn::Number(640.0)));
+    assert_eq!(event.get(&tag("scale-factor")), Some(&Edn::Number(2.0)));
+  }
+
+  #[test]
+  fn window_lifecycle_events_report_scale_acknowledgement_and_close_reason() {
+    let Edn::Map(scale) = handle_scale_factor(640.0, 480.0, 2.0) else {
+      panic!("scale factor must be an event map");
+    };
+    assert_eq!(scale.get(&tag("type")), Some(&tag("scale-factor")));
+    assert_eq!(scale.get(&tag("scale-factor")), Some(&Edn::Number(2.0)));
+
+    let Edn::Map(confirmed) = handle_window_size_request(640.0, 480.0, 2.0, Some((1280, 960))) else {
+      panic!("size acknowledgement must be an event map");
+    };
+    assert_eq!(confirmed.get(&tag("status")), Some(&tag("confirmed")));
+    assert_eq!(confirmed.get(&tag("actual-width")), Some(&Edn::Number(640.0)));
+    assert_eq!(confirmed.get(&tag("matched?")), Some(&Edn::Bool(true)));
+
+    let Edn::Map(rejected) = handle_window_size_request(640.0, 480.0, 2.0, Some((1200, 900))) else {
+      panic!("size acknowledgement must be an event map");
+    };
+    assert_eq!(rejected.get(&tag("matched?")), Some(&Edn::Bool(false)));
+
+    let Edn::Map(pending) = handle_window_size_request(640.0, 480.0, 2.0, None) else {
+      panic!("size acknowledgement must be an event map");
+    };
+    assert_eq!(pending.get(&tag("status")), Some(&tag("pending")));
+    assert_eq!(pending.get(&tag("actual-width")), Some(&Edn::Nil));
+
+    for reason in ["requested", "system", "escape", "render-error", "smoke", "event-loop"] {
+      let Edn::Map(close) = handle_window_close(reason) else {
+        panic!("close must be an event map");
+      };
+      assert_eq!(close.get(&tag("type")), Some(&tag("window-close")));
+      assert_eq!(close.get(&tag("reason")), Some(&tag(reason)));
+    }
   }
 
   #[test]
