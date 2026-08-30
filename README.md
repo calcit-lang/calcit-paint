@@ -19,19 +19,26 @@ Available APIs:
 
 ```cirru.no-check
 calcit-paint.core/push-drawing-data! |reset-canvas! nil
+
 calcit-paint.core/push-drawing-data! |render-canvas! shape-data
+
 calcit-paint.core/measure-text! text-options
+
 calcit-paint.core/measure-paragraph! paragraph-options
+
 calcit-paint.core/validate-scene scene-data
+
 calcit-paint.core/render-to-png! offscreen-options
+
 calcit-paint.core/request-frame!
+
 calcit-paint.core/focus! |focus-id
+
 calcit-paint.core/focused? |focus-id
+
 calcit-paint.core/blur!
 
-calcit-paint.core/launch-canvas! $ fn (event)
-  println "|rendering to canvas..."
-  &unit
+calcit-paint.core/launch-canvas! $ fn (event) (println "|rendering to canvas...") (&unit)
 ```
 
 ### Native FFI / 原生 FFI
@@ -41,14 +48,14 @@ EDN transport, and adapters are provided by
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi). Paint
 keeps ownership of the Skia/winit event loop, rendering state, shape decoding,
 and callback scheduling. The module tracks `calcit_native_ffi 0.1.2`; buffer
-and blocking-callback protocols remain at v1. It requires Calcit 0.13.58.
+and blocking-callback protocols remain at v1. It requires Calcit 0.13.64.
 
 C-safe buffer-v1/blocking-callback descriptor、ownership 规则、Cirru EDN
 transport 与 adapter 由
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi) 统一维护。
 Paint 仍负责 Skia/winit 事件循环、绘制状态、shape 解析和回调调度；
 模块当前使用 `calcit_native_ffi 0.1.2`，buffer 与 blocking-callback protocol
-均继续保持 v1；模块要求 Calcit 0.13.58。
+均继续保持 v1；模块要求 Calcit 0.13.64。
 
 A custom mirror may be used for Skia binaries when it is known to be healthy:
 
@@ -221,7 +228,8 @@ Circle {
   both axes, or `radius-x` and `radius-y` independently:
 
 ```cirru
-{} (:type :rounded-rect) (:position ([] 20 20))
+{} (:type :rounded-rect)
+  :position $ [] 20 20
   :width 120
   :height 60
   :radius 16
@@ -234,7 +242,8 @@ Circle {
   `use-center? true` draws a wedge:
 
 ```cirru
-{} (:type :arc) (:position ([] 200 120))
+{} (:type :arc)
+  :position $ [] 200 120
   :radius-x 80
   :radius-y 40
   :start-angle 190
@@ -306,13 +315,7 @@ line metrics.
 alphabetic 基线的距离；空字符串宽度为零，仍保留对应字体的行度量。
 
 ```cirru.no-check
-measure-text! $ {}
-  :text "|Text layout / 文本排版"
-  :size 24
-  :font-family |monospace
-  :weight 700
-  :style :italic
-  :baseline :middle
+measure-text! $ {} (:text "|Text layout / 文本排版") (:size 24) (:font-family |monospace) (:weight 700) (:style :italic) (:baseline :middle)
 ```
 
 Run `./build.sh` followed by `calcit ./calcit.cirru` to run the maintained
@@ -343,7 +346,7 @@ ICU/BiDi shaping 的 Skia Paragraph/TextLayout，不会通过切分 UTF-8 字节
   :align :left
   :direction :ltr
   :max-lines 2
-  :ellipsis |…
+  :ellipsis "|…"
 ```
 
 `position` is the top-left corner of the paragraph layout box. `:max-width`
@@ -396,8 +399,8 @@ Paths use Skia's path builder with this compact operation subset:
 
 ```cirru
 []
-  [] :move-to ([] 1 2)
-  [] :line-to ([] 3 4)
+  [] :move-to $ [] 1 2
+  [] :line-to $ [] 3 4
   [] :quadratic-bezier-to ([] 5 6) ([] 7 8)
   [] :cubic-bezier-to ([] 1 2) ([] 3 4) ([] 5 6)
   [] :close-path
@@ -524,7 +527,9 @@ available because clipping affects pointer hit testing, not logical tab order.
 ```cirru
 {} (:type :opacity) (:alpha 0.6)
   :children $ []
-    {} (:type :circle) (:position ([] 80 80)) (:radius 40)
+    {} (:type :circle)
+      :position $ [] 80 80
+      :radius 40
       :fill-color $ [] 20 80 60
 ```
 
@@ -627,14 +632,14 @@ that exact path is replaced. `:scene` is required (`:shape` is an alias), while
 上的旧文件会被替换。必须提供 `:scene`（`:shape` 是兼容别名），`:background` 默认透明。
 
 ```cirru.no-check
-render-to-png! $ {}
-  :path |snapshot.png
-  :width 320
-  :height 180
+render-to-png! $ {} (:path |snapshot.png) (:width 320) (:height 180)
   :background $ [] 225 25 12
   :scene $ {} (:type :group)
     :children $ []
-      {} (:type :rectangle) (:position ([] 20 20)) (:width 120) (:height 80)
+      {} (:type :rectangle)
+        :position $ [] 20 20
+        :width 120
+        :height 80
         :fill-color $ [] 205 70 42
 ```
 
@@ -727,9 +732,11 @@ blocking `launch-canvas!` callback 时调用会返回错误。
 
 ```cirru.no-check
 launch-canvas! $ fn (event)
-  if (= :frame $ get event :type) $ do
-    render-animation! $ get event :timestamp-ms
-    request-frame!
+  if
+    = :frame $ get event :type
+    do
+      render-animation! $ get event :timestamp-ms
+      request-frame!
   , &unit
 ```
 
@@ -897,8 +904,7 @@ Duplicate focus IDs in one rendered scene are rejected.
 {} (:type :key-listener) (:key |K) (:action :focus-first)
   :modifiers $ {} (:shift? true)
 
-{} (:type :key-listener) (:key |Enter) (:focus-id |field-a)
-  :action :field-submit
+{} (:type :key-listener) (:key |Enter) (:focus-id |field-a) (:action :field-submit)
 ```
 
 Primary-clicking an area transfers focus; clicking outside all focus areas
@@ -930,7 +936,9 @@ Calcit 可通过 `focus!`、`blur!` 请求或释放焦点，并用 `focused?` �
 
 ```cirru.no-check
 focus! |field-a
+
 focused? |field-a
+
 blur!
 ```
 
