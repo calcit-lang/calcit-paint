@@ -349,6 +349,13 @@
             {} (:return 'Unit)
               :args $ [] 'String 'T
               :generics $ [] 'T
+        'read-clipboard-text! $ %{} 'CodeEntry (:doc "|Read UTF-8 text from the serialized system clipboard. / 从串行系统剪贴板读取 UTF-8 文本。")
+          :code $ quote
+            defn read-clipboard-text! () $ &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |read_clipboard_text
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'String)
+              :args $ []
         'render-to-png! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn render-to-png! (options)
@@ -396,6 +403,15 @@
               :args $ [] 'T
               :generics $ [] 'T
               :return $ :: 'List 'String
+        'write-clipboard-text! $ %{} 'CodeEntry (:doc "|Write UTF-8 text to the serialized system clipboard. / 向串行系统剪贴板写入 UTF-8 文本。")
+          :code $ quote
+            defn write-clipboard-text! (text)
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |write_clipboard_text text
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'String
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.core $ :require
@@ -411,6 +427,10 @@
           :code $ quote (defatom *animation-time-ms 0)
           :examples $ []
           :schema $ :: 'Ref 'Number
+        '*clipboard-status $ %{} 'CodeEntry (:doc |)
+          :code $ quote (defatom *clipboard-status |clipboard:idle)
+          :examples $ []
+          :schema $ :: 'Ref 'String
         '*file-drop-status $ %{} 'CodeEntry (:doc |)
           :code $ quote (defatom *file-drop-status |file-drop:idle)
           :examples $ []
@@ -556,6 +576,12 @@
                 println |event: kind target
                 :focus-first $ focus! |field-a
                 :export-snapshot $ export-offscreen-demo!
+                :clipboard-copy $ do (write-clipboard-text! "|Calcit Paint clipboard / 剪贴板") (reset! *clipboard-status "|copied: Calcit Paint clipboard / 已复制") (reset! *pointer-dirty? true) (request-frame!)
+                :clipboard-paste $ let
+                    text $ read-clipboard-text!
+                  reset! *clipboard-status $ str "|pasted: " text
+                  reset! *pointer-dirty? true
+                  request-frame!
                 :toggle-animation $ toggle-animation!
                 :window-title $ set-window-title! "|Calcit Paint · title updated / 标题已更新"
                 :window-size $ request-window-size! 980 700
@@ -959,6 +985,22 @@
                         :color $ [] 195 62 92
                         :size 12
                         :align :center
+                      {} (:type :group)
+                        :children $ []
+                          {} (:type :text) (:text "|Shift+C copy · Shift+V paste / 复制 · 粘贴")
+                            :position $ [] 900 265
+                            :color $ [] 195 62 92
+                            :size 12
+                            :align :center
+                          {} (:type :text) (:text @*clipboard-status)
+                            :position $ [] 900 285
+                            :color $ [] 195 62 92
+                            :size 11
+                            :align :center
+                          {} (:type :key-listener) (:key |C) (:action :clipboard-copy)
+                            :modifiers $ {} (:shift? true)
+                          {} (:type :key-listener) (:key |V) (:action :clipboard-paste)
+                            :modifiers $ {} (:shift? true)
                       {} (:type :key-listener) (:key |T) (:action :window-title)
                       {} (:type :key-listener) (:key |S) (:action :window-size)
                       {} (:type :key-listener) (:key |Q) (:action :window-close)
@@ -1035,7 +1077,7 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.main $ :require
-            calcit-paint.core :refer $ WindowOptions PaintEvent PaintTarget launch-canvas-typed! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene request-frame! set-window-title! request-window-size! close-window!
+            calcit-paint.core :refer $ WindowOptions PaintEvent PaintTarget launch-canvas-typed! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene request-frame! set-window-title! request-window-size! close-window! read-clipboard-text! write-clipboard-text!
     'calcit-paint.util $ %{} 'FileEntry
       :defs $ {}
         'get-dylib-ext $ %{} 'CodeEntry (:doc |)

@@ -40,7 +40,7 @@ jobs:
       - name: Audit C-safe exports
         run: |
           symbols=$(nm -D --defined-only dylibs/libcalcit_paint.so | awk '{print $3}')
-          for symbol in calcit_ffi_buffer_version calcit_ffi_async_version calcit_ffi_buffer_free push_drawing_data_calcit_ffi_v1 measure_text_calcit_ffi_v1 measure_paragraph_calcit_ffi_v1 render_to_png_calcit_ffi_v1 validate_scene_calcit_ffi_v1 request_frame_calcit_ffi_v1 request_focus_calcit_ffi_v1 clear_focus_calcit_ffi_v1 focused_calcit_ffi_v1 set_window_title_calcit_ffi_v1 request_window_size_calcit_ffi_v1 close_window_calcit_ffi_v1 launch_canvas_calcit_ffi_blocking_v1 launch_canvas_with_options_calcit_ffi_blocking_v1 launch_canvas_typed_calcit_ffi_blocking_v1; do
+          for symbol in calcit_ffi_buffer_version calcit_ffi_async_version calcit_ffi_buffer_free push_drawing_data_calcit_ffi_v1 measure_text_calcit_ffi_v1 measure_paragraph_calcit_ffi_v1 render_to_png_calcit_ffi_v1 validate_scene_calcit_ffi_v1 request_frame_calcit_ffi_v1 request_focus_calcit_ffi_v1 clear_focus_calcit_ffi_v1 focused_calcit_ffi_v1 read_clipboard_text_calcit_ffi_v1 write_clipboard_text_calcit_ffi_v1 set_window_title_calcit_ffi_v1 request_window_size_calcit_ffi_v1 close_window_calcit_ffi_v1 launch_canvas_calcit_ffi_blocking_v1 launch_canvas_with_options_calcit_ffi_blocking_v1 launch_canvas_typed_calcit_ffi_blocking_v1; do
             echo "$symbols" | grep -Fx "$symbol"
           done
           for legacy in launch_canvas push_drawing_data abi_version; do
@@ -49,6 +49,9 @@ jobs:
               exit 1
             fi
           done
+      - name: Run text clipboard smoke
+        run: |
+          xvfb-run -a calcit ./calcit.cirru eval 'do (&call-dylib-edn |./dylibs/libcalcit_paint.so |write_clipboard_text "|Paint clipboard smoke / 剪贴板") (assert= "|Paint clipboard smoke / 剪贴板" $ &call-dylib-edn |./dylibs/libcalcit_paint.so |read_clipboard_text)'
       - name: Run offscreen PNG smoke
         run: |
           calcit ./calcit.cirru eval '&call-dylib-edn |./dylibs/libcalcit_paint.so |render_to_png $ {} (:path |offscreen-ci.png) (:width 12) (:height 8) (:scene ({} (:type :rectangle) (:position ([] 2 2)) (:width 6) (:height 4) (:fill-color ([] 0 100 50))))'

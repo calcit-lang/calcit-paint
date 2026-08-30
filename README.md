@@ -38,6 +38,10 @@ calcit-paint.core/focused? |focus-id
 
 calcit-paint.core/blur!
 
+calcit-paint.core/write-clipboard-text! "|Calcit Paint clipboard / 剪贴板"
+
+calcit-paint.core/read-clipboard-text!
+
 calcit-paint.core/launch-canvas-with-options!
 
 calcit-paint.core/launch-canvas-typed!
@@ -961,6 +965,34 @@ callback 接收 map，强类型 callback 接收 `PaintFileEvent` 或
 路径会通过 stderr 明确拒绝，而不是有损转换。仓库内 demo 可用常规启动命令直接运行；
 把文件拖过窗口并放下即可看到强类型生命周期状态变化。
 
+### Text clipboard / 文本剪贴板
+
+`write-clipboard-text!` and `read-clipboard-text!` expose the platform's default
+clipboard as a serialized UTF-8 text effect. The write API returns `Unit`; the
+read API returns `String`. Initialization, empty/non-text content, occupied
+clipboard state, and unsupported desktop environments fail explicitly through
+the existing C-safe FFI error path. Image, HTML, file-list, primary-selection,
+and background-change polling APIs are deliberately outside this boundary.
+
+`write-clipboard-text!` 与 `read-clipboard-text!` 把平台默认剪贴板暴露为串行 UTF-8
+文本副作用；写入返回 `Unit`，读取返回 `String`。初始化失败、空或非文本内容、剪贴板
+被占用以及桌面环境不支持等情况，都会通过现有 C-safe FFI 错误路径明确失败。图片、HTML、
+文件列表、primary selection 与后台变更轮询不在此边界内。
+
+Paint keeps one lazily initialized clipboard handle so Linux X11/XWayland
+selection ownership remains valid while the application runs and Windows access
+is serialized. The handle is released when the winit event loop exits. Pure
+Wayland data-control is not enabled because compositor support is not universal;
+XWayland remains the Linux fallback. The bundled runnable demo uses `Shift+C` to
+write bilingual sample text and `Shift+V` to read it back, displaying both states
+inside the window.
+
+Paint 保留一个惰性初始化的 clipboard handle，使 Linux X11/XWayland selection 在
+应用运行期间保持 ownership，同时串行化 Windows 访问；winit event loop 退出时会释放
+该 handle。由于 compositor 支持并不统一，本阶段不启用纯 Wayland data-control，Linux
+仍以 XWayland 为兼容路径。仓库内可运行 demo 使用 `Shift+C` 写入双语样例文本，使用
+`Shift+V` 读回，并在窗口中显示状态。
+
 `:clicks` is counted separately for each button. A sequence continues when the
 next press happens within 500 ms and within four logical pixels; otherwise it
 restarts at `1`. `mouse-move` and `mouse-wheel` retain `:clicks` with the most
@@ -1143,12 +1175,14 @@ Run the bundled scene with `calcit ./calcit.cirru`, then click or drag the
 focus areas demonstrate click focus, Tab/Shift+Tab traversal, IME input,
 focus-scoped Enter, and a Shift+K shortcut that calls `focus!`. The callback
 prints live nominal events to the Calcit terminal. Shift+P explicitly exports
-the offscreen demo PNG.
+the offscreen demo PNG. Shift+C writes the clipboard sample and Shift+V reads it
+back into the visible demo status.
 
 运行 `calcit ./calcit.cirru` 后，点击或拖拽 “Pointer event demo” 面板、按住任意
 modifier，或按下 `I`。新增的两个 focus area 还会实际演示点击聚焦、Tab/Shift+Tab、
 IME 输入、焦点限定 Enter，以及调用 `focus!` 的 Shift+K 快捷键；callback 会把实时
 nominal event 打印到 Calcit terminal。Shift+P 会显式导出离屏 demo PNG。
+Shift+C 会写入剪贴板样例，Shift+V 会将其读回到可见 demo 状态。
 
 - Rotate
 
