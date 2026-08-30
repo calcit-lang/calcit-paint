@@ -10,7 +10,9 @@ use winit::{
   window::Theme,
 };
 
-use crate::{extracter::tag, focus, frame::FrameTiming, key_listener, primes::EventTarget, touches};
+use crate::{
+  extracter::tag, file_dialog::FileDialogResult, focus, frame::FrameTiming, key_listener, primes::EventTarget, touches,
+};
 
 fn map_view(pairs: impl IntoIterator<Item = (Edn, Edn)>) -> EdnMapView {
   let mut map = EdnMapView::default();
@@ -661,6 +663,17 @@ pub fn handle_file_hover_cancel(input: &InputState) -> Edn {
   ]))
 }
 
+pub fn handle_file_dialog_result(result: FileDialogResult) -> Edn {
+  Edn::Map(map_view([
+    (tag("type"), tag("file-dialog-result")),
+    (tag("request-id"), Edn::str(result.request_id)),
+    (tag("operation"), tag(result.operation)),
+    (tag("status"), tag(result.status)),
+    (tag("path"), result.path.map_or(Edn::Nil, Edn::str)),
+    (tag("error"), result.error.map_or(Edn::Nil, Edn::str)),
+  ]))
+}
+
 pub fn handle_mouse_wheel(input: &InputState, dx: f64, dy: f64, unit: &str) -> Edn {
   Edn::Map(map_view([
     (tag("type"), tag("mouse-wheel")),
@@ -1141,6 +1154,36 @@ mod tests {
     let path = Path::new(OsStr::from_bytes(b"/tmp/paint-\xff.png"));
     let error = handle_file_drop(path, &state).unwrap_err();
     assert!(error.contains("path is not valid UTF-8"));
+  }
+
+  #[test]
+  fn file_dialog_results_keep_success_cancellation_and_failure_distinct() {
+    let selected = handle_file_dialog_result(FileDialogResult {
+      request_id: "open-image".to_owned(),
+      operation: "open",
+      status: "selected",
+      path: Some("/tmp/image.png".to_owned()),
+      error: None,
+    });
+    let Edn::Map(selected) = selected else {
+      panic!("file dialog result must be a map");
+    };
+    assert_eq!(selected.get(&tag("type")), Some(&tag("file-dialog-result")));
+    assert_eq!(selected.get(&tag("path")), Some(&Edn::str("/tmp/image.png")));
+    assert_eq!(selected.get(&tag("error")), Some(&Edn::Nil));
+
+    let cancelled = handle_file_dialog_result(FileDialogResult {
+      request_id: "save-image".to_owned(),
+      operation: "save",
+      status: "cancelled",
+      path: None,
+      error: None,
+    });
+    let Edn::Map(cancelled) = cancelled else {
+      panic!("file dialog cancellation must be a map");
+    };
+    assert_eq!(cancelled.get(&tag("path")), Some(&Edn::Nil));
+    assert_eq!(cancelled.get(&tag("error")), Some(&Edn::Nil));
   }
 
   #[test]

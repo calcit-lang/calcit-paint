@@ -3,6 +3,8 @@ use std::sync::Mutex;
 
 use cirru_edn::{Edn, EdnStructView};
 
+use crate::file_dialog::FileDialogRequest;
+
 const WINDOW_OPTIONS_NAME: &str = "WindowOptions";
 const WINDOW_OPTION_FIELDS: [&str; 6] = ["title", "width", "height", "min-width", "min-height", "resizable?"];
 
@@ -33,6 +35,7 @@ impl Default for WindowStartupOptions {
 pub enum WindowRequest {
   SetTitle(String),
   RequestSize { width: f64, height: f64 },
+  FileDialog(FileDialogRequest),
   Close,
 }
 
@@ -40,6 +43,7 @@ pub enum WindowRequest {
 struct WindowLifecycleState {
   active: bool,
   closing: bool,
+  dialog_pending: bool,
   pending: VecDeque<WindowRequest>,
 }
 
@@ -55,6 +59,7 @@ impl Drop for ActiveWindow {
     let mut state = WINDOW_LIFECYCLE.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     state.active = false;
     state.closing = false;
+    state.dialog_pending = false;
     state.pending.clear();
   }
 }
@@ -68,6 +73,7 @@ pub fn activate() -> Result<ActiveWindow, String> {
   }
   state.active = true;
   state.closing = false;
+  state.dialog_pending = false;
   state.pending.clear();
   Ok(ActiveWindow)
 }
@@ -100,6 +106,35 @@ pub fn queue_close() -> Result<(), String> {
   enqueue(WindowRequest::Close)
 }
 
+pub fn queue_file_dialog(request: FileDialogRequest) -> Result<(), String> {
+  let mut state = WINDOW_LIFECYCLE
+    .lock()
+    .map_err(|_| "window lifecycle lock is poisoned".to_owned())?;
+  if !state.active {
+    return Err("native file dialog requires an active paint window callback".to_owned());
+  }
+  if state.closing {
+    return Err("paint window is already closing".to_owned());
+  }
+  if state.dialog_pending {
+    return Err("a native file dialog request is already pending".to_owned());
+  }
+  state.dialog_pending = true;
+  state.pending.push_back(WindowRequest::FileDialog(request));
+  Ok(())
+}
+
+pub fn complete_file_dialog() -> Result<(), String> {
+  let mut state = WINDOW_LIFECYCLE
+    .lock()
+    .map_err(|_| "window lifecycle lock is poisoned".to_owned())?;
+  if !state.active {
+    return Ok(());
+  }
+  state.dialog_pending = false;
+  Ok(())
+}
+
 pub fn take_requests() -> Result<VecDeque<WindowRequest>, String> {
   let mut state = WINDOW_LIFECYCLE
     .lock()
@@ -121,6 +156,7 @@ pub fn begin_close() -> Result<bool, String> {
     return Ok(false);
   }
   state.closing = true;
+  state.dialog_pending = false;
   state.pending.clear();
   Ok(true)
 }
