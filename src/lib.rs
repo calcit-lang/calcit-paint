@@ -32,6 +32,7 @@ use winit::{
   window::{CursorIcon, Window, WindowAttributes, WindowId},
 };
 
+mod clipboard;
 mod color;
 mod extracter;
 mod ffi;
@@ -491,6 +492,9 @@ where
     if !self.close_dispatched {
       self.request_exit(event_loop, "event-loop");
     }
+    if let Err(error) = clipboard::release() {
+      eprintln!("failed releasing text clipboard: {error}");
+    }
   }
 }
 
@@ -707,6 +711,25 @@ fn focused(args: Vec<Edn>) -> Result<Edn, String> {
 
 calcit_native_ffi::export_edn_buffer_method_v1!(focused_calcit_ffi_v1, focused);
 
+fn read_clipboard_text(args: Vec<Edn>) -> Result<Edn, String> {
+  if !args.is_empty() {
+    return Err(format!("read-clipboard-text expected no arguments, got: {args:?}"));
+  }
+  Ok(Edn::str(clipboard::read_text()?))
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(read_clipboard_text_calcit_ffi_v1, read_clipboard_text);
+
+fn write_clipboard_text(args: Vec<Edn>) -> Result<Edn, String> {
+  let [Edn::Str(text)] = args.as_slice() else {
+    return Err(format!("write-clipboard-text expected one text string, got: {args:?}"));
+  };
+  clipboard::write_text(text)?;
+  Ok(Edn::Nil)
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(write_clipboard_text_calcit_ffi_v1, write_clipboard_text);
+
 fn measure_text(args: Vec<Edn>) -> Result<Edn, String> {
   let [data] = args.as_slice() else {
     return Err(format!("measure-text expected one text options map, got: {args:?}"));
@@ -919,6 +942,9 @@ mod tests {
     assert!(clear_focus(vec![Edn::Nil]).is_err());
     assert!(focused(vec![]).is_err());
     assert!(focused(vec![Edn::Nil]).is_err());
+    assert!(read_clipboard_text(vec![Edn::Nil]).is_err());
+    assert!(write_clipboard_text(vec![]).is_err());
+    assert!(write_clipboard_text(vec![Edn::Nil]).is_err());
   }
 
   #[test]
