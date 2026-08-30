@@ -23,6 +23,7 @@ const TEXT_INPUT_EVENTS: [&str; 6] = [
   "text-input",
 ];
 const FILE_EVENTS: [&str; 3] = ["file-hover", "file-drop", "file-hover-cancel"];
+const FILE_DIALOG_EVENTS: [&str; 1] = ["file-dialog-result"];
 
 fn take_tag(map: &mut EdnMapView, key: &str) -> Result<String, String> {
   match map.0.remove(&Edn::tag(key)) {
@@ -102,6 +103,7 @@ pub fn from_legacy(event: Edn) -> Result<Edn, String> {
     || FOCUS_EVENTS.contains(&variant)
     || TEXT_INPUT_EVENTS.contains(&variant)
     || FILE_EVENTS.contains(&variant)
+    || FILE_DIALOG_EVENTS.contains(&variant)
     || matches!(
       variant,
       "frame"
@@ -248,5 +250,24 @@ mod tests {
     };
     assert_eq!(payload.tag_get("theme"), Some(&Edn::tag("dark")));
     assert_eq!(payload.tag_get("initial?"), Some(&Edn::Bool(false)));
+  }
+
+  #[test]
+  fn preserves_file_dialog_results_for_the_strict_calcit_decoder() {
+    let mut legacy = EdnMapView::default();
+    legacy.insert(Edn::tag("type"), Edn::tag("file-dialog-result"));
+    legacy.insert(Edn::tag("request-id"), Edn::str("open-image"));
+    legacy.insert(Edn::tag("operation"), Edn::tag("open"));
+    legacy.insert(Edn::tag("status"), Edn::tag("selected"));
+    legacy.insert(Edn::tag("path"), Edn::str("/tmp/image.png"));
+    legacy.insert(Edn::tag("error"), Edn::Nil);
+
+    let event = enum_view(from_legacy(Edn::Map(legacy)).unwrap());
+    assert_eq!(event.variant.as_ref(), "file-dialog-result");
+    let [Edn::Map(payload)] = event.extra.as_slice() else {
+      panic!("file dialog result must contain one map payload");
+    };
+    assert_eq!(payload.tag_get("request-id"), Some(&Edn::str("open-image")));
+    assert!(!payload.contains_key("error"));
   }
 }

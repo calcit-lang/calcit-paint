@@ -27,7 +27,7 @@ use winit::{
   application::ApplicationHandler,
   dpi::LogicalSize,
   event::{ElementState, KeyEvent, MouseScrollDelta, WindowEvent},
-  event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
+  event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy},
   keyboard::{Key, ModifiersState, NamedKey, PhysicalKey},
   window::{CursorIcon, Window, WindowAttributes, WindowId},
 };
@@ -36,6 +36,7 @@ mod clipboard;
 mod color;
 mod extracter;
 mod ffi;
+mod file_dialog;
 mod focus;
 mod frame;
 mod handlers;
@@ -71,8 +72,13 @@ lazy_static! {
   static ref NEXT_FOCUS_EVENTS: RwLock<Vec<Edn>> = RwLock::new(vec![]);
 }
 
-fn create_event_loop() -> Result<EventLoop<()>, String> {
-  let mut builder = EventLoop::builder();
+#[derive(Debug)]
+pub enum PaintUserEvent {
+  FileDialogResult(file_dialog::FileDialogResult),
+}
+
+fn create_event_loop() -> Result<EventLoop<PaintUserEvent>, String> {
+  let mut builder = EventLoop::<PaintUserEvent>::with_user_event();
   #[cfg(target_os = "linux")]
   winit::platform::x11::EventLoopBuilderExtX11::with_any_thread(&mut builder, true);
   builder
@@ -99,6 +105,7 @@ struct PaintApplication<F> {
   minimized: bool,
   suspended: bool,
   close_dispatched: bool,
+  event_proxy: EventLoopProxy<PaintUserEvent>,
 }
 
 impl<F> PaintApplication<F>
@@ -178,6 +185,16 @@ where
               self.scale_factor as f64,
               actual.map(|size| (size.width, size.height)),
             ));
+          }
+          window_lifecycle::WindowRequest::FileDialog(request) => {
+            if let Err(error) = file_dialog::launch(request.clone(), self.event_proxy.clone()) {
+              if let Err(completion_error) = window_lifecycle::complete_file_dialog() {
+                eprintln!("failed completing native file dialog request: {completion_error}");
+              }
+              self.dispatch(handlers::handle_file_dialog_result(file_dialog::failed_result(
+                &request, error,
+              )));
+            }
           }
           window_lifecycle::WindowRequest::Close => {
             self.request_exit(event_loop, "requested");
@@ -308,7 +325,7 @@ where
   }
 }
 
-impl<F> ApplicationHandler for PaintApplication<F>
+impl<F> ApplicationHandler<PaintUserEvent> for PaintApplication<F>
 where
   F: Fn(Vec<Edn>) -> Result<Edn, String>,
 {
@@ -494,6 +511,18 @@ where
     }
   }
 
+  fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: PaintUserEvent) {
+    match event {
+      PaintUserEvent::FileDialogResult(result) => {
+        if let Err(error) = window_lifecycle::complete_file_dialog() {
+          eprintln!("failed completing native file dialog request: {error}");
+        }
+        self.dispatch(handlers::handle_file_dialog_result(result));
+        self.env.window.request_redraw();
+      }
+    }
+  }
+
   fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
     self.apply_window_requests(event_loop);
     event_loop.set_control_flow(ControlFlow::Wait);
@@ -516,6 +545,7 @@ fn launch_canvas_impl(
   let _ = env_logger::try_init();
   let _active_window = window_lifecycle::activate()?;
   let event_loop = create_event_loop()?;
+  let event_proxy = event_loop.create_proxy();
   let mut window_attributes = WindowAttributes::default()
     .with_inner_size(LogicalSize::new(options.width, options.height))
     .with_title(options.title)
@@ -634,6 +664,7 @@ fn launch_canvas_impl(
     minimized: false,
     suspended: false,
     close_dispatched: false,
+    event_proxy,
   };
   touches::reset_pointer_state();
   let _active_frame_loop = frame::activate()?;
@@ -817,6 +848,20 @@ fn close_window(args: Vec<Edn>) -> Result<Edn, String> {
 }
 
 calcit_native_ffi::export_edn_buffer_method_v1!(close_window_calcit_ffi_v1, close_window);
+
+fn open_file_dialog(args: Vec<Edn>) -> Result<Edn, String> {
+  window_lifecycle::queue_file_dialog(file_dialog::FileDialogRequest::Open(file_dialog::parse_options(&args)?))?;
+  Ok(Edn::Nil)
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(open_file_dialog_calcit_ffi_v1, open_file_dialog);
+
+fn save_file_dialog(args: Vec<Edn>) -> Result<Edn, String> {
+  window_lifecycle::queue_file_dialog(file_dialog::FileDialogRequest::Save(file_dialog::parse_options(&args)?))?;
+  Ok(Edn::Nil)
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(save_file_dialog_calcit_ffi_v1, save_file_dialog);
 
 /// Own the host thread while the paint event loop is running.
 ///

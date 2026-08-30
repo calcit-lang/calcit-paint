@@ -42,6 +42,10 @@ calcit-paint.core/write-clipboard-text! "|Calcit Paint clipboard / 剪贴板"
 
 calcit-paint.core/read-clipboard-text!
 
+calcit-paint.core/open-file-dialog! file-dialog-options
+
+calcit-paint.core/save-file-dialog! file-dialog-options
+
 calcit-paint.core/launch-canvas-with-options!
 
 calcit-paint.core/launch-canvas-typed!
@@ -977,6 +981,26 @@ callback 接收 map，强类型 callback 接收 `PaintFileEvent` 或
 路径会通过 stderr 明确拒绝，而不是有损转换。仓库内 demo 可用常规启动命令直接运行；
 把文件拖过窗口并放下即可看到强类型生命周期状态变化。
 
+### Native open/save dialogs / 原生打开与保存对话框
+
+`open-file-dialog!` and `save-file-dialog!` queue one native dialog through
+`PaintFileDialogOptions`; they return `Unit` immediately and never block the
+Calcit callback or winit event loop. The closed `:file-dialog-result` event
+echoes `:request-id`, reports `:operation` (`:open` or `:save`) and terminal
+`:status` (`:selected`, `:cancelled`, or `:failed`), and carries an optional
+nominal `FsPath` or explicit error. Filters use a label and extensions without
+leading dots. Only one dialog can be pending for the active single window.
+Linux desktop portal/X11 behavior varies by session; CI covers request/result
+transport rather than attempting to automate a system dialog.
+
+`open-file-dialog!` 与 `save-file-dialog!` 通过 `PaintFileDialogOptions` 排队请求一个
+原生对话框，立即返回 `Unit`，不会阻塞 Calcit callback 或 winit event loop。封闭的
+`:file-dialog-result` 事件会回传 `:request-id`，提供 `:operation`（`:open` 或 `:save`）
+和终态 `:status`（`:selected`、`:cancelled` 或 `:failed`），并携带可选 nominal `FsPath`
+或明确错误。过滤器由显示名称和不带前导点的扩展名构成。单窗口同时最多只能有一个待完成
+的对话框。Linux portal/X11 行为会随 session 而异；CI 验证请求/结果传输，但不自动操作
+系统对话框。
+
 ### Text clipboard / 文本剪贴板
 
 `write-clipboard-text!` and `read-clipboard-text!` expose the platform's default
@@ -1190,14 +1214,17 @@ prints live nominal events to the Calcit terminal. Shift+P explicitly exports
 the offscreen demo PNG. Shift+C writes the clipboard sample and Shift+V reads it
 back into the visible demo status. The title/status line also shows the initial
 system theme and changes its background/accent palette when the operating-system
-theme changes.
+theme changes. Press `T` to open the filtered native image chooser and `S` to
+open the PNG save chooser; their selected/cancelled/failed results appear in the
+visible status line.
 
 运行 `calcit ./calcit.cirru` 后，点击或拖拽 “Pointer event demo” 面板、按住任意
 modifier，或按下 `I`。新增的两个 focus area 还会实际演示点击聚焦、Tab/Shift+Tab、
 IME 输入、焦点限定 Enter，以及调用 `focus!` 的 Shift+K 快捷键；callback 会把实时
 nominal event 打印到 Calcit terminal。Shift+P 会显式导出离屏 demo PNG。
 Shift+C 会写入剪贴板样例，Shift+V 会将其读回到可见 demo 状态。标题/状态行还会显示
-初始系统主题，并在操作系统主题变化时切换背景与强调色。
+初始系统主题，并在操作系统主题变化时切换背景与强调色。按下 `T` 会打开带图片过滤器的
+原生选择器，按下 `S` 会打开 PNG 保存选择器；选中、取消或失败结果会显示在状态行。
 
 - Rotate
 

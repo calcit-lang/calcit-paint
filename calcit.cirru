@@ -10,14 +10,43 @@
       :defs $ {}
         'PaintEvent $ %{} 'CodeEntry (:doc "|Nominal exhaustive event protocol for typed Paint callbacks, including system theme observations. / 用于强类型 Paint callback 的 nominal 穷尽事件协议，包含系统主题观测。")
           :code $ quote
-            defenum PaintEvent (:ready) (:frame 'calcit-paint.core/PaintFrameEvent) (:mouse-down 'calcit-paint.core/PaintPointerEvent) (:mouse-up 'calcit-paint.core/PaintPointerEvent) (:mouse-move 'calcit-paint.core/PaintPointerEvent) (:mouse-leave 'calcit-paint.core/PaintPointerEvent) (:mouse-wheel 'calcit-paint.core/PaintPointerEvent) (:pointer-enter 'calcit-paint.core/PaintPointerEvent) (:pointer-leave 'calcit-paint.core/PaintPointerEvent) (:pointer-cancel 'calcit-paint.core/PaintPointerEvent) (:key-down 'calcit-paint.core/PaintKeyboardEvent) (:key-up 'calcit-paint.core/PaintKeyboardEvent) (:focus-in 'calcit-paint.core/PaintFocusEvent) (:focus-out 'calcit-paint.core/PaintFocusEvent) (:ime-enabled 'calcit-paint.core/PaintTextInputEvent) (:ime-disabled 'calcit-paint.core/PaintTextInputEvent) (:composition-start 'calcit-paint.core/PaintTextInputEvent) (:composition-update 'calcit-paint.core/PaintTextInputEvent) (:composition-end 'calcit-paint.core/PaintTextInputEvent) (:text-input 'calcit-paint.core/PaintTextInputEvent) (:file-hover 'calcit-paint.core/PaintFileEvent) (:file-drop 'calcit-paint.core/PaintFileEvent) (:file-hover-cancel 'calcit-paint.core/PaintFileHoverCancelEvent) (:window-focus) (:window-blur) (:resize 'calcit-paint.core/PaintWindowMetricsEvent) (:scale-factor 'calcit-paint.core/PaintWindowMetricsEvent) (:window-theme 'calcit-paint.core/PaintWindowThemeEvent) (:window-title-applied 'calcit-paint.core/PaintWindowTitleEvent) (:window-size-request 'calcit-paint.core/PaintWindowSizeEvent) (:window-close 'calcit-paint.core/PaintWindowCloseEvent)
+            defenum PaintEvent (:ready) (:frame 'calcit-paint.core/PaintFrameEvent) (:mouse-down 'calcit-paint.core/PaintPointerEvent) (:mouse-up 'calcit-paint.core/PaintPointerEvent) (:mouse-move 'calcit-paint.core/PaintPointerEvent) (:mouse-leave 'calcit-paint.core/PaintPointerEvent) (:mouse-wheel 'calcit-paint.core/PaintPointerEvent) (:pointer-enter 'calcit-paint.core/PaintPointerEvent) (:pointer-leave 'calcit-paint.core/PaintPointerEvent) (:pointer-cancel 'calcit-paint.core/PaintPointerEvent) (:key-down 'calcit-paint.core/PaintKeyboardEvent) (:key-up 'calcit-paint.core/PaintKeyboardEvent) (:focus-in 'calcit-paint.core/PaintFocusEvent) (:focus-out 'calcit-paint.core/PaintFocusEvent) (:ime-enabled 'calcit-paint.core/PaintTextInputEvent) (:ime-disabled 'calcit-paint.core/PaintTextInputEvent) (:composition-start 'calcit-paint.core/PaintTextInputEvent) (:composition-update 'calcit-paint.core/PaintTextInputEvent) (:composition-end 'calcit-paint.core/PaintTextInputEvent) (:text-input 'calcit-paint.core/PaintTextInputEvent) (:file-hover 'calcit-paint.core/PaintFileEvent) (:file-drop 'calcit-paint.core/PaintFileEvent) (:file-hover-cancel 'calcit-paint.core/PaintFileHoverCancelEvent) (:file-dialog-result 'calcit-paint.core/PaintFileDialogEvent) (:window-focus) (:window-blur) (:resize 'calcit-paint.core/PaintWindowMetricsEvent) (:scale-factor 'calcit-paint.core/PaintWindowMetricsEvent) (:window-theme 'calcit-paint.core/PaintWindowThemeEvent) (:window-title-applied 'calcit-paint.core/PaintWindowTitleEvent) (:window-size-request 'calcit-paint.core/PaintWindowSizeEvent) (:window-close 'calcit-paint.core/PaintWindowCloseEvent)
           :examples $ []
           :schema $ :: 'EnumDef
         'PaintEventFfi $ %{} 'CodeEntry (:doc "|Internal generic envelope received from the native typed-event transport.")
           :code $ quote
-            defenum PaintEventFfi ([] 'Raw) (:ready) (:frame 'Raw) (:mouse-down 'Raw) (:mouse-up 'Raw) (:mouse-move 'Raw) (:mouse-leave 'Raw) (:mouse-wheel 'Raw) (:pointer-enter 'Raw) (:pointer-leave 'Raw) (:pointer-cancel 'Raw) (:key-down 'Raw) (:key-up 'Raw) (:focus-in 'Raw) (:focus-out 'Raw) (:ime-enabled 'Raw) (:ime-disabled 'Raw) (:composition-start 'Raw) (:composition-update 'Raw) (:composition-end 'Raw) (:text-input 'Raw) (:file-hover 'Raw) (:file-drop 'Raw) (:file-hover-cancel 'Raw) (:window-focus) (:window-blur) (:resize 'Raw) (:scale-factor 'Raw) (:window-theme 'Raw) (:window-title-applied 'Raw) (:window-size-request 'Raw) (:window-close 'Raw)
+            defenum PaintEventFfi ([] 'Raw) (:ready) (:frame 'Raw) (:mouse-down 'Raw) (:mouse-up 'Raw) (:mouse-move 'Raw) (:mouse-leave 'Raw) (:mouse-wheel 'Raw) (:pointer-enter 'Raw) (:pointer-leave 'Raw) (:pointer-cancel 'Raw) (:key-down 'Raw) (:key-up 'Raw) (:focus-in 'Raw) (:focus-out 'Raw) (:ime-enabled 'Raw) (:ime-disabled 'Raw) (:composition-start 'Raw) (:composition-update 'Raw) (:composition-end 'Raw) (:text-input 'Raw) (:file-hover 'Raw) (:file-drop 'Raw) (:file-hover-cancel 'Raw) (:file-dialog-result 'Raw) (:window-focus) (:window-blur) (:resize 'Raw) (:scale-factor 'Raw) (:window-theme 'Raw) (:window-title-applied 'Raw) (:window-size-request 'Raw) (:window-close 'Raw)
           :examples $ []
           :schema $ :: 'EnumDef
+        'PaintFileDialogEvent $ %{} 'CodeEntry (:doc "|Typed terminal native-dialog result. Status is :selected, :cancelled, or :failed. / 强类型原生对话框终态结果。status 为 :selected、:cancelled 或 :failed。")
+          :code $ quote
+            defstruct PaintFileDialogEvent (:request-id 'String) (:operation 'Tag) (:status 'Tag)
+              :path $ :: 'Option 'FsPath
+              :error $ :: 'Option 'String
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintFileDialogEventWire $ %{} 'CodeEntry (:doc "|Internal UTF-8 native dialog result decoded before constructing a nominal FsPath. / 内部 UTF-8 原生对话框结果，在构造 nominal FsPath 前解码。")
+          :code $ quote
+            defstruct PaintFileDialogEventWire (:request-id 'String) (:operation 'Tag) (:status 'Tag)
+              :path $ :: 'Option 'String
+              :error $ :: 'Option 'String
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintFileDialogFilter $ %{} 'CodeEntry (:doc "|One native file dialog filter with a human label and extensions without leading dots. / 原生文件对话框过滤器，含人类可读标签与不带前导点的扩展名。")
+          :code $ quote
+            defstruct PaintFileDialogFilter (:name 'String)
+              :extensions $ :: 'List 'String
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintFileDialogOptions $ %{} 'CodeEntry (:doc "|Strict native dialog request options; request-id is echoed by the terminal result event. / 严格原生对话框请求配置；request-id 会在终态结果事件中原样返回。")
+          :code $ quote
+            defstruct PaintFileDialogOptions (:request-id 'String)
+              :title $ :: 'Option 'String
+              :directory $ :: 'Option 'FsPath
+              :file-name $ :: 'Option 'String
+              :filters $ :: 'List 'calcit-paint.core/PaintFileDialogFilter
+          :examples $ []
+          :schema $ :: 'StructDef
         'PaintFileEvent $ %{} 'CodeEntry (:doc "|Typed file hover/drop payload with a nominal Calcit filesystem path.")
           :code $ quote
             defstruct PaintFileEvent (:path 'FsPath) (:x 'Number) (:y 'Number) (:modifiers 'calcit-paint.core/PaintModifiers)
@@ -215,6 +244,15 @@
             {}
               :args $ [] (:: 'Map 'Tag 'Dynamic)
               :return $ :: 'Map 'Tag 'Number
+        'open-file-dialog! $ %{} 'CodeEntry (:doc "|Queue one native open-file dialog; its result is delivered later as :file-dialog-result. / 请求一个原生打开文件对话框；结果稍后以 :file-dialog-result 送达。")
+          :code $ quote
+            defn open-file-dialog! (options)
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |open_file_dialog options
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'calcit-paint.core/PaintFileDialogOptions
         'paint-event-from-ffi $ %{} 'CodeEntry (:doc "|Strictly decode one native typed-event envelope into the public nominal protocol, validating system theme tags. / 严格将原生强类型事件 envelope 解码为公开 nominal 协议，并校验系统主题 tag。")
           :code $ quote
             defn paint-event-from-ffi (event)
@@ -272,6 +310,26 @@
                       , :x (:x wire) :y (:y wire) :modifiers (:modifiers wire)
                 (:file-hover-cancel payload)
                   PaintEvent :file-hover-cancel $ decode-map-as payload PaintFileHoverCancelEvent
+                (:file-dialog-result payload)
+                  let
+                      wire $ decode-map-as payload PaintFileDialogEventWire
+                      path $ :path wire
+                      error $ :error wire
+                      path-for-event $ match path
+                        (:none) %none
+                        (:some value)
+                          %some $ fs:path value
+                      result $ PaintFileDialogEvent :request-id (:request-id wire) :operation (:operation wire) :status (:status wire) :path path-for-event :error error
+                    do
+                      case-default (:operation result)
+                        raise $ str "|unsupported typed file dialog operation: " (:operation result)
+                        :open &unit
+                        :save &unit
+                      case-default (:status result)
+                        raise $ str "|unsupported typed file dialog status: " (:status result)
+                        :selected $ PaintEvent :file-dialog-result result
+                        :cancelled $ PaintEvent :file-dialog-result result
+                        :failed $ PaintEvent :file-dialog-result result
                 (:window-focus) (PaintEvent :window-focus)
                 (:window-blur) (PaintEvent :window-blur)
                 (:resize payload)
@@ -364,6 +422,20 @@
                         assert= :dark $ :theme payload
                         assert= false $ :initial? payload
                     _ $ raise |expected-window-theme-event
+            %{} 'TestEntry (:name |decodes-file-dialog-result)
+              :code $ quote
+                let
+                    event $ paint-event-from-ffi
+                      PaintEventFfi :file-dialog-result $ {} (:request-id |open-image) (:operation :open) (:status :selected) (:path |/tmp/image.png)
+                        :error $ %none
+                  assert-type event 'calcit-paint.core/PaintEvent
+                  match event
+                    (:file-dialog-result payload)
+                      do
+                        assert= :selected $ :status payload
+                        assert= (fs:path |/tmp/image.png)
+                          .unwrap $ :path payload
+                    _ $ raise |expected-file-dialog-result
         'push-drawing-data! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn push-drawing-data! (op data)
@@ -409,6 +481,15 @@
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ [] 'Number 'Number
+        'save-file-dialog! $ %{} 'CodeEntry (:doc "|Queue one native save-file dialog; its result is delivered later as :file-dialog-result. / 请求一个原生保存文件对话框；结果稍后以 :file-dialog-result 送达。")
+          :code $ quote
+            defn save-file-dialog! (options)
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |save_file_dialog options
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'calcit-paint.core/PaintFileDialogOptions
         'set-window-title! $ %{} 'CodeEntry (:doc "|Queue a title update for serialized application on the active event loop.")
           :code $ quote
             defn set-window-title! (title)
@@ -506,6 +587,20 @@
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ []
+        'handle-file-dialog-event! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn handle-file-dialog-event! (payload)
+              hint-fn $ {}
+                :args $ [] 'calcit-paint.core/PaintFileDialogEvent
+                :return 'Unit
+              reset! *file-drop-status $ str-spaced :file-dialog (:operation payload) (:status payload) (:request-id payload) (:path payload) (:error payload)
+              reset! *pointer-dirty? true
+              request-frame!
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'calcit-paint.core/PaintFileDialogEvent
         'handle-file-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn handle-file-event! (kind payload)
@@ -586,6 +681,7 @@
                 (:file-hover payload) (handle-file-event! :file-hover payload)
                 (:file-drop payload) (handle-file-event! :file-drop payload)
                 (:file-hover-cancel payload) (handle-file-hover-cancel! payload)
+                (:file-dialog-result payload) (handle-file-dialog-event! payload)
                 (:window-focus) (println |window-focus)
                 (:window-blur) (println |window-blur)
                 (:resize payload) (println |resize: payload)
@@ -617,8 +713,20 @@
                   reset! *pointer-dirty? true
                   request-frame!
                 :toggle-animation $ toggle-animation!
-                :window-title $ set-window-title! "|Calcit Paint · title updated / 标题已更新"
-                :window-size $ request-window-size! 980 700
+                :window-title $ do (set-window-title! "|Calcit Paint · open dialog / 打开文件")
+                  open-file-dialog! $ PaintFileDialogOptions :request-id |demo-open :title (%some "|Open image / 打开图片") :directory
+                    %some $ fs:path |.
+                    , :file-name (%none) :filters
+                      [] $ PaintFileDialogFilter :name |Images :extensions ([] |png |jpg |jpeg)
+                  reset! *file-drop-status "|file-dialog:open-pending (T)"
+                  request-frame!
+                :window-size $ do (request-window-size! 980 700)
+                  save-file-dialog! $ PaintFileDialogOptions :request-id |demo-save :title (%some "|Save image / 保存图片") :directory
+                    %some $ fs:path |.
+                    , :file-name (%some |calcit-paint-export.png) :filters
+                      [] $ PaintFileDialogFilter :name |PNG :extensions ([] |png)
+                  reset! *file-drop-status "|file-dialog:save-pending (S)"
+                  request-frame!
                 :window-close $ close-window!
                 :input-demo $ do
                   reset! *pointer-status $ str-spaced kind
@@ -1114,7 +1222,7 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.main $ :require
-            calcit-paint.core :refer $ WindowOptions PaintEvent PaintTarget launch-canvas-typed! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene request-frame! set-window-title! request-window-size! close-window! read-clipboard-text! write-clipboard-text!
+            calcit-paint.core :refer $ WindowOptions PaintEvent PaintTarget PaintFileDialogOptions PaintFileDialogFilter PaintFileDialogEvent launch-canvas-typed! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene request-frame! set-window-title! request-window-size! close-window! read-clipboard-text! write-clipboard-text! open-file-dialog! save-file-dialog!
     'calcit-paint.util $ %{} 'FileEntry
       :defs $ {}
         'get-dylib-ext $ %{} 'CodeEntry (:doc |)
