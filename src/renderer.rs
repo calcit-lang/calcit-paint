@@ -26,16 +26,24 @@ use skia_safe::textlayout::{
   TextDirection as SkTextDirection, TextStyle as ParagraphTextStyle,
 };
 use skia_safe::{
-  gradient, surfaces, AlphaType, Color, Color4f, ColorSpace, ColorType, Data, EncodedImageFormat, Font, FontMgr,
-  FontStyle, Image, ImageInfo, Paint, PaintStyle, PathBuilder, PathEffect, RRect, Rect, Shader, Surface, TextBlob,
-  TileMode,
+  gradient, surfaces, AlphaType, Color, Color4f, ColorSpace, ColorType, CubicResampler, Data, EncodedImageFormat,
+  FilterMode, Font, FontMgr, FontStyle, Image, ImageInfo, Paint, PaintStyle, PathBuilder, PathEffect, RRect, Rect,
+  SamplingOptions, Shader, Surface, TextBlob, TileMode,
 };
 
 #[derive(Clone)]
 struct CachedImage {
   modified: Option<SystemTime>,
   len: u64,
+  bytes: usize,
+  last_used: u64,
   image: Image,
+}
+
+#[derive(Default)]
+struct ImageCache {
+  entries: HashMap<String, CachedImage>,
+  bytes: usize,
 }
 
 #[derive(Clone)]
@@ -57,18 +65,21 @@ struct SubtreeCache {
 lazy_static! {
   static ref PREV_MESSAGES: RwLock<Vec<(Box<str>, Edn)>> = RwLock::new(vec![]);
   static ref BG_COLOR: RwLock<Color> = RwLock::new(Color::BLACK);
-  static ref IMAGE_CACHE: RwLock<HashMap<String, CachedImage>> = RwLock::new(HashMap::new());
+  static ref IMAGE_CACHE: RwLock<ImageCache> = RwLock::new(ImageCache::default());
   static ref SHADER_CACHE: RwLock<HashMap<String, Shader>> = RwLock::new(HashMap::new());
   static ref DASH_EFFECT_CACHE: RwLock<HashMap<String, PathEffect>> = RwLock::new(HashMap::new());
   static ref SUBTREE_CACHE: RwLock<SubtreeCache> = RwLock::new(SubtreeCache::default());
 }
 
 static SUBTREE_CACHE_TICK: AtomicU64 = AtomicU64::new(1);
+static IMAGE_CACHE_TICK: AtomicU64 = AtomicU64::new(1);
 
 const MAX_OFFSCREEN_DIMENSION: i32 = 4096;
 const MAX_OFFSCREEN_PIXELS: usize = 16 * 1024 * 1024;
 const SUBTREE_CACHE_LIMIT_BYTES: usize = 32 * 1024 * 1024;
 const SUBTREE_CACHE_MAX_ENTRIES: usize = 32;
+const IMAGE_CACHE_LIMIT_BYTES: usize = 64 * 1024 * 1024;
+const IMAGE_CACHE_MAX_ENTRIES: usize = 64;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct SceneDiagnostic {
@@ -130,8 +141,8 @@ use crate::{
   },
   key_listener,
   primes::{
-    DashPattern, PaintPathTo, PaintSource, ParagraphLayout, Shape, StrokeStyle, TextAlign, TextBaseline, TextDirection,
-    TextSlant, TextStyle, TouchAreaShape,
+    DashPattern, ImageFit, ImageSampling, PaintPathTo, PaintSource, ParagraphLayout, Shape, StrokeStyle, TextAlign,
+    TextBaseline, TextDirection, TextSlant, TextStyle, TouchAreaShape,
   },
 };
 
@@ -286,40 +297,182 @@ pub fn measure_paragraph(data: &Edn) -> Result<Edn, String> {
   Ok(Edn::Map(result))
 }
 
+impl ImageCache {
+  fn remove(&mut self, key: &str) -> Option<CachedImage> {
+    let removed = self.entries.remove(key)?;
+    self.bytes = self.bytes.saturating_sub(removed.bytes);
+    Some(removed)
+  }
+
+  fn fresh_image(&mut self, key: &str, modified: Option<SystemTime>, len: u64, tick: u64) -> Option<Image> {
+    let fresh = self
+      .entries
+      .get(key)
+      .is_some_and(|entry| entry.modified == modified && entry.len == len);
+    if !fresh {
+      self.remove(key);
+      return None;
+    }
+    let entry = self.entries.get_mut(key)?;
+    entry.last_used = tick;
+    Some(entry.image.clone())
+  }
+
+  fn insert_with_limits(&mut self, key: String, entry: CachedImage, max_entries: usize, max_bytes: usize) {
+    self.remove(&key);
+    if max_entries == 0 || entry.bytes > max_bytes {
+      return;
+    }
+    self.bytes = self.bytes.saturating_add(entry.bytes);
+    self.entries.insert(key, entry);
+    while self.entries.len() > max_entries || self.bytes > max_bytes {
+      let Some(victim) = self
+        .entries
+        .iter()
+        .min_by_key(|(_, cached)| cached.last_used)
+        .map(|(key, _)| key.clone())
+      else {
+        break;
+      };
+      self.remove(&victim);
+    }
+  }
+}
+
+fn decoded_image_bytes(image: &Image) -> usize {
+  (image.width().max(0) as usize)
+    .saturating_mul(image.height().max(0) as usize)
+    .saturating_mul(4)
+}
+
 fn load_image(file_path: &str) -> Result<Option<Image>, String> {
   let metadata = match fs::metadata(file_path) {
     Ok(metadata) => metadata,
     Err(error) => {
+      IMAGE_CACHE
+        .write()
+        .map_err(|_| "image cache lock is poisoned".to_owned())?
+        .remove(file_path);
       eprintln!("[Paint Error] failed to load {file_path}: {error}");
       return Ok(None);
     }
   };
   let modified = metadata.modified().ok();
   let len = metadata.len();
-  if let Some(cached) = IMAGE_CACHE
-    .read()
+  let tick = IMAGE_CACHE_TICK.fetch_add(1, Ordering::Relaxed);
+  if let Some(image) = IMAGE_CACHE
+    .write()
     .map_err(|_| "image cache lock is poisoned".to_owned())?
-    .get(file_path)
-    .filter(|cached| cached.modified == modified && cached.len == len)
+    .fresh_image(file_path, modified, len, tick)
   {
-    return Ok(Some(cached.image.clone()));
+    return Ok(Some(image));
   }
 
   let file_data = fs::read(file_path).map_err(|error| format!("[Paint Error] failed to load {file_path}: {error}"))?;
   let image = Image::from_encoded(Data::new_copy(&file_data))
     .ok_or_else(|| format!("[Paint Error] failed to decode image: {file_path}"))?;
+  let bytes = decoded_image_bytes(&image);
   IMAGE_CACHE
     .write()
     .map_err(|_| "image cache lock is poisoned".to_owned())?
-    .insert(
+    .insert_with_limits(
       file_path.to_owned(),
       CachedImage {
         modified,
         len,
+        bytes,
+        last_used: tick,
         image: image.clone(),
       },
+      IMAGE_CACHE_MAX_ENTRIES,
+      IMAGE_CACHE_LIMIT_BYTES,
     );
   Ok(Some(image))
+}
+
+fn image_sampling_options(sampling: ImageSampling) -> SamplingOptions {
+  match sampling {
+    ImageSampling::Nearest => SamplingOptions::default(),
+    ImageSampling::Linear => FilterMode::Linear.into(),
+    ImageSampling::Cubic => CubicResampler::mitchell().into(),
+  }
+}
+
+fn resolve_image_rects(
+  id: &str,
+  file_path: &str,
+  image_width: f32,
+  image_height: f32,
+  destination: Rect,
+  crop: Option<Rect>,
+  fit: ImageFit,
+) -> Result<(Option<Rect>, Rect), String> {
+  if image_width <= 0.0 || image_height <= 0.0 {
+    return Err(format!(
+      "{id}: decoded image has invalid dimensions {image_width}x{image_height}: {file_path}"
+    ));
+  }
+  let full_source = Rect::from_wh(image_width, image_height);
+  let source = crop.unwrap_or(full_source);
+  let source_width = source.width();
+  let source_height = source.height();
+  if !source.left.is_finite()
+    || !source.top.is_finite()
+    || !source.right.is_finite()
+    || !source.bottom.is_finite()
+    || source.left < 0.0
+    || source.top < 0.0
+    || source_width <= 0.0
+    || source_height <= 0.0
+    || source.right > image_width
+    || source.bottom > image_height
+  {
+    return Err(format!(
+      "{id}: image :crop {source:?} exceeds decoded bounds {image_width}x{image_height}: {file_path}"
+    ));
+  }
+
+  let destination_width = destination.width();
+  let destination_height = destination.height();
+  match fit {
+    ImageFit::Fill => Ok((crop, destination)),
+    ImageFit::Contain => {
+      let scale = (destination_width / source_width).min(destination_height / source_height);
+      let width = source_width * scale;
+      let height = source_height * scale;
+      Ok((
+        crop,
+        Rect::from_xywh(
+          destination.left + (destination_width - width) * 0.5,
+          destination.top + (destination_height - height) * 0.5,
+          width,
+          height,
+        ),
+      ))
+    }
+    ImageFit::Cover => {
+      let destination_aspect = destination_width / destination_height;
+      let source_aspect = source_width / source_height;
+      let cover_source = if source_aspect > destination_aspect {
+        let width = source_height * destination_aspect;
+        Rect::from_xywh(
+          source.left + (source_width - width) * 0.5,
+          source.top,
+          width,
+          source_height,
+        )
+      } else {
+        let height = source_width / destination_aspect;
+        Rect::from_xywh(
+          source.left,
+          source.top + (source_height - height) * 0.5,
+          source_width,
+          height,
+        )
+      };
+      Ok((Some(cover_source), destination))
+    }
+  }
 }
 
 const EFFECT_CACHE_LIMIT: usize = 256;
@@ -825,25 +978,47 @@ fn draw_shape_with_mode(
       canvas.draw_path(&path, &stroke_paint(line_style)?);
     }
     Shape::Image {
+      id,
       file_path,
       x,
       y,
       w,
       h,
       crop,
+      fit,
+      sampling,
     } => {
       let paint = Paint::default();
       let Some(image) = load_image(file_path)? else {
         return Ok(());
       };
-      let area = Rect::from_xywh(*x, *y, *w, *h);
-      match crop {
-        Some(crop) => {
-          let c = crop.to_owned();
-          canvas.draw_image_rect(image, Some((&c, SrcRectConstraint::Fast)), area, &paint);
+      let (source, destination) = resolve_image_rects(
+        id,
+        file_path,
+        image.width() as f32,
+        image.height() as f32,
+        Rect::from_xywh(*x, *y, *w, *h),
+        *crop,
+        *fit,
+      )?;
+      match source.as_ref() {
+        Some(source) => {
+          canvas.draw_image_rect_with_sampling_options(
+            image,
+            Some((source, SrcRectConstraint::Strict)),
+            destination,
+            image_sampling_options(*sampling),
+            &paint,
+          );
         }
         None => {
-          canvas.draw_image_rect(image, None, area, &paint);
+          canvas.draw_image_rect_with_sampling_options(
+            image,
+            None,
+            destination,
+            image_sampling_options(*sampling),
+            &paint,
+          );
         }
       }
     }
@@ -1309,20 +1484,24 @@ fn extract_shape_at(tree: &Edn, path: &str) -> Result<Shape, SceneDiagnostics> {
         "image" => {
           let crop = match m.get(&tag("crop")) {
             Some(Edn::Map(m)) => Some(Rect::from_xywh(
-              read_f32(m, "x")?,
-              read_f32(m, "y")?,
-              read_f32(m, "w")?,
-              read_f32(m, "h")?,
+              read_non_negative_f32(m, "x")?,
+              read_non_negative_f32(m, "y")?,
+              read_positive_f32(m, "w")?,
+              read_positive_f32(m, "h")?,
             )),
-            _ => None,
+            None | Some(Edn::Nil) => None,
+            Some(value) => return Err(format!("image :crop must be a map or nil, got {value}").into()),
           };
           Ok(Shape::Image {
+            id: path.to_owned(),
             file_path: read_string(m, "file-path")?,
-            x: read_f32(m, "x")?,
-            y: read_f32(m, "y")?,
-            w: read_f32(m, "w")?,
-            h: read_f32(m, "h")?,
+            x: read_finite_f32(m, "x")?,
+            y: read_finite_f32(m, "y")?,
+            w: read_positive_f32(m, "w")?,
+            h: read_positive_f32(m, "h")?,
             crop,
+            fit: read_image_fit(m)?,
+            sampling: read_image_sampling(m)?,
           })
         }
         _ => Err(format!("unknown kind: {name}").into()),
@@ -1347,8 +1526,58 @@ fn validate_non_negative(name: &str, value: f32) -> Result<f32, String> {
   }
 }
 
+fn validate_positive(name: &str, value: f32) -> Result<f32, String> {
+  if value.is_finite() && value > 0.0 {
+    Ok(value)
+  } else {
+    Err(format!("{name} must be a finite positive number, got {value}"))
+  }
+}
+
+fn validate_finite(name: &str, value: f32) -> Result<f32, String> {
+  if value.is_finite() {
+    Ok(value)
+  } else {
+    Err(format!("{name} must be a finite number, got {value}"))
+  }
+}
+
 fn read_non_negative_f32(tree: &EdnMapView, key: &str) -> Result<f32, String> {
   validate_non_negative(key, read_f32(tree, key)?)
+}
+
+fn read_positive_f32(tree: &EdnMapView, key: &str) -> Result<f32, String> {
+  validate_positive(key, read_f32(tree, key)?)
+}
+
+fn read_finite_f32(tree: &EdnMapView, key: &str) -> Result<f32, String> {
+  validate_finite(key, read_f32(tree, key)?)
+}
+
+fn read_image_fit(tree: &EdnMapView) -> Result<ImageFit, String> {
+  match tree.get(&tag("fit")) {
+    None | Some(Edn::Nil) => Ok(ImageFit::Fill),
+    Some(Edn::Tag(value)) => match value.ref_str() {
+      "fill" => Ok(ImageFit::Fill),
+      "contain" => Ok(ImageFit::Contain),
+      "cover" => Ok(ImageFit::Cover),
+      _ => Err(format!("unsupported image fit: {value}")),
+    },
+    Some(value) => Err(format!("image :fit must be a tag or nil, got {value}")),
+  }
+}
+
+fn read_image_sampling(tree: &EdnMapView) -> Result<ImageSampling, String> {
+  match tree.get(&tag("sampling")) {
+    None | Some(Edn::Nil) => Ok(ImageSampling::Nearest),
+    Some(Edn::Tag(value)) => match value.ref_str() {
+      "nearest" => Ok(ImageSampling::Nearest),
+      "linear" => Ok(ImageSampling::Linear),
+      "cubic" => Ok(ImageSampling::Cubic),
+      _ => Err(format!("unsupported image sampling: {value}")),
+    },
+    Some(value) => Err(format!("image :sampling must be a tag or nil, got {value}")),
+  }
 }
 
 fn extract_children(children: Option<&Edn>, parent_path: &str) -> Result<Vec<Shape>, SceneDiagnostics> {
@@ -1525,6 +1754,25 @@ mod tests {
     SUBTREE_CACHE_TICK.store(1, Ordering::Relaxed);
   }
 
+  fn reset_image_cache() {
+    *IMAGE_CACHE.write().unwrap() = ImageCache::default();
+    IMAGE_CACHE_TICK.store(1, Ordering::Relaxed);
+  }
+
+  fn write_two_color_image(path: &std::path::Path) {
+    let mut surface = surfaces::raster_n32_premul((2, 1)).unwrap();
+    let mut paint = Paint::default();
+    paint.set_color(Color::RED);
+    surface.canvas().draw_rect(Rect::from_xywh(0.0, 0.0, 1.0, 1.0), &paint);
+    paint.set_color(Color::BLUE);
+    surface.canvas().draw_rect(Rect::from_xywh(1.0, 0.0, 1.0, 1.0), &paint);
+    let png = surface
+      .image_snapshot()
+      .encode(None, EncodedImageFormat::PNG, 100)
+      .unwrap();
+    fs::write(path, png.as_bytes()).unwrap();
+  }
+
   #[test]
   fn extracts_new_skia_shapes() {
     let rounded = map([
@@ -1572,6 +1820,45 @@ mod tests {
     assert!(extract_shape(&invalid_cursor)
       .unwrap_err()
       .contains("cursor must be a tag"));
+
+    let image = map([
+      ("type", Edn::tag("image")),
+      ("file-path", Edn::str("demo.png")),
+      ("x", Edn::Number(10.0)),
+      ("y", Edn::Number(20.0)),
+      ("w", Edn::Number(120.0)),
+      ("h", Edn::Number(80.0)),
+      ("fit", Edn::tag("contain")),
+      ("sampling", Edn::tag("linear")),
+    ]);
+    assert!(matches!(
+      extract_shape(&image),
+      Ok(Shape::Image {
+        ref id,
+        fit: ImageFit::Contain,
+        sampling: ImageSampling::Linear,
+        crop: None,
+        ..
+      }) if id == "$"
+    ));
+
+    let legacy_image = map([
+      ("type", Edn::tag("image")),
+      ("file-path", Edn::str("legacy.png")),
+      ("x", Edn::Number(0.0)),
+      ("y", Edn::Number(0.0)),
+      ("w", Edn::Number(32.0)),
+      ("h", Edn::Number(24.0)),
+    ]);
+    assert!(matches!(
+      extract_shape(&legacy_image),
+      Ok(Shape::Image {
+        fit: ImageFit::Fill,
+        sampling: ImageSampling::Nearest,
+        crop: None,
+        ..
+      })
+    ));
   }
 
   #[test]
@@ -1582,6 +1869,96 @@ mod tests {
     assert_eq!(&pixels[0..4], &[0, 0, 0, 0]);
     assert_eq!(&pixels[(3 * 8 + 3) * 4..(3 * 8 + 3) * 4 + 4], &[255, 0, 0, 255]);
     assert_eq!(fnv1a64(&pixels), 0xc795_b70a_8da3_da05);
+  }
+
+  #[test]
+  fn resolves_image_fit_and_sampling_options() {
+    let destination = Rect::from_xywh(10.0, 20.0, 100.0, 100.0);
+    let (contain_source, contain_destination) =
+      resolve_image_rects("$", "demo.png", 200.0, 100.0, destination, None, ImageFit::Contain).unwrap();
+    assert_eq!(contain_source, None);
+    assert_eq!(contain_destination, Rect::from_xywh(10.0, 45.0, 100.0, 50.0));
+
+    let (cover_source, cover_destination) =
+      resolve_image_rects("$", "demo.png", 200.0, 100.0, destination, None, ImageFit::Cover).unwrap();
+    assert_eq!(cover_source, Some(Rect::from_xywh(50.0, 0.0, 100.0, 100.0)));
+    assert_eq!(cover_destination, destination);
+
+    assert_eq!(
+      image_sampling_options(ImageSampling::Nearest).filter,
+      FilterMode::Nearest
+    );
+    assert_eq!(image_sampling_options(ImageSampling::Linear).filter, FilterMode::Linear);
+    assert!(image_sampling_options(ImageSampling::Cubic).use_cubic);
+  }
+
+  #[test]
+  fn image_shape_renders_contain_and_rejects_out_of_bounds_crop() {
+    reset_image_cache();
+    let path = std::env::temp_dir().join(format!("calcit-paint-image-fit-{}.png", std::process::id()));
+    write_two_color_image(&path);
+    let image_shape = Shape::Image {
+      id: "$.children[0]".into(),
+      file_path: path.to_string_lossy().into_owned(),
+      x: 0.0,
+      y: 0.0,
+      w: 8.0,
+      h: 8.0,
+      crop: None,
+      fit: ImageFit::Contain,
+      sampling: ImageSampling::Nearest,
+    };
+    let image = render_offscreen_shape(8, 8, Color::TRANSPARENT, &image_shape).unwrap();
+    let pixels = rgba_pixels(&image, 8, 8);
+    assert_eq!(&pixels[0..4], &[0, 0, 0, 0]);
+    assert_eq!(&pixels[(3 * 8 + 1) * 4..(3 * 8 + 1) * 4 + 4], &[255, 0, 0, 255]);
+    assert_eq!(&pixels[(3 * 8 + 6) * 4..(3 * 8 + 6) * 4 + 4], &[0, 0, 255, 255]);
+
+    let invalid_crop = Shape::Image {
+      id: "$.children[0]".into(),
+      file_path: path.to_string_lossy().into_owned(),
+      x: 0.0,
+      y: 0.0,
+      w: 8.0,
+      h: 8.0,
+      crop: Some(Rect::from_xywh(1.0, 0.0, 2.0, 1.0)),
+      fit: ImageFit::Contain,
+      sampling: ImageSampling::Nearest,
+    };
+    let error = render_offscreen_shape(8, 8, Color::TRANSPARENT, &invalid_crop).unwrap_err();
+    assert!(error.contains("$.children[0]: image :crop"));
+    assert!(error.contains("decoded bounds 2x1"));
+
+    fs::remove_file(path).unwrap();
+    reset_image_cache();
+  }
+
+  #[test]
+  fn decoded_image_cache_is_lru_and_byte_bounded() {
+    let image = surfaces::raster_n32_premul((1, 1)).unwrap().image_snapshot();
+    let entry = |bytes, last_used| CachedImage {
+      modified: None,
+      len: 1,
+      bytes,
+      last_used,
+      image: image.clone(),
+    };
+    let mut cache = ImageCache::default();
+    cache.insert_with_limits("a".into(), entry(4, 1), 2, 8);
+    cache.insert_with_limits("b".into(), entry(4, 2), 2, 8);
+    assert!(cache.fresh_image("a", None, 1, 3).is_some());
+    cache.insert_with_limits("c".into(), entry(4, 4), 2, 8);
+    assert!(cache.entries.contains_key("a"));
+    assert!(!cache.entries.contains_key("b"));
+    assert!(cache.entries.contains_key("c"));
+    assert_eq!(cache.bytes, 8);
+
+    assert!(cache.fresh_image("a", None, 2, 5).is_none());
+    assert!(!cache.entries.contains_key("a"));
+    assert_eq!(cache.bytes, 4);
+    cache.insert_with_limits("too-large".into(), entry(12, 6), 2, 8);
+    assert!(!cache.entries.contains_key("too-large"));
+    assert_eq!(cache.bytes, 4);
   }
 
   #[test]
@@ -1769,6 +2146,84 @@ mod tests {
     assert!(extract_shape(&negative_clip_radius)
       .unwrap_err()
       .contains("radius-x must be a finite non-negative number"));
+
+    let invalid_image_fit = map([
+      ("type", Edn::tag("image")),
+      ("file-path", Edn::str("demo.png")),
+      ("x", Edn::Number(0.0)),
+      ("y", Edn::Number(0.0)),
+      ("w", Edn::Number(20.0)),
+      ("h", Edn::Number(20.0)),
+      ("fit", Edn::str("cover")),
+    ]);
+    assert!(extract_shape(&invalid_image_fit)
+      .unwrap_err()
+      .contains("image :fit must be a tag or nil"));
+
+    let invalid_image_crop = map([
+      ("type", Edn::tag("image")),
+      ("file-path", Edn::str("demo.png")),
+      ("x", Edn::Number(0.0)),
+      ("y", Edn::Number(0.0)),
+      ("w", Edn::Number(20.0)),
+      ("h", Edn::Number(20.0)),
+      ("crop", Edn::str("not-a-map")),
+    ]);
+    assert!(extract_shape(&invalid_image_crop)
+      .unwrap_err()
+      .contains("image :crop must be a map or nil"));
+
+    let invalid_crop_dimensions = map([
+      ("type", Edn::tag("image")),
+      ("file-path", Edn::str("demo.png")),
+      ("x", Edn::Number(0.0)),
+      ("y", Edn::Number(0.0)),
+      ("w", Edn::Number(20.0)),
+      ("h", Edn::Number(20.0)),
+      (
+        "crop",
+        map([
+          ("x", Edn::Number(-1.0)),
+          ("y", Edn::Number(0.0)),
+          ("w", Edn::Number(10.0)),
+          ("h", Edn::Number(10.0)),
+        ]),
+      ),
+    ]);
+    assert!(extract_shape(&invalid_crop_dimensions)
+      .unwrap_err()
+      .contains("x must be a finite non-negative number"));
+
+    let zero_image_width = map([
+      ("type", Edn::tag("image")),
+      ("file-path", Edn::str("demo.png")),
+      ("x", Edn::Number(0.0)),
+      ("y", Edn::Number(0.0)),
+      ("w", Edn::Number(0.0)),
+      ("h", Edn::Number(20.0)),
+    ]);
+    assert!(extract_shape(&zero_image_width)
+      .unwrap_err()
+      .contains("w must be a finite positive number"));
+
+    let nested_invalid_image = map([
+      ("type", Edn::tag("group")),
+      (
+        "children",
+        list([map([
+          ("type", Edn::tag("image")),
+          ("file-path", Edn::str("demo.png")),
+          ("x", Edn::Number(0.0)),
+          ("y", Edn::Number(0.0)),
+          ("w", Edn::Number(20.0)),
+          ("h", Edn::Number(-1.0)),
+        ])]),
+      ),
+    ]);
+    assert_eq!(
+      validate_scene(&nested_invalid_image),
+      vec!["$.children[0]: h must be a finite positive number, got -1"]
+    );
 
     let opacity = map([
       ("type", Edn::tag("opacity")),

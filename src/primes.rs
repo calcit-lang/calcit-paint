@@ -116,6 +116,20 @@ pub struct ShortcutModifiers {
   pub super_key: bool,
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ImageFit {
+  Fill,
+  Contain,
+  Cover,
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ImageSampling {
+  Nearest,
+  Linear,
+  Cubic,
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Shape {
   Rectangle {
@@ -265,12 +279,15 @@ pub enum Shape {
     children: Vec<Shape>,
   },
   Image {
+    id: String,
     file_path: String,
     x: f32,
     y: f32,
     w: f32,
     h: f32,
     crop: Option<Rect>,
+    fit: ImageFit,
+    sampling: ImageSampling,
   },
 }
 

@@ -482,8 +482,44 @@
                         :color $ [] 45 18 96
                         :size 14
                         :align :center
-                  {} (:type :image) (:file-path |resources/calcit.png) (:x 400) (:y 40) (:w 80) (:h 80)
-                    ; :crop $ {} (:x 0) (:y 0) (:w 200) (:h 200)
+                  {} (:type :group)
+                    :children $ []
+                      {} (:type :rectangle)
+                        :position $ [] 310 12
+                        :width 100
+                        :height 58
+                        :fill-color $ [] 220 16 24
+                      {} (:type :image) (:file-path |resources/calcit.png) (:x 310) (:y 12) (:w 100) (:h 58)
+                      {} (:type :text) (:text |fill/nearest)
+                        :position $ [] 360 78
+                        :color $ [] 0 0 96
+                        :size 11
+                        :align :center
+                      {} (:type :rectangle)
+                        :position $ [] 425 12
+                        :width 100
+                        :height 58
+                        :fill-color $ [] 220 16 24
+                      {} (:type :image) (:file-path |resources/calcit.png) (:x 425) (:y 12) (:w 100) (:h 58) (:fit :contain) (:sampling :linear)
+                      {} (:type :text) (:text |contain/linear)
+                        :position $ [] 475 78
+                        :color $ [] 0 0 96
+                        :size 11
+                        :align :center
+                      {} (:type :rectangle)
+                        :position $ [] 540 12
+                        :width 100
+                        :height 58
+                        :fill-color $ [] 220 16 24
+                      {} (:type :image) (:file-path |resources/calcit.png) (:x 540) (:y 12) (:w 100) (:h 58)
+                        :crop $ {} (:x 80) (:y 80) (:w 320) (:h 320)
+                        :fit :cover
+                        :sampling :cubic
+                      {} (:type :text) (:text |cover/cubic)
+                        :position $ [] 590 78
+                        :color $ [] 0 0 96
+                        :size 11
+                        :align :center
                   {} (:type :group)
                     :children $ []
                       {} (:type :circle) (:radius 22)
