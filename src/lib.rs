@@ -43,6 +43,7 @@ mod key_listener;
 mod primes;
 mod renderer;
 mod touches;
+mod typed_events;
 mod window_lifecycle;
 
 calcit_native_ffi::export_buffer_abi_v1!();
@@ -807,6 +808,35 @@ pub unsafe extern "C" fn launch_canvas_with_options_calcit_ffi_blocking_v1(
     ffi::run_blocking_adapter(request_ptr, request_len, task, host, output, |args, task, host| {
       let options = window_lifecycle::parse_startup_options(&args)?;
       launch_canvas_impl(options, |args| ffi::invoke_blocking_callback(host, task, args))
+    })
+  }
+}
+
+/// Own the host thread while a configured paint event loop delivers typed envelopes.
+///
+/// # Safety
+///
+/// Request bytes and descriptors must remain readable and `output` writable
+/// for this call. Host function pointers must follow blocking protocol v1.
+#[no_mangle]
+pub unsafe extern "C" fn launch_canvas_typed_calcit_ffi_blocking_v1(
+  request_ptr: *const u8,
+  request_len: usize,
+  task: *const ffi::CalcitFfiAsyncTaskV1,
+  host: *const ffi::CalcitFfiBlockingHostV1,
+  output: *mut ffi::CalcitFfiBuffer,
+) -> i32 {
+  // SAFETY: the adapter validates descriptors and owns the call until the event loop returns.
+  unsafe {
+    ffi::run_blocking_adapter(request_ptr, request_len, task, host, output, |args, task, host| {
+      let options = window_lifecycle::parse_startup_options(&args)?;
+      launch_canvas_impl(options, |args| {
+        let [event] = args.as_slice() else {
+          return Err(format!("typed paint callback expected one event, got: {args:?}"));
+        };
+        let event = typed_events::from_legacy(event.clone())?;
+        ffi::invoke_blocking_callback(host, task, vec![event])
+      })
     })
   }
 }

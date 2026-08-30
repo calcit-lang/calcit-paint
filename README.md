@@ -40,6 +40,8 @@ calcit-paint.core/blur!
 
 calcit-paint.core/launch-canvas-with-options!
 
+calcit-paint.core/launch-canvas-typed!
+
 calcit-paint.core/set-window-title!
 
 calcit-paint.core/request-window-size!
@@ -739,13 +741,13 @@ Paint 不会把事件循环切换成永久轮询，因此静止场景不会持�
 blocking `launch-canvas!` callback 时调用会返回错误。
 
 ```cirru.no-check
-launch-canvas! $ fn (event)
-  if
-    = :frame $ get event :type
-    do
-      render-animation! $ get event :timestamp-ms
-      request-frame!
-  , &unit
+launch-canvas-typed! options $ fn (event)
+  match event
+    (:frame payload)
+      do
+        render-animation! $ :timestamp-ms payload
+        request-frame!
+    _ $ &unit
 ```
 
 A frame event contains `:frame`, monotonic `:timestamp-ms`, `:delta-ms`, logical
@@ -770,7 +772,9 @@ chaining without a busy loop.
 
 `launch-canvas!` remains compatible: it opens one resizable 1100×760 logical-pixel
 window titled `Calcit Paint`, without an explicit minimum size. New applications
-can pass the nominal `WindowOptions` value to `launch-canvas-with-options!`.
+can pass the nominal `WindowOptions` value to `launch-canvas-typed!`; the
+compatible `launch-canvas-with-options!` entry remains available for map-based
+callbacks.
 Every field is required and checked at the native boundary: dimensions must be
 finite and positive, minimum dimensions cannot exceed the initial dimensions,
 and maps or unrelated structs are rejected. Paint intentionally remains a
@@ -778,19 +782,22 @@ single-window module; a second launch fails explicitly.
 
 `launch-canvas!` 保持兼容：它仍打开一个标题为 `Calcit Paint`、逻辑尺寸为
 1100×760、可调整大小且没有显式最小尺寸的单窗口。新应用可以把 nominal
-`WindowOptions` 传给 `launch-canvas-with-options!`。所有字段都必须提供，并会在
+`WindowOptions` 传给 `launch-canvas-typed!`；兼容入口
+`launch-canvas-with-options!` 继续提供 map callback。所有字段都必须提供，并会在
 native 边界严格校验：尺寸必须是有限正数，最小尺寸不得超过初始尺寸，map 或其他
 struct 会被拒绝。Paint 仍有意保持单窗口模型，重复启动会明确报错。
 
 ```cirru.no-check
-launch-canvas-with-options!
+launch-canvas-typed!
   WindowOptions (:title "|My Paint window") (:width 1100) (:height 760) (:min-width 720) (:min-height 520) (:resizable? true)
   fn (event)
-    case-default (get event :type) (println event)
-      :key-down $ case-default (get event :key) nil
-        |T $ set-window-title! "|Updated title"
-        |S $ request-window-size! 980 700
-        |Q $ close-window!
+    match event
+      (:key-down payload)
+        case-default (:name payload) (println payload)
+          |T $ set-window-title! "|Updated title"
+          |S $ request-window-size! 980 700
+          |Q $ close-window!
+      _ $ println event
 ```
 
 Runtime requests are valid only while a launch callback is active. They enter a
@@ -813,6 +820,15 @@ callback 返回后由 event loop 串行应用，因此不会重入 callback。�
 `:resize` 现在也包含 `:scale-factor`，显示缩放变化会发送包含当前逻辑尺寸的
 `:type :scale-factor` 事件。
 
+The typed callback maps these acknowledgements to distinct
+`:window-title-applied` and `:window-size-request` variants, so application code
+does not need to branch on a second `:operation` tag. The legacy callback shape
+is unchanged.
+
+强类型 callback 会把两类确认分别映射为 `:window-title-applied` 与
+`:window-size-request` variant，应用不必再对第二层 `:operation` tag 分支；旧 callback
+结构保持不变。
+
 Closing emits exactly one `{:type :window-close :reason ...}` event before the
 event loop returns. Reasons are `:requested`, `:system`, `:escape`,
 `:render-error`, `:smoke`, or the defensive `:event-loop` fallback. The bundled
@@ -824,16 +840,72 @@ runnable demo uses configured startup options; press `T` to change its title,
 或兜底的 `:event-loop`。仓库内可运行 demo 已使用启动配置；按 `T` 修改标题，按 `S`
 请求 980×700，按 `Q` 安全关闭。
 
+### Nominal PaintEvent protocol / Nominal PaintEvent 协议
+
+`launch-canvas-typed!` is the preferred entry for new Calcit applications. Its
+callback receives the closed `PaintEvent` enum instead of legacy `nil` and
+heterogeneous maps. Startup is `(:ready)`; every payload-bearing variant uses a
+nominal struct, and `match` checks variant names, payload arity, and exhaustiveness.
+The bundled runnable demo uses this entry and matches all 27 variants.
+
+新 Calcit 应用优先使用 `launch-canvas-typed!`。callback 接收封闭的 `PaintEvent`
+enum，不再接收旧版 `nil` 与异构 map。启动事件为 `(:ready)`；所有带 payload 的 variant
+都使用 nominal struct，`match` 会检查 variant 名称、payload 数量与穷尽性。仓库内可运行
+demo 已切换到该入口，并完整匹配全部 27 个 variant。
+
+Payloads are grouped by domain: `PaintPointerEvent`, `PaintKeyboardEvent`,
+`PaintFocusEvent`, `PaintTextInputEvent`, `PaintFrameEvent`, and the window
+payload structs. Optional protocol fields use `Option<T>` rather than `nil`.
+Application-defined `:action`, `:path`, and `:data` are intentionally isolated
+inside `PaintTarget` as `Option<Dynamic>`; this is the only open application
+payload in the public event model.
+
+Payload 按领域拆分为 `PaintPointerEvent`、`PaintKeyboardEvent`、`PaintFocusEvent`、
+`PaintTextInputEvent`、`PaintFrameEvent` 以及各类 window payload struct。协议中的
+可选字段使用 `Option<T>`，不再使用 `nil`。应用自定义的 `:action`、`:path`、`:data`
+被集中隔离在 `PaintTarget` 中，以 `Option<Dynamic>` 表达；这是公开事件模型唯一开放的
+应用 payload。
+
+```cirru.no-check
+launch-canvas-typed! options $ fn (event)
+  match event
+    (:ready) (request-frame!)
+    (:frame frame)
+      render-frame! $ :timestamp-ms frame
+    (:mouse-down pointer)
+      match $ :action
+        :target pointer
+          (:some action) (dispatch! action)
+          (:none) (&unit)
+    (:window-close close)
+      println $ :reason close
+    _ $ println event
+```
+
+The native transport first emits a private `PaintEventFfi<Map<Tag, Dynamic>>`
+envelope. `paint-event-from-ffi` immediately and strictly decodes that map into
+the public structs: missing required fields, wrong nested types, unknown fields,
+unknown event variants, and unsupported window operations fail explicitly.
+`launch-canvas!` and `launch-canvas-with-options!` remain source-compatible and
+continue to deliver their original map protocol.
+
+native transport 会先产生私有的 `PaintEventFfi<Map<Tag, Dynamic>>` envelope，随后
+`paint-event-from-ffi` 立即严格解码为公开 struct：缺少必填字段、嵌套类型错误、未知
+字段、未知 event variant 或不支持的 window operation 都会明确失败。
+`launch-canvas!` 与 `launch-canvas-with-options!` 保持源码兼容，并继续发送原有 map
+协议。
+
 ### Calcit type boundaries / Calcit 类型边界
 
 Public wrappers use explicit `Unit` returns for side effects. Drawing and
 offscreen-export payloads are generic because each operation accepts a
 different EDN shape, while text and paragraph measurement return
-`Map<Tag, Number>`. Four `Dynamic` slots
-remain by design: the two compatible blocking launch APIs first deliver legacy
-`nil` and then heterogeneous event maps, while text-option and paragraph-option
-map values are heterogeneous. Callback result type `R` remains generic; both
-launch APIs discard that result inside an adapter and
+`Map<Tag, Number>`. Five partially typed definitions remain by design: the two
+compatible blocking launch APIs still deliver legacy `nil` and heterogeneous
+event maps; text-option and paragraph-option map values are heterogeneous; and
+`paint-event-from-ffi` accepts the one raw `Map<Tag, Dynamic>` transport value
+before strict nominal decoding. Callback result type `R` remains generic; all
+three launch APIs discard that result inside an adapter and
 return the serializable `:handled` tag to the blocking ABI because Calcit
 `Unit` is intentionally not Cirru EDN. These boundaries are tracked by the
 reviewed quality baseline rather than being misrepresented as homogeneous
@@ -841,24 +913,30 @@ values or JS FFI.
 
 公开 wrapper 的副作用返回值均显式声明为 `Unit`。不同绘制与离屏导出操作接收不同 EDN
 shape，因此 payload 使用泛型；单行文字与段落测量结果均明确为 `Map<Tag, Number>`。
-目前仅有四个 `Dynamic` 是有意保留的真实框架边界：两个兼容的 blocking launch API
-都会先送达旧行为的 `nil`、随后送达异构事件 map；单行文字与段落选项 map 的 value
-也为异构数据。callback 返回类型 `R` 仍为泛型；两个 launch API 都在内部 adapter 中丢弃该结果，
+目前仅有五个 partial definition 是有意保留的真实框架边界：两个兼容的 blocking
+launch API 仍先送达旧行为的 `nil`、随后送达异构事件 map；单行文字与段落选项 map 的
+value 也为异构数据；`paint-event-from-ffi` 则只在严格 nominal 解码前接收一次原始
+`Map<Tag, Dynamic>` transport。callback 返回类型 `R` 仍为泛型；三个 launch API
+都在内部 adapter 中丢弃该结果，
 并向 blocking ABI 返回
 可序列化的 `:handled` tag，因为 Calcit `Unit` 本身并不是 Cirru EDN。这些边界由已审核
 的质量基线跟踪，而不会被错误标成同构类型或 JS FFI。
 
 ### Input events / 输入事件
 
-Every event remains a Calcit map. Existing `:type`, `:x`, `:y`, `:dx`, `:dy`,
-`:action`, `:path`, and `:data` fields are unchanged. Pointer events now add
+The compatible launch APIs continue to emit Calcit maps. Their existing
+`:type`, `:x`, `:y`, `:dx`, `:dy`, `:action`, `:path`, and `:data` fields are
+unchanged. `launch-canvas-typed!` exposes the same semantics through
+`PaintEvent` and nominal payload structs. Legacy pointer events now add
 `:modifiers`, a map containing `:shift?`, `:control?`, `:alt?`, and `:super?`.
 `mouse-down` and `mouse-up` also include `:button`: `:primary`, `:secondary`,
 `:middle`, `:back`, `:forward`, or `:other`; `:other` includes numeric
 `:button-id`.
 
-所有事件仍是 Calcit map。既有的 `:type`、`:x`、`:y`、`:dx`、`:dy`、`:action`、
-`:path`、`:data` 字段保持不变。指针事件新增 `:modifiers` map，其中包括
+兼容 launch API 继续发送 Calcit map，既有的 `:type`、`:x`、`:y`、`:dx`、`:dy`、
+`:action`、`:path`、`:data` 字段保持不变；`launch-canvas-typed!` 则通过
+`PaintEvent` 与 nominal payload struct 暴露相同语义。旧版指针事件新增
+`:modifiers` map，其中包括
 `:shift?`、`:control?`、`:alt?`、`:super?`。`mouse-down` 与 `mouse-up` 还会提供
 `:button`：`:primary`、`:secondary`、`:middle`、`:back`、`:forward` 或 `:other`；
 `:other` 同时提供数字 `:button-id`。
@@ -1044,13 +1122,13 @@ Run the bundled scene with `calcit ./calcit.cirru`, then click or drag the
 "Pointer event demo" panel, hold a modifier, or press `I`. Two additional
 focus areas demonstrate click focus, Tab/Shift+Tab traversal, IME input,
 focus-scoped Enter, and a Shift+K shortcut that calls `focus!`. The callback
-prints the live event maps to the Calcit terminal. Shift+P explicitly exports
+prints live nominal events to the Calcit terminal. Shift+P explicitly exports
 the offscreen demo PNG.
 
 运行 `calcit ./calcit.cirru` 后，点击或拖拽 “Pointer event demo” 面板、按住任意
 modifier，或按下 `I`。新增的两个 focus area 还会实际演示点击聚焦、Tab/Shift+Tab、
 IME 输入、焦点限定 Enter，以及调用 `focus!` 的 Shift+K 快捷键；callback 会把实时
-事件 map 打印到 Calcit terminal。Shift+P 会显式导出离屏 demo PNG。
+nominal event 打印到 Calcit terminal。Shift+P 会显式导出离屏 demo PNG。
 
 - Rotate
 
