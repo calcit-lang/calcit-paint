@@ -407,14 +407,23 @@ where
         self.env.window.request_redraw();
       }
       WindowEvent::HoveredFile(path) => match handlers::handle_file_hover(&path, &self.input) {
-        Ok(event) => self.dispatch(event),
+        Ok(event) => {
+          self.dispatch(event);
+          self.env.window.request_redraw();
+        }
         Err(error) => eprintln!("failed handling hovered paint file: {error}"),
       },
       WindowEvent::DroppedFile(path) => match handlers::handle_file_drop(&path, &self.input) {
-        Ok(event) => self.dispatch(event),
+        Ok(event) => {
+          self.dispatch(event);
+          self.env.window.request_redraw();
+        }
         Err(error) => eprintln!("failed handling dropped paint file: {error}"),
       },
-      WindowEvent::HoveredFileCancelled => self.dispatch(handlers::handle_file_hover_cancel(&self.input)),
+      WindowEvent::HoveredFileCancelled => {
+        self.dispatch(handlers::handle_file_hover_cancel(&self.input));
+        self.env.window.request_redraw();
+      }
       WindowEvent::ModifiersChanged(modifiers) => {
         self.input.set_modifiers(modifiers.state());
       }
