@@ -59,6 +59,9 @@ struct Env {
   gr_context: skia_safe::gpu::DirectContext,
   gl_context: PossiblyCurrentContext,
   window: Window,
+  fb_info: FramebufferInfo,
+  num_samples: usize,
+  stencil_size: usize,
 }
 
 impl Drop for Env {
@@ -87,11 +90,9 @@ fn create_event_loop() -> Result<EventLoop<PaintUserEvent>, String> {
 }
 
 struct PaintApplication<F> {
-  env: Env,
+  env: Option<Env>,
+  options: window_lifecycle::WindowStartupOptions,
   handler: F,
-  fb_info: FramebufferInfo,
-  num_samples: usize,
-  stencil_size: usize,
   input: handlers::InputState,
   started_at: Instant,
   frame_clock: frame::FrameClock,
@@ -112,6 +113,14 @@ impl<F> PaintApplication<F>
 where
   F: Fn(Vec<Edn>) -> Result<Edn, String>,
 {
+  fn env(&self) -> &Env {
+    self.env.as_ref().expect("paint environment is initialized in resumed")
+  }
+
+  fn env_mut(&mut self) -> &mut Env {
+    self.env.as_mut().expect("paint environment is initialized in resumed")
+  }
+
   fn dispatch(&mut self, event: Edn) {
     let mut events = VecDeque::from([event]);
     while let Some(event) = events.pop_front() {
@@ -159,11 +168,11 @@ where
       while let Some(request) = requests.pop_front() {
         match request {
           window_lifecycle::WindowRequest::SetTitle(title) => {
-            self.env.window.set_title(&title);
+            self.env().window.set_title(&title);
             self.dispatch(handlers::handle_window_title_request(&title));
           }
           window_lifecycle::WindowRequest::RequestSize { width, height } => {
-            let actual = self.env.window.request_inner_size(LogicalSize::new(width, height));
+            let actual = self.env().window.request_inner_size(LogicalSize::new(width, height));
             if let Some(size) = actual {
               let minimized = size.width == 0 || size.height == 0;
               if self.minimized != minimized {
@@ -176,7 +185,7 @@ where
                   self.request_exit(event_loop, "render-error");
                   return;
                 }
-                self.env.window.request_redraw();
+                self.env().window.request_redraw();
               }
             }
             self.dispatch(handlers::handle_window_size_request(
@@ -208,7 +217,7 @@ where
   fn sync_cursor(&mut self) {
     let cursor = touches::pointer_cursor();
     if self.cursor_icon != cursor {
-      self.env.window.set_cursor(cursor);
+      self.env().window.set_cursor(cursor);
       self.cursor_icon = cursor;
     }
   }
@@ -216,7 +225,7 @@ where
   fn sync_ime(&mut self) {
     let allowed = focus::text_input_enabled();
     if self.ime_allowed != allowed {
-      self.env.window.set_ime_allowed(allowed);
+      self.env().window.set_ime_allowed(allowed);
       self.ime_allowed = allowed;
     }
   }
@@ -234,7 +243,7 @@ where
       return;
     }
     match frame::pending() {
-      Ok(true) => self.env.window.request_redraw(),
+      Ok(true) => self.env().window.request_redraw(),
       Ok(false) => {}
       Err(error) => eprintln!("failed reading paint frame request: {error}"),
     }
@@ -251,7 +260,7 @@ where
     if !requested {
       return;
     }
-    let size = self.env.window.inner_size();
+    let size = self.env().window.inner_size();
     let width = size.width as f64 / self.scale_factor as f64;
     let height = size.height as f64 / self.scale_factor as f64;
     let timing = self.frame_clock.next_at(Instant::now());
@@ -261,17 +270,18 @@ where
   fn resize(&mut self, width: u32, height: u32) -> Result<(), String> {
     let width = width.max(1);
     let height = height.max(1);
-    self.env.gl_surface.resize(
-      &self.env.gl_context,
+    let env = self.env_mut();
+    env.gl_surface.resize(
+      &env.gl_context,
       NonZeroU32::new(width).expect("clamped width is non-zero"),
       NonZeroU32::new(height).expect("clamped height is non-zero"),
     );
-    self.env.surface = create_surface(
-      &self.env.window,
-      self.fb_info,
-      &mut self.env.gr_context,
-      self.num_samples,
-      self.stencil_size,
+    env.surface = create_surface(
+      &env.window,
+      env.fb_info,
+      &mut env.gr_context,
+      env.num_samples,
+      env.stencil_size,
     )?;
     Ok(())
   }
@@ -284,10 +294,11 @@ where
     focus::begin_frame();
     match take_drawing_data() {
       Ok(messages) => {
-        let canvas = self.env.surface.canvas();
+        let scale_factor = self.scale_factor;
+        let canvas = self.env_mut().surface.canvas();
         canvas.clear(renderer::get_bg_color());
         canvas.reset_matrix();
-        canvas.scale((self.scale_factor, self.scale_factor));
+        canvas.scale((scale_factor, scale_factor));
         if let Err(error) = renderer::draw_page(canvas, messages, true) {
           eprintln!("failed drawing paint scene: {error}");
         }
@@ -298,7 +309,7 @@ where
     let pointer_events = handlers::handle_pointer_scene_change(&self.input);
     if !pointer_events.is_empty() {
       self.dispatch_all(pointer_events);
-      self.env.window.request_redraw();
+      self.env().window.request_redraw();
     }
     self.sync_cursor();
 
@@ -311,12 +322,13 @@ where
 
     if !self.initial_theme_dispatched {
       self.initial_theme_dispatched = true;
-      self.dispatch(handlers::handle_window_theme(self.env.window.theme(), true));
-      self.env.window.request_redraw();
+      self.dispatch(handlers::handle_window_theme(self.env().window.theme(), true));
+      self.env().window.request_redraw();
     }
 
-    self.env.gr_context.flush_and_submit();
-    if let Err(error) = self.env.gl_surface.swap_buffers(&self.env.gl_context) {
+    self.env_mut().gr_context.flush_and_submit();
+    let env = self.env();
+    if let Err(error) = env.gl_surface.swap_buffers(&env.gl_context) {
       eprintln!("failed to swap OpenGL buffers: {error}");
       self.request_exit(event_loop, "render-error");
     } else if self.smoke_once {
@@ -329,14 +341,30 @@ impl<F> ApplicationHandler<PaintUserEvent> for PaintApplication<F>
 where
   F: Fn(Vec<Edn>) -> Result<Edn, String>,
 {
-  fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
+  fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+    if self.env.is_none() {
+      match create_env(event_loop, self.options.clone()) {
+        Ok(env) => {
+          self.scale_factor = env.window.scale_factor() as f32;
+          self.started_at = Instant::now();
+          self.frame_clock = frame::FrameClock::new(self.started_at);
+          env.window.set_visible(true);
+          self.env = Some(env);
+        }
+        Err(error) => {
+          eprintln!("failed initializing paint window in resumed: {error}");
+          self.request_exit(event_loop, "startup-error");
+          return;
+        }
+      }
+    }
     if self.suspended {
       self.suspended = false;
       self.reset_frame_timing();
     }
     if self.first_paint {
       self.dispatch(Edn::Nil);
-      self.env.window.request_redraw();
+      self.env().window.request_redraw();
       self.first_paint = false;
     } else {
       self.schedule_requested_frame();
@@ -349,7 +377,10 @@ where
   }
 
   fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
-    if window_id != self.env.window.id() {
+    let Some(env) = self.env.as_ref() else {
+      return;
+    };
+    if window_id != env.window.id() {
       return;
     }
 
@@ -372,21 +403,21 @@ where
           self.request_exit(event_loop, "render-error");
           return;
         }
-        self.env.window.request_redraw();
+        self.env().window.request_redraw();
       }
       WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
         self.scale_factor = scale_factor as f32;
-        let size = self.env.window.inner_size();
+        let size = self.env().window.inner_size();
         self.dispatch(handlers::handle_scale_factor(
           size.width as f64 / scale_factor,
           size.height as f64 / scale_factor,
           scale_factor,
         ));
-        self.env.window.request_redraw();
+        self.env().window.request_redraw();
       }
       WindowEvent::ThemeChanged(theme) => {
         self.dispatch(handlers::handle_window_theme(Some(theme), false));
-        self.env.window.request_redraw();
+        self.env().window.request_redraw();
       }
       WindowEvent::CursorMoved { position, .. } => {
         let events = handlers::handle_mouse_move(
@@ -399,14 +430,14 @@ where
         if !events.is_empty() {
           self.dispatch_all(events);
           self.sync_cursor();
-          self.env.window.request_redraw();
+          self.env().window.request_redraw();
         }
       }
       WindowEvent::CursorLeft { .. } => {
         let events = handlers::handle_mouse_leave(&mut self.input);
         self.dispatch_all(events);
         self.sync_cursor();
-        self.env.window.request_redraw();
+        self.env().window.request_redraw();
       }
       WindowEvent::MouseInput { state, button, .. } => {
         let events = match state {
@@ -418,7 +449,7 @@ where
           self.dispatch_all(handlers::handle_pointer_focus(self.input.position(), button));
         }
         self.sync_cursor();
-        self.env.window.request_redraw();
+        self.env().window.request_redraw();
       }
       WindowEvent::MouseWheel { delta, .. } => {
         let event = match delta {
@@ -433,25 +464,25 @@ where
           ),
         };
         self.dispatch(event);
-        self.env.window.request_redraw();
+        self.env().window.request_redraw();
       }
       WindowEvent::HoveredFile(path) => match handlers::handle_file_hover(&path, &self.input) {
         Ok(event) => {
           self.dispatch(event);
-          self.env.window.request_redraw();
+          self.env().window.request_redraw();
         }
         Err(error) => eprintln!("failed handling hovered paint file: {error}"),
       },
       WindowEvent::DroppedFile(path) => match handlers::handle_file_drop(&path, &self.input) {
         Ok(event) => {
           self.dispatch(event);
-          self.env.window.request_redraw();
+          self.env().window.request_redraw();
         }
         Err(error) => eprintln!("failed handling dropped paint file: {error}"),
       },
       WindowEvent::HoveredFileCancelled => {
         self.dispatch(handlers::handle_file_hover_cancel(&self.input));
-        self.env.window.request_redraw();
+        self.env().window.request_redraw();
       }
       WindowEvent::ModifiersChanged(modifiers) => {
         self.input.set_modifiers(modifiers.state());
@@ -471,13 +502,13 @@ where
           self.sync_cursor();
         }
         self.dispatch_all(handlers::handle_window_focus(focused));
-        self.env.window.request_redraw();
+        self.env().window.request_redraw();
       }
       WindowEvent::Ime(ime) => {
         for event in handlers::handle_ime(ime) {
           self.dispatch(event);
         }
-        self.env.window.request_redraw();
+        self.env().window.request_redraw();
       }
       WindowEvent::KeyboardInput {
         event: KeyEvent {
@@ -504,7 +535,7 @@ where
         for event in handlers::handle_keyboard(&name, key_code, &physical_key, state, self.input.modifiers()) {
           self.dispatch(event);
         }
-        self.env.window.request_redraw();
+        self.env().window.request_redraw();
       }
       WindowEvent::RedrawRequested => self.draw_frame(event_loop),
       _ => {}
@@ -518,7 +549,7 @@ where
           eprintln!("failed completing native file dialog request: {error}");
         }
         self.dispatch(handlers::handle_file_dialog_result(result));
-        self.env.window.request_redraw();
+        self.env().window.request_redraw();
       }
     }
   }
@@ -538,25 +569,19 @@ where
   }
 }
 
-fn launch_canvas_impl(
-  options: window_lifecycle::WindowStartupOptions,
-  handler: impl Fn(Vec<Edn>) -> Result<Edn, String>,
-) -> Result<Edn, String> {
-  let _ = env_logger::try_init();
-  let _active_window = window_lifecycle::activate()?;
-  let event_loop = create_event_loop()?;
-  let event_proxy = event_loop.create_proxy();
+fn create_env(event_loop: &ActiveEventLoop, options: window_lifecycle::WindowStartupOptions) -> Result<Env, String> {
   let mut window_attributes = WindowAttributes::default()
     .with_inner_size(LogicalSize::new(options.width, options.height))
     .with_title(options.title)
-    .with_resizable(options.resizable);
+    .with_resizable(options.resizable)
+    .with_visible(false);
   if let (Some(min_width), Some(min_height)) = (options.min_width, options.min_height) {
     window_attributes = window_attributes.with_min_inner_size(LogicalSize::new(min_width, min_height));
   }
   let template = ConfigTemplateBuilder::new().with_alpha_size(8);
   let display_builder = DisplayBuilder::new().with_window_attributes(window_attributes.into());
   let (window, gl_config) = display_builder
-    .build(&event_loop, template, |configs| {
+    .build(event_loop, template, |configs| {
       configs
         .reduce(|best, config| {
           if config.num_samples() < best.num_samples() {
@@ -636,25 +661,36 @@ fn launch_canvas_impl(
   let num_samples = gl_config.num_samples() as usize;
   let stencil_size = gl_config.stencil_size() as usize;
   let surface = create_surface(&window, fb_info, &mut gr_context, num_samples, stencil_size)?;
-  let scale_factor = window.scale_factor() as f32;
   let env = Env {
     surface,
     gl_surface,
     gr_context,
     gl_context,
     window,
-  };
-  let started_at = Instant::now();
-  let mut application = PaintApplication {
-    env,
-    handler,
     fb_info,
     num_samples,
     stencil_size,
+  };
+  Ok(env)
+}
+
+fn launch_canvas_impl(
+  options: window_lifecycle::WindowStartupOptions,
+  handler: impl Fn(Vec<Edn>) -> Result<Edn, String>,
+) -> Result<Edn, String> {
+  let _ = env_logger::try_init();
+  let _active_window = window_lifecycle::activate()?;
+  let event_loop = create_event_loop()?;
+  let event_proxy = event_loop.create_proxy();
+  let started_at = Instant::now();
+  let mut application = PaintApplication {
+    env: None,
+    options,
+    handler,
     input: handlers::InputState::new(Vector2D::new(0.0, 0.0), ModifiersState::empty()),
     started_at,
     frame_clock: frame::FrameClock::new(started_at),
-    scale_factor,
+    scale_factor: 1.0,
     first_paint: true,
     initial_theme_dispatched: false,
     smoke_once: std::env::var_os("CALCIT_PAINT_SMOKE_ONCE").is_some(),
