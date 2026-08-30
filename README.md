@@ -846,22 +846,23 @@ runnable demo uses configured startup options; press `T` to change its title,
 callback receives the closed `PaintEvent` enum instead of legacy `nil` and
 heterogeneous maps. Startup is `(:ready)`; every payload-bearing variant uses a
 nominal struct, and `match` checks variant names, payload arity, and exhaustiveness.
-The bundled runnable demo uses this entry and matches all 27 variants.
+The bundled runnable demo uses this entry and matches all 30 variants.
 
 新 Calcit 应用优先使用 `launch-canvas-typed!`。callback 接收封闭的 `PaintEvent`
 enum，不再接收旧版 `nil` 与异构 map。启动事件为 `(:ready)`；所有带 payload 的 variant
 都使用 nominal struct，`match` 会检查 variant 名称、payload 数量与穷尽性。仓库内可运行
-demo 已切换到该入口，并完整匹配全部 27 个 variant。
+demo 已切换到该入口，并完整匹配全部 30 个 variant。
 
 Payloads are grouped by domain: `PaintPointerEvent`, `PaintKeyboardEvent`,
-`PaintFocusEvent`, `PaintTextInputEvent`, `PaintFrameEvent`, and the window
-payload structs. Optional protocol fields use `Option<T>` rather than `nil`.
+`PaintFocusEvent`, `PaintTextInputEvent`, `PaintFileEvent`, `PaintFrameEvent`,
+and the window payload structs. Optional protocol fields use `Option<T>` rather than `nil`.
 Application-defined `:action`, `:path`, and `:data` are intentionally isolated
 inside `PaintTarget` as `Option<Dynamic>`; this is the only open application
 payload in the public event model.
 
 Payload 按领域拆分为 `PaintPointerEvent`、`PaintKeyboardEvent`、`PaintFocusEvent`、
-`PaintTextInputEvent`、`PaintFrameEvent` 以及各类 window payload struct。协议中的
+`PaintTextInputEvent`、`PaintFileEvent`、`PaintFrameEvent` 以及各类 window payload
+struct。协议中的
 可选字段使用 `Option<T>`，不再使用 `nil`。应用自定义的 `:action`、`:path`、`:data`
 被集中隔离在 `PaintTarget` 中，以 `Option<Dynamic>` 表达；这是公开事件模型唯一开放的
 应用 payload。
@@ -940,6 +941,25 @@ unchanged. `launch-canvas-typed!` exposes the same semantics through
 `:shift?`、`:control?`、`:alt?`、`:super?`。`mouse-down` 与 `mouse-up` 还会提供
 `:button`：`:primary`、`:secondary`、`:middle`、`:back`、`:forward` 或 `:other`；
 `:other` 同时提供数字 `:button-id`。
+
+Native desktop file ingress is exposed as `:file-hover`, `:file-drop`, and
+`:file-hover-cancel`. Compatible callbacks receive maps; typed callbacks receive
+`PaintFileEvent` or `PaintFileHoverCancelEvent`. Hover/drop payloads include a
+nominal Calcit `FsPath`, the latest logical `:x` / `:y`, and `PaintModifiers`.
+Cancellation deliberately has no fabricated path. Paint never reads, copies, or
+uploads a dropped file: the application owns every follow-up filesystem effect.
+Host paths that cannot be represented as UTF-8 are rejected with an explicit
+stderr diagnostic instead of lossy conversion. The bundled demo is runnable with
+the normal launch command—drag a file over the window and drop it to see the
+typed lifecycle status update.
+
+桌面原生文件输入以 `:file-hover`、`:file-drop`、`:file-hover-cancel` 暴露。兼容
+callback 接收 map，强类型 callback 接收 `PaintFileEvent` 或
+`PaintFileHoverCancelEvent`。hover/drop payload 包含 nominal Calcit `FsPath`、最近的
+逻辑坐标 `:x` / `:y` 与 `PaintModifiers`；取消事件不会伪造 path。Paint 不会自动读取、
+复制或上传被拖入的文件，后续文件系统副作用完全由应用决定。无法表示为 UTF-8 的宿主
+路径会通过 stderr 明确拒绝，而不是有损转换。仓库内 demo 可用常规启动命令直接运行；
+把文件拖过窗口并放下即可看到强类型生命周期状态变化。
 
 `:clicks` is counted separately for each button. A sequence continues when the
 next press happens within 500 ms and within four logical pixels; otherwise it
