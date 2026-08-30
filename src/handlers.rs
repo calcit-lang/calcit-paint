@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::path::Path;
 use std::time::Duration;
 
 use cirru_edn::{Edn, EdnMapView};
@@ -616,6 +617,36 @@ pub fn handle_window_close(reason: &str) -> Edn {
   ]))
 }
 
+fn file_event(kind: &str, path: &Path, input: &InputState) -> Result<Edn, String> {
+  let path = path
+    .to_str()
+    .ok_or_else(|| format!("paint :{kind} event path is not valid UTF-8"))?;
+  Ok(Edn::Map(map_view([
+    (tag("type"), tag(kind)),
+    (tag("path"), Edn::str(path)),
+    (tag("x"), Edn::Number(input.position.x as f64)),
+    (tag("y"), Edn::Number(input.position.y as f64)),
+    (tag("modifiers"), modifiers_edn(input.modifiers())),
+  ])))
+}
+
+pub fn handle_file_hover(path: &Path, input: &InputState) -> Result<Edn, String> {
+  file_event("file-hover", path, input)
+}
+
+pub fn handle_file_drop(path: &Path, input: &InputState) -> Result<Edn, String> {
+  file_event("file-drop", path, input)
+}
+
+pub fn handle_file_hover_cancel(input: &InputState) -> Edn {
+  Edn::Map(map_view([
+    (tag("type"), tag("file-hover-cancel")),
+    (tag("x"), Edn::Number(input.position.x as f64)),
+    (tag("y"), Edn::Number(input.position.y as f64)),
+    (tag("modifiers"), modifiers_edn(input.modifiers())),
+  ]))
+}
+
 pub fn handle_mouse_wheel(input: &InputState, dx: f64, dy: f64, unit: &str) -> Edn {
   Edn::Map(map_view([
     (tag("type"), tag("mouse-wheel")),
@@ -1042,6 +1073,44 @@ mod tests {
     assert_eq!(event.get(&tag("unit")), Some(&tag("line")));
     assert_eq!(event.get(&tag("x")), Some(&Edn::Number(12.0)));
     assert!(matches!(event.get(&tag("modifiers")), Some(Edn::Map(_))));
+  }
+
+  #[test]
+  fn file_events_preserve_path_pointer_context_and_modifiers() {
+    let mut state = input(Vector2D::new(12.0, 24.0));
+    state.set_modifiers(ModifiersState::SHIFT | ModifiersState::ALT);
+
+    for event in [
+      handle_file_hover(Path::new("/tmp/paint image.png"), &state).unwrap(),
+      handle_file_drop(Path::new("/tmp/paint image.png"), &state).unwrap(),
+    ] {
+      let event = event_map(event);
+      assert_eq!(event.get(&tag("path")), Some(&Edn::str("/tmp/paint image.png")));
+      assert_eq!(event.get(&tag("x")), Some(&Edn::Number(12.0)));
+      assert_eq!(event.get(&tag("y")), Some(&Edn::Number(24.0)));
+      let Some(Edn::Map(modifiers)) = event.get(&tag("modifiers")) else {
+        panic!("file event modifiers must be a map")
+      };
+      assert_eq!(modifiers.get(&tag("shift?")), Some(&Edn::Bool(true)));
+      assert_eq!(modifiers.get(&tag("alt?")), Some(&Edn::Bool(true)));
+    }
+
+    let cancel = event_map(handle_file_hover_cancel(&state));
+    assert_eq!(cancel.get(&tag("type")), Some(&tag("file-hover-cancel")));
+    assert!(!cancel.contains_key("path"));
+    assert_eq!(cancel.get(&tag("x")), Some(&Edn::Number(12.0)));
+  }
+
+  #[cfg(unix)]
+  #[test]
+  fn file_events_reject_non_utf8_paths_without_lossy_conversion() {
+    use std::ffi::OsStr;
+    use std::os::unix::ffi::OsStrExt;
+
+    let state = input(Vector2D::new(0.0, 0.0));
+    let path = Path::new(OsStr::from_bytes(b"/tmp/paint-\xff.png"));
+    let error = handle_file_drop(path, &state).unwrap_err();
+    assert!(error.contains("path is not valid UTF-8"));
   }
 
   #[test]

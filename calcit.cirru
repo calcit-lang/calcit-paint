@@ -10,14 +10,29 @@
       :defs $ {}
         'PaintEvent $ %{} 'CodeEntry (:doc "|Nominal exhaustive event protocol for typed Paint callbacks.")
           :code $ quote
-            defenum PaintEvent (:ready) (:frame 'calcit-paint.core/PaintFrameEvent) (:mouse-down 'calcit-paint.core/PaintPointerEvent) (:mouse-up 'calcit-paint.core/PaintPointerEvent) (:mouse-move 'calcit-paint.core/PaintPointerEvent) (:mouse-leave 'calcit-paint.core/PaintPointerEvent) (:mouse-wheel 'calcit-paint.core/PaintPointerEvent) (:pointer-enter 'calcit-paint.core/PaintPointerEvent) (:pointer-leave 'calcit-paint.core/PaintPointerEvent) (:pointer-cancel 'calcit-paint.core/PaintPointerEvent) (:key-down 'calcit-paint.core/PaintKeyboardEvent) (:key-up 'calcit-paint.core/PaintKeyboardEvent) (:focus-in 'calcit-paint.core/PaintFocusEvent) (:focus-out 'calcit-paint.core/PaintFocusEvent) (:ime-enabled 'calcit-paint.core/PaintTextInputEvent) (:ime-disabled 'calcit-paint.core/PaintTextInputEvent) (:composition-start 'calcit-paint.core/PaintTextInputEvent) (:composition-update 'calcit-paint.core/PaintTextInputEvent) (:composition-end 'calcit-paint.core/PaintTextInputEvent) (:text-input 'calcit-paint.core/PaintTextInputEvent) (:window-focus) (:window-blur) (:resize 'calcit-paint.core/PaintWindowMetricsEvent) (:scale-factor 'calcit-paint.core/PaintWindowMetricsEvent) (:window-title-applied 'calcit-paint.core/PaintWindowTitleEvent) (:window-size-request 'calcit-paint.core/PaintWindowSizeEvent) (:window-close 'calcit-paint.core/PaintWindowCloseEvent)
+            defenum PaintEvent (:ready) (:frame 'calcit-paint.core/PaintFrameEvent) (:mouse-down 'calcit-paint.core/PaintPointerEvent) (:mouse-up 'calcit-paint.core/PaintPointerEvent) (:mouse-move 'calcit-paint.core/PaintPointerEvent) (:mouse-leave 'calcit-paint.core/PaintPointerEvent) (:mouse-wheel 'calcit-paint.core/PaintPointerEvent) (:pointer-enter 'calcit-paint.core/PaintPointerEvent) (:pointer-leave 'calcit-paint.core/PaintPointerEvent) (:pointer-cancel 'calcit-paint.core/PaintPointerEvent) (:key-down 'calcit-paint.core/PaintKeyboardEvent) (:key-up 'calcit-paint.core/PaintKeyboardEvent) (:focus-in 'calcit-paint.core/PaintFocusEvent) (:focus-out 'calcit-paint.core/PaintFocusEvent) (:ime-enabled 'calcit-paint.core/PaintTextInputEvent) (:ime-disabled 'calcit-paint.core/PaintTextInputEvent) (:composition-start 'calcit-paint.core/PaintTextInputEvent) (:composition-update 'calcit-paint.core/PaintTextInputEvent) (:composition-end 'calcit-paint.core/PaintTextInputEvent) (:text-input 'calcit-paint.core/PaintTextInputEvent) (:file-hover 'calcit-paint.core/PaintFileEvent) (:file-drop 'calcit-paint.core/PaintFileEvent) (:file-hover-cancel 'calcit-paint.core/PaintFileHoverCancelEvent) (:window-focus) (:window-blur) (:resize 'calcit-paint.core/PaintWindowMetricsEvent) (:scale-factor 'calcit-paint.core/PaintWindowMetricsEvent) (:window-title-applied 'calcit-paint.core/PaintWindowTitleEvent) (:window-size-request 'calcit-paint.core/PaintWindowSizeEvent) (:window-close 'calcit-paint.core/PaintWindowCloseEvent)
           :examples $ []
           :schema $ :: 'EnumDef
         'PaintEventFfi $ %{} 'CodeEntry (:doc "|Internal generic envelope received from the native typed-event transport.")
           :code $ quote
-            defenum PaintEventFfi ([] 'Raw) (:ready) (:frame 'Raw) (:mouse-down 'Raw) (:mouse-up 'Raw) (:mouse-move 'Raw) (:mouse-leave 'Raw) (:mouse-wheel 'Raw) (:pointer-enter 'Raw) (:pointer-leave 'Raw) (:pointer-cancel 'Raw) (:key-down 'Raw) (:key-up 'Raw) (:focus-in 'Raw) (:focus-out 'Raw) (:ime-enabled 'Raw) (:ime-disabled 'Raw) (:composition-start 'Raw) (:composition-update 'Raw) (:composition-end 'Raw) (:text-input 'Raw) (:window-focus) (:window-blur) (:resize 'Raw) (:scale-factor 'Raw) (:window-title-applied 'Raw) (:window-size-request 'Raw) (:window-close 'Raw)
+            defenum PaintEventFfi ([] 'Raw) (:ready) (:frame 'Raw) (:mouse-down 'Raw) (:mouse-up 'Raw) (:mouse-move 'Raw) (:mouse-leave 'Raw) (:mouse-wheel 'Raw) (:pointer-enter 'Raw) (:pointer-leave 'Raw) (:pointer-cancel 'Raw) (:key-down 'Raw) (:key-up 'Raw) (:focus-in 'Raw) (:focus-out 'Raw) (:ime-enabled 'Raw) (:ime-disabled 'Raw) (:composition-start 'Raw) (:composition-update 'Raw) (:composition-end 'Raw) (:text-input 'Raw) (:file-hover 'Raw) (:file-drop 'Raw) (:file-hover-cancel 'Raw) (:window-focus) (:window-blur) (:resize 'Raw) (:scale-factor 'Raw) (:window-title-applied 'Raw) (:window-size-request 'Raw) (:window-close 'Raw)
           :examples $ []
           :schema $ :: 'EnumDef
+        'PaintFileEvent $ %{} 'CodeEntry (:doc "|Typed file hover/drop payload with a nominal Calcit filesystem path.")
+          :code $ quote
+            defstruct PaintFileEvent (:path 'FsPath) (:x 'Number) (:y 'Number) (:modifiers 'calcit-paint.core/PaintModifiers)
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintFileEventWire $ %{} 'CodeEntry (:doc "|Internal UTF-8 wire payload decoded before constructing a nominal FsPath.")
+          :code $ quote
+            defstruct PaintFileEventWire (:path 'String) (:x 'Number) (:y 'Number) (:modifiers 'calcit-paint.core/PaintModifiers)
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintFileHoverCancelEvent $ %{} 'CodeEntry (:doc "|Typed file-hover cancellation payload without a fabricated path.")
+          :code $ quote
+            defstruct PaintFileHoverCancelEvent (:x 'Number) (:y 'Number) (:modifiers 'calcit-paint.core/PaintModifiers)
+          :examples $ []
+          :schema $ :: 'StructDef
         'PaintFocusEvent $ %{} 'CodeEntry (:doc "|Typed focus transition payload.")
           :code $ quote
             defstruct PaintFocusEvent (:focus-id 'String)
@@ -238,6 +253,20 @@
                   PaintEvent :composition-end $ decode-map-as payload PaintTextInputEvent
                 (:text-input payload)
                   PaintEvent :text-input $ decode-map-as payload PaintTextInputEvent
+                (:file-hover payload)
+                  let
+                      wire $ decode-map-as payload PaintFileEventWire
+                    PaintEvent :file-hover $ PaintFileEvent :path
+                      fs:path $ :path wire
+                      , :x (:x wire) :y (:y wire) :modifiers (:modifiers wire)
+                (:file-drop payload)
+                  let
+                      wire $ decode-map-as payload PaintFileEventWire
+                    PaintEvent :file-drop $ PaintFileEvent :path
+                      fs:path $ :path wire
+                      , :x (:x wire) :y (:y wire) :modifiers (:modifiers wire)
+                (:file-hover-cancel payload)
+                  PaintEvent :file-hover-cancel $ decode-map-as payload PaintFileHoverCancelEvent
                 (:window-focus) (PaintEvent :window-focus)
                 (:window-blur) (PaintEvent :window-blur)
                 (:resize payload)
@@ -259,6 +288,9 @@
                 (:frame payload)
                   assert= 7 $ :frame payload
                 _ $ raise |expected-frame-event
+            quote $ paint-event-from-ffi
+              PaintEventFfi :file-hover $ {} (:path |assets/demo.png) (:x 24) (:y 36)
+                :modifiers $ {} (:shift? false) (:control? false) (:alt? false) (:super? false)
           :schema $ :: 'Fn
             {} (:return 'calcit-paint.core/PaintEvent)
               :args $ []
@@ -292,6 +324,20 @@
                           :action $ :target payload
                           , :missing
                     _ $ raise |expected-mouse-down-event
+              :tags $ #{} :unit
+            %{} 'TestEntry (:name |decodes-file-drop-as-fs-path)
+              :code $ quote
+                let
+                    event $ paint-event-from-ffi
+                      PaintEventFfi :file-drop $ {} (:path |/tmp/paint-demo.png) (:x 12) (:y 8)
+                        :modifiers $ {} (:shift? false) (:control? false) (:alt? false) (:super? false)
+                  assert-type event 'calcit-paint.core/PaintEvent
+                  match event
+                    (:file-drop payload)
+                      do
+                        assert= (fs:path |/tmp/paint-demo.png) (:path payload)
+                        assert= 12 $ :x payload
+                    _ $ raise |expected-file-drop-event
               :tags $ #{} :unit
         'push-drawing-data! $ %{} 'CodeEntry (:doc |)
           :code $ quote
@@ -365,6 +411,10 @@
           :code $ quote (defatom *animation-time-ms 0)
           :examples $ []
           :schema $ :: 'Ref 'Number
+        '*file-drop-status $ %{} 'CodeEntry (:doc |)
+          :code $ quote (defatom *file-drop-status |file-drop:idle)
+          :examples $ []
+          :schema $ :: 'Ref 'String
         '*pointer-dirty? $ %{} 'CodeEntry (:doc |)
           :code $ quote (defatom *pointer-dirty? false)
           :examples $ []
@@ -407,6 +457,28 @@
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ []
+        'handle-file-event! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn handle-file-event! (kind payload)
+              reset! *file-drop-status $ str-spaced kind
+                :value $ :path payload
+                , |@ (:x payload) (:y payload)
+              reset! *pointer-dirty? true
+              request-frame!
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'Tag 'calcit-paint.core/PaintFileEvent
+        'handle-file-hover-cancel! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn handle-file-hover-cancel! (payload)
+              reset! *file-drop-status $ str-spaced :file-hover-cancel |@ (:x payload) (:y payload)
+              reset! *pointer-dirty? true
+              request-frame!
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'calcit-paint.core/PaintFileHoverCancelEvent
         'handle-paint-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn handle-paint-event! (event)
@@ -462,6 +534,9 @@
                   handle-target-event! :composition-end (:target payload) false
                 (:text-input payload)
                   handle-target-event! :text-input (:target payload) false
+                (:file-hover payload) (handle-file-event! :file-hover payload)
+                (:file-drop payload) (handle-file-event! :file-drop payload)
+                (:file-hover-cancel payload) (handle-file-hover-cancel! payload)
                 (:window-focus) (println |window-focus)
                 (:window-blur) (println |window-blur)
                 (:resize payload) (println |resize: payload)
@@ -878,6 +953,11 @@
                         :position $ [] 900 215
                         :color $ [] 195 62 92
                         :size 13
+                        :align :center
+                      {} (:type :text) (:text @*file-drop-status)
+                        :position $ [] 900 240
+                        :color $ [] 195 62 92
+                        :size 12
                         :align :center
                       {} (:type :key-listener) (:key |T) (:action :window-title)
                       {} (:type :key-listener) (:key |S) (:action :window-size)

@@ -22,6 +22,7 @@ const TEXT_INPUT_EVENTS: [&str; 6] = [
   "composition-end",
   "text-input",
 ];
+const FILE_EVENTS: [&str; 3] = ["file-hover", "file-drop", "file-hover-cancel"];
 
 fn take_tag(map: &mut EdnMapView, key: &str) -> Result<String, String> {
   match map.0.remove(&Edn::tag(key)) {
@@ -100,6 +101,7 @@ pub fn from_legacy(event: Edn) -> Result<Edn, String> {
     || KEYBOARD_EVENTS.contains(&variant)
     || FOCUS_EVENTS.contains(&variant)
     || TEXT_INPUT_EVENTS.contains(&variant)
+    || FILE_EVENTS.contains(&variant)
     || matches!(
       variant,
       "frame" | "resize" | "scale-factor" | "window-title-applied" | "window-size-request" | "window-close"
@@ -198,5 +200,31 @@ mod tests {
     assert!(from_legacy(Edn::Map(unknown))
       .unwrap_err()
       .contains("unsupported typed paint event :future-event"));
+  }
+
+  #[test]
+  fn preserves_file_event_payloads_without_target_normalization() {
+    let mut dropped = EdnMapView::default();
+    dropped.insert(Edn::tag("type"), Edn::tag("file-drop"));
+    dropped.insert(Edn::tag("path"), Edn::str("/tmp/paint image.png"));
+    dropped.insert(Edn::tag("x"), Edn::Number(12.0));
+    dropped.insert(Edn::tag("y"), Edn::Number(24.0));
+    let dropped = enum_view(from_legacy(Edn::Map(dropped)).unwrap());
+    assert_eq!(dropped.variant.as_ref(), "file-drop");
+    let [Edn::Map(payload)] = dropped.extra.as_slice() else {
+      panic!("file drop event must contain one map payload");
+    };
+    assert_eq!(payload.tag_get("path"), Some(&Edn::str("/tmp/paint image.png")));
+
+    let mut cancel = EdnMapView::default();
+    cancel.insert(Edn::tag("type"), Edn::tag("file-hover-cancel"));
+    cancel.insert(Edn::tag("x"), Edn::Number(12.0));
+    cancel.insert(Edn::tag("y"), Edn::Number(24.0));
+    let cancel = enum_view(from_legacy(Edn::Map(cancel)).unwrap());
+    assert_eq!(cancel.variant.as_ref(), "file-hover-cancel");
+    let [Edn::Map(payload)] = cancel.extra.as_slice() else {
+      panic!("file hover cancellation must contain one map payload");
+    };
+    assert!(!payload.contains_key("path"));
   }
 }
