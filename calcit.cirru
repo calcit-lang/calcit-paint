@@ -8,6 +8,97 @@
   :files $ {}
     'calcit-paint.core $ %{} 'FileEntry
       :defs $ {}
+        'PaintEvent $ %{} 'CodeEntry (:doc "|Nominal exhaustive event protocol for typed Paint callbacks.")
+          :code $ quote
+            defenum PaintEvent (:ready) (:frame 'calcit-paint.core/PaintFrameEvent) (:mouse-down 'calcit-paint.core/PaintPointerEvent) (:mouse-up 'calcit-paint.core/PaintPointerEvent) (:mouse-move 'calcit-paint.core/PaintPointerEvent) (:mouse-leave 'calcit-paint.core/PaintPointerEvent) (:mouse-wheel 'calcit-paint.core/PaintPointerEvent) (:pointer-enter 'calcit-paint.core/PaintPointerEvent) (:pointer-leave 'calcit-paint.core/PaintPointerEvent) (:pointer-cancel 'calcit-paint.core/PaintPointerEvent) (:key-down 'calcit-paint.core/PaintKeyboardEvent) (:key-up 'calcit-paint.core/PaintKeyboardEvent) (:focus-in 'calcit-paint.core/PaintFocusEvent) (:focus-out 'calcit-paint.core/PaintFocusEvent) (:ime-enabled 'calcit-paint.core/PaintTextInputEvent) (:ime-disabled 'calcit-paint.core/PaintTextInputEvent) (:composition-start 'calcit-paint.core/PaintTextInputEvent) (:composition-update 'calcit-paint.core/PaintTextInputEvent) (:composition-end 'calcit-paint.core/PaintTextInputEvent) (:text-input 'calcit-paint.core/PaintTextInputEvent) (:window-focus) (:window-blur) (:resize 'calcit-paint.core/PaintWindowMetricsEvent) (:scale-factor 'calcit-paint.core/PaintWindowMetricsEvent) (:window-title-applied 'calcit-paint.core/PaintWindowTitleEvent) (:window-size-request 'calcit-paint.core/PaintWindowSizeEvent) (:window-close 'calcit-paint.core/PaintWindowCloseEvent)
+          :examples $ []
+          :schema $ :: 'EnumDef
+        'PaintEventFfi $ %{} 'CodeEntry (:doc "|Internal generic envelope received from the native typed-event transport.")
+          :code $ quote
+            defenum PaintEventFfi ([] 'Raw) (:ready) (:frame 'Raw) (:mouse-down 'Raw) (:mouse-up 'Raw) (:mouse-move 'Raw) (:mouse-leave 'Raw) (:mouse-wheel 'Raw) (:pointer-enter 'Raw) (:pointer-leave 'Raw) (:pointer-cancel 'Raw) (:key-down 'Raw) (:key-up 'Raw) (:focus-in 'Raw) (:focus-out 'Raw) (:ime-enabled 'Raw) (:ime-disabled 'Raw) (:composition-start 'Raw) (:composition-update 'Raw) (:composition-end 'Raw) (:text-input 'Raw) (:window-focus) (:window-blur) (:resize 'Raw) (:scale-factor 'Raw) (:window-title-applied 'Raw) (:window-size-request 'Raw) (:window-close 'Raw)
+          :examples $ []
+          :schema $ :: 'EnumDef
+        'PaintFocusEvent $ %{} 'CodeEntry (:doc "|Typed focus transition payload.")
+          :code $ quote
+            defstruct PaintFocusEvent (:focus-id 'String)
+              :related-focus-id $ :: 'Option 'String
+              :reason 'Tag
+              :target 'calcit-paint.core/PaintTarget
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintFrameEvent $ %{} 'CodeEntry (:doc "|Typed on-demand animation frame payload.")
+          :code $ quote
+            defstruct PaintFrameEvent (:frame 'Number) (:timestamp-ms 'Number) (:delta-ms 'Number) (:width 'Number) (:height 'Number) (:scale-factor 'Number)
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintKeyboardEvent $ %{} 'CodeEntry (:doc "|Typed logical and physical keyboard payload.")
+          :code $ quote
+            defstruct PaintKeyboardEvent (:key-code 'Number) (:physical-key 'String) (:name 'String) (:modifiers 'calcit-paint.core/PaintModifiers)
+              :focus-id $ :: 'Option 'String
+              :shortcut? $ :: 'Option 'Bool
+              :target 'calcit-paint.core/PaintTarget
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintModifiers $ %{} 'CodeEntry (:doc "|Closed keyboard and pointer modifier state.")
+          :code $ quote
+            defstruct PaintModifiers (:shift? 'Bool) (:control? 'Bool) (:alt? 'Bool) (:super? 'Bool)
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintPointerEvent $ %{} 'CodeEntry (:doc "|Typed pointer, mouse, hover, cancellation, and wheel payload.")
+          :code $ quote
+            defstruct PaintPointerEvent (:x 'Number) (:y 'Number) (:clicks 'Number) (:modifiers 'calcit-paint.core/PaintModifiers) (:target 'calcit-paint.core/PaintTarget)
+              :dx $ :: 'Option 'Number
+              :dy $ :: 'Option 'Number
+              :button $ :: 'Option 'Tag
+              :button-id $ :: 'Option 'Number
+              :cursor $ :: 'Option 'Tag
+              :captured? $ :: 'Option 'Bool
+              :cancelled? $ :: 'Option 'Bool
+              :reason $ :: 'Option 'Tag
+              :unit $ :: 'Option 'Tag
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintTarget $ %{} 'CodeEntry (:doc "|Application-defined target values kept at one explicit open boundary.")
+          :code $ quote
+            defstruct PaintTarget
+              :action $ :: 'Option 'Dynamic
+              :path $ :: 'Option 'Dynamic
+              :data $ :: 'Option 'Dynamic
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintTextInputEvent $ %{} 'CodeEntry (:doc "|Typed IME composition and committed text payload.")
+          :code $ quote
+            defstruct PaintTextInputEvent (:focus-id 'String) (:text 'String)
+              :cursor-start $ :: 'Option 'Number
+              :cursor-end $ :: 'Option 'Number
+              :cancelled? $ :: 'Option 'Bool
+              :target 'calcit-paint.core/PaintTarget
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintWindowCloseEvent $ %{} 'CodeEntry (:doc "|Typed exactly-once window close payload.")
+          :code $ quote
+            defstruct PaintWindowCloseEvent $ :reason 'Tag
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintWindowMetricsEvent $ %{} 'CodeEntry (:doc "|Typed logical window metrics and scale payload.")
+          :code $ quote
+            defstruct PaintWindowMetricsEvent (:width 'Number) (:height 'Number) (:scale-factor 'Number)
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintWindowSizeEvent $ %{} 'CodeEntry (:doc "|Typed logical-size request acknowledgement.")
+          :code $ quote
+            defstruct PaintWindowSizeEvent (:status 'Tag) (:requested-width 'Number) (:requested-height 'Number)
+              :actual-width $ :: 'Option 'Number
+              :actual-height $ :: 'Option 'Number
+              :matched? $ :: 'Option 'Bool
+              :scale-factor 'Number
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintWindowTitleEvent $ %{} 'CodeEntry (:doc "|Typed applied window-title acknowledgement.")
+          :code $ quote
+            defstruct PaintWindowTitleEvent $ :title 'String
+          :examples $ []
+          :schema $ :: 'StructDef
         'WindowOptions $ %{} 'CodeEntry (:doc "|Strict startup configuration for the single Paint window.")
           :code $ quote
             defstruct WindowOptions (:title 'String) (:width 'Number) (:height 'Number) (:min-width 'Number) (:min-height 'Number) (:resizable? 'Bool)
@@ -60,6 +151,20 @@
                 :: 'Fn $ {} (:return 'R)
                   :args $ [] 'Dynamic
               :generics $ [] 'R
+        'launch-canvas-typed! $ %{} 'CodeEntry (:doc "|Launch the configured single Paint window with a nominal PaintEvent callback.")
+          :code $ quote
+            defn launch-canvas-typed! (options cb)
+              &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas_typed options $ fn (event)
+                cb $ paint-event-from-ffi event
+                , :handled
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'calcit-paint.core/WindowOptions
+                :: 'Fn $ {} (:return 'R)
+                  :args $ [] 'calcit-paint.core/PaintEvent
+              :generics $ [] 'R
         'launch-canvas-with-options! $ %{} 'CodeEntry (:doc "|Launch the blocking single-window event loop with nominal startup options.")
           :code $ quote
             defn launch-canvas-with-options! (options cb)
@@ -90,6 +195,104 @@
             {}
               :args $ [] (:: 'Map 'Tag 'Dynamic)
               :return $ :: 'Map 'Tag 'Number
+        'paint-event-from-ffi $ %{} 'CodeEntry (:doc "|Strictly decode one native typed-event envelope into the public nominal protocol.")
+          :code $ quote
+            defn paint-event-from-ffi (event)
+              match event
+                (:ready) (PaintEvent :ready)
+                (:frame payload)
+                  PaintEvent :frame $ decode-map-as payload PaintFrameEvent
+                (:mouse-down payload)
+                  PaintEvent :mouse-down $ decode-map-as payload PaintPointerEvent
+                (:mouse-up payload)
+                  PaintEvent :mouse-up $ decode-map-as payload PaintPointerEvent
+                (:mouse-move payload)
+                  PaintEvent :mouse-move $ decode-map-as payload PaintPointerEvent
+                (:mouse-leave payload)
+                  PaintEvent :mouse-leave $ decode-map-as payload PaintPointerEvent
+                (:mouse-wheel payload)
+                  PaintEvent :mouse-wheel $ decode-map-as payload PaintPointerEvent
+                (:pointer-enter payload)
+                  PaintEvent :pointer-enter $ decode-map-as payload PaintPointerEvent
+                (:pointer-leave payload)
+                  PaintEvent :pointer-leave $ decode-map-as payload PaintPointerEvent
+                (:pointer-cancel payload)
+                  PaintEvent :pointer-cancel $ decode-map-as payload PaintPointerEvent
+                (:key-down payload)
+                  PaintEvent :key-down $ decode-map-as payload PaintKeyboardEvent
+                (:key-up payload)
+                  PaintEvent :key-up $ decode-map-as payload PaintKeyboardEvent
+                (:focus-in payload)
+                  PaintEvent :focus-in $ decode-map-as payload PaintFocusEvent
+                (:focus-out payload)
+                  PaintEvent :focus-out $ decode-map-as payload PaintFocusEvent
+                (:ime-enabled payload)
+                  PaintEvent :ime-enabled $ decode-map-as payload PaintTextInputEvent
+                (:ime-disabled payload)
+                  PaintEvent :ime-disabled $ decode-map-as payload PaintTextInputEvent
+                (:composition-start payload)
+                  PaintEvent :composition-start $ decode-map-as payload PaintTextInputEvent
+                (:composition-update payload)
+                  PaintEvent :composition-update $ decode-map-as payload PaintTextInputEvent
+                (:composition-end payload)
+                  PaintEvent :composition-end $ decode-map-as payload PaintTextInputEvent
+                (:text-input payload)
+                  PaintEvent :text-input $ decode-map-as payload PaintTextInputEvent
+                (:window-focus) (PaintEvent :window-focus)
+                (:window-blur) (PaintEvent :window-blur)
+                (:resize payload)
+                  PaintEvent :resize $ decode-map-as payload PaintWindowMetricsEvent
+                (:scale-factor payload)
+                  PaintEvent :scale-factor $ decode-map-as payload PaintWindowMetricsEvent
+                (:window-title-applied payload)
+                  PaintEvent :window-title-applied $ decode-map-as payload PaintWindowTitleEvent
+                (:window-size-request payload)
+                  PaintEvent :window-size-request $ decode-map-as payload PaintWindowSizeEvent
+                (:window-close payload)
+                  PaintEvent :window-close $ decode-map-as payload PaintWindowCloseEvent
+          :examples $ []
+            quote $ let
+                event $ paint-event-from-ffi
+                  PaintEventFfi :frame $ {} (:frame 7) (:timestamp-ms 32) (:delta-ms 16) (:width 800) (:height 600) (:scale-factor 2)
+              assert-type event 'calcit-paint.core/PaintEvent
+              match event
+                (:frame payload)
+                  assert= 7 $ :frame payload
+                _ $ raise |expected-frame-event
+          :schema $ :: 'Fn
+            {} (:return 'calcit-paint.core/PaintEvent)
+              :args $ []
+                :: 'calcit-paint.core/PaintEventFfi $ :: 'Map 'Tag 'Dynamic
+          :tests $ []
+            %{} 'TestEntry (:name |decodes-frame-payload)
+              :code $ quote
+                let
+                    event $ paint-event-from-ffi
+                      PaintEventFfi :frame $ {} (:frame 7) (:timestamp-ms 32) (:delta-ms 16) (:width 800) (:height 600) (:scale-factor 2)
+                  assert-type event 'calcit-paint.core/PaintEvent
+                  match event
+                    (:frame payload)
+                      assert= 7 $ :frame payload
+                    _ $ raise |expected-frame-event
+              :tags $ #{} :unit
+            %{} 'TestEntry (:name |decodes-pointer-target)
+              :code $ quote
+                let
+                    event $ paint-event-from-ffi
+                      PaintEventFfi :mouse-down $ {} (:x 12) (:y 8) (:clicks 1)
+                        :modifiers $ {} (:shift? false) (:control? false) (:alt? false) (:super? false)
+                        :target $ {} (:action :select)
+                        :button :primary
+                  assert-type event 'calcit-paint.core/PaintEvent
+                  match event
+                    (:mouse-down payload)
+                      do
+                        assert= 12 $ :x payload
+                        assert= :select $ .unwrap-or
+                          :action $ :target payload
+                          , :missing
+                    _ $ raise |expected-mouse-down-event
+              :tags $ #{} :unit
         'push-drawing-data! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn push-drawing-data! (op data)
@@ -204,6 +407,94 @@
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ []
+        'handle-paint-event! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn handle-paint-event! (event)
+              match event
+                (:ready) (request-frame!)
+                (:frame payload)
+                  do
+                    reset! *animation-time-ms $ :timestamp-ms payload
+                    if @*animation-active?
+                      do (reset! *pointer-dirty? false) (render! false) (request-frame!)
+                      if @*pointer-dirty? $ do (reset! *pointer-dirty? false) (render! false)
+                (:mouse-down payload)
+                  handle-target-event! :mouse-down (:target payload)
+                    .unwrap-or (:captured? payload) false
+                (:mouse-up payload)
+                  handle-target-event! :mouse-up (:target payload)
+                    .unwrap-or (:captured? payload) false
+                (:mouse-move payload)
+                  handle-target-event! :mouse-move (:target payload)
+                    .unwrap-or (:captured? payload) false
+                (:mouse-leave payload)
+                  handle-target-event! :mouse-leave (:target payload)
+                    .unwrap-or (:captured? payload) false
+                (:mouse-wheel payload)
+                  handle-target-event! :mouse-wheel (:target payload)
+                    .unwrap-or (:captured? payload) false
+                (:pointer-enter payload)
+                  handle-target-event! :pointer-enter (:target payload)
+                    .unwrap-or (:captured? payload) false
+                (:pointer-leave payload)
+                  handle-target-event! :pointer-leave (:target payload)
+                    .unwrap-or (:captured? payload) false
+                (:pointer-cancel payload)
+                  handle-target-event! :pointer-cancel (:target payload)
+                    .unwrap-or (:captured? payload) false
+                (:key-down payload)
+                  handle-target-event! :key-down (:target payload) false
+                (:key-up payload)
+                  handle-target-event! :key-up (:target payload) false
+                (:focus-in payload)
+                  handle-target-event! :focus-in (:target payload) false
+                (:focus-out payload)
+                  handle-target-event! :focus-out (:target payload) false
+                (:ime-enabled payload)
+                  handle-target-event! :ime-enabled (:target payload) false
+                (:ime-disabled payload)
+                  handle-target-event! :ime-disabled (:target payload) false
+                (:composition-start payload)
+                  handle-target-event! :composition-start (:target payload) false
+                (:composition-update payload)
+                  handle-target-event! :composition-update (:target payload) false
+                (:composition-end payload)
+                  handle-target-event! :composition-end (:target payload) false
+                (:text-input payload)
+                  handle-target-event! :text-input (:target payload) false
+                (:window-focus) (println |window-focus)
+                (:window-blur) (println |window-blur)
+                (:resize payload) (println |resize: payload)
+                (:scale-factor payload) (println |scale-factor: payload)
+                (:window-title-applied payload) (println |window-title-applied: payload)
+                (:window-size-request payload) (println |window-size-request: payload)
+                (:window-close payload) (println |window-close: payload)
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'calcit-paint.core/PaintEvent
+        'handle-target-event! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn handle-target-event! (kind target captured?)
+              case-default
+                .unwrap-or (:action target) :none
+                println |event: kind target
+                :focus-first $ focus! |field-a
+                :export-snapshot $ export-offscreen-demo!
+                :toggle-animation $ toggle-animation!
+                :window-title $ set-window-title! "|Calcit Paint · title updated / 标题已更新"
+                :window-size $ request-window-size! 980 700
+                :window-close $ close-window!
+                :input-demo $ do
+                  reset! *pointer-status $ str-spaced kind
+                    .unwrap-or (:path target) ([])
+                    , |captured? captured?
+                  reset! *pointer-dirty? true
+                  request-frame!
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'Tag 'calcit-paint.core/PaintTarget 'Bool
         'main! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn main! () (println |started)
@@ -618,32 +909,10 @@
                         :color $ [] 0 0 86
                         :size 13
                         :align :left
-              if start-loop? $ launch-canvas-with-options! (WindowOptions :title "|Calcit Paint · lifecycle demo / 生命周期演示" :width 1100 :height 760 :min-width 720 :min-height 520 :resizable? true)
-                fn (event)
-                  if (map? event)
-                    case-default
-                      .unwrap-or (get event :action) :none
-                      case-default
-                        .unwrap-or (get event :type) :unknown
-                        println |event: event
-                        :redraw $ render! false
-                        :frame $ do
-                          reset! *animation-time-ms $ .unwrap-or (get event :timestamp-ms) @*animation-time-ms
-                          if @*animation-active?
-                            do (reset! *pointer-dirty? false) (render! false) (request-frame!)
-                            if @*pointer-dirty? $ do (reset! *pointer-dirty? false) (render! false)
-                      :focus-first $ focus! |field-a
-                      :export-snapshot $ export-offscreen-demo!
-                      :toggle-animation $ toggle-animation!
-                      :window-title $ set-window-title! "|Calcit Paint · title updated / 标题已更新"
-                      :window-size $ request-window-size! 980 700
-                      :window-close $ close-window!
-                      :input-demo $ do
-                        reset! *pointer-status $ str-spaced (get event :type) (get event :path) |captured? (get event :captured?)
-                        reset! *pointer-dirty? true
-                        request-frame!
-                    do (println |event: event) (request-frame!)
-                  , &unit
+              if start-loop?
+                launch-canvas-typed! (WindowOptions :title "|Calcit Paint · typed events / 强类型事件" :width 1100 :height 760 :min-width 720 :min-height 520 :resizable? true)
+                  fn (event) (handle-paint-event! event)
+                , &unit
           :examples $ []
           :schema $ :: 'Fn
             {} (:return 'Unit)
@@ -686,7 +955,7 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.main $ :require
-            calcit-paint.core :refer $ WindowOptions launch-canvas-with-options! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene request-frame! set-window-title! request-window-size! close-window!
+            calcit-paint.core :refer $ WindowOptions PaintEvent PaintTarget launch-canvas-typed! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene request-frame! set-window-title! request-window-size! close-window!
     'calcit-paint.util $ %{} 'FileEntry
       :defs $ {}
         'get-dylib-ext $ %{} 'CodeEntry (:doc |)
