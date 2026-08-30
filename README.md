@@ -61,6 +61,18 @@ calcit-paint.core/launch-canvas! $ fn (event) (println "|rendering to canvas..."
 
 ### Native FFI / 原生 FFI
 
+### Accessibility-ready lifecycle / 为可访问性准备的生命周期
+
+Paint creates its native window, OpenGL context, and Skia surface from winit's
+`resumed` lifecycle callback. The window stays invisible until that environment
+is ready, preserving the required pre-display installation point for platform
+accessibility adapters. This does not yet expose accessibility scene semantics;
+that public API is tracked separately.
+
+Paint 会在 winit 的 `resumed` 生命周期回调中创建原生窗口、OpenGL context 与 Skia
+surface。窗口会在这些环境就绪前保持不可见，从而为平台可访问性 adapter 保留首次显示前的
+安装点。本阶段尚未公开 accessibility scene 语义；相应 API 将由独立任务实现。
+
 The C-safe buffer-v1 and blocking-callback descriptors, ownership rules, Cirru
 EDN transport, and adapters are provided by
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi). Paint
