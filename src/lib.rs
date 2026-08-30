@@ -7,6 +7,8 @@ use std::num::NonZeroU32;
 use std::sync::RwLock;
 use std::time::Instant;
 
+use accesskit::{Action, ActionRequest};
+use accesskit_winit::{Adapter as AccessKitAdapter, Event as AccessKitEvent, WindowEvent as AccessKitWindowEvent};
 use euclid::Vector2D;
 use gl::types::*;
 use gl_rs as gl;
@@ -32,6 +34,7 @@ use winit::{
   window::{CursorIcon, Window, WindowAttributes, WindowId},
 };
 
+mod accessibility;
 mod clipboard;
 mod color;
 mod extracter;
@@ -77,7 +80,14 @@ lazy_static! {
 
 #[derive(Debug)]
 pub enum PaintUserEvent {
+  AccessKit(AccessKitEvent),
   FileDialogResult(file_dialog::FileDialogResult),
+}
+
+impl From<AccessKitEvent> for PaintUserEvent {
+  fn from(event: AccessKitEvent) -> Self {
+    Self::AccessKit(event)
+  }
 }
 
 fn create_event_loop() -> Result<EventLoop<PaintUserEvent>, String> {
@@ -91,6 +101,7 @@ fn create_event_loop() -> Result<EventLoop<PaintUserEvent>, String> {
 
 struct PaintApplication<F> {
   env: Option<Env>,
+  accessibility_adapter: Option<AccessKitAdapter>,
   options: window_lifecycle::WindowStartupOptions,
   handler: F,
   input: handlers::InputState,
@@ -139,6 +150,54 @@ where
   fn dispatch_all(&mut self, events: Vec<Edn>) {
     for event in events {
       self.dispatch(event);
+    }
+  }
+
+  fn update_accessibility_tree(&mut self) {
+    if let Some(adapter) = self.accessibility_adapter.as_mut() {
+      adapter.update_if_active(accessibility::tree_update);
+    }
+  }
+
+  fn handle_accesskit_event(&mut self, event: AccessKitEvent) {
+    let Some(env) = self.env.as_ref() else {
+      return;
+    };
+    if event.window_id != env.window.id() {
+      return;
+    }
+    match event.window_event {
+      AccessKitWindowEvent::InitialTreeRequested => self.update_accessibility_tree(),
+      AccessKitWindowEvent::ActionRequested(ActionRequest {
+        action, target_node, ..
+      }) => {
+        let Some(node) = accessibility::node_for_id(target_node) else {
+          return;
+        };
+        if !node.properties.enabled {
+          return;
+        }
+        match action {
+          Action::Focus if node.properties.focusable => {
+            if let Some(focus_id) = node.focus_id.as_deref() {
+              match focus::request_focus(focus_id, focus::FocusReason::Programmatic) {
+                Ok(Some(transition)) => self.dispatch_all(handlers::handle_focus_transition(transition)),
+                Ok(None) => {}
+                Err(error) => {
+                  eprintln!("failed applying accessibility focus action: {error}");
+                  return;
+                }
+              }
+              self.dispatch(handlers::handle_accessibility_action(&node, "focus"));
+            }
+          }
+          Action::Click => self.dispatch(handlers::handle_accessibility_action(&node, "activate")),
+          _ => return,
+        }
+        self.update_accessibility_tree();
+        self.env().window.request_redraw();
+      }
+      AccessKitWindowEvent::AccessibilityDeactivated => {}
     }
   }
 
@@ -292,6 +351,7 @@ where
     }
     self.dispatch_requested_frame();
     focus::begin_frame();
+    accessibility::begin_frame();
     match take_drawing_data() {
       Ok(messages) => {
         let scale_factor = self.scale_factor;
@@ -318,6 +378,7 @@ where
         self.dispatch(event);
       }
     }
+    self.update_accessibility_tree();
     self.sync_ime();
 
     if !self.initial_theme_dispatched {
@@ -348,8 +409,10 @@ where
           self.scale_factor = env.window.scale_factor() as f32;
           self.started_at = Instant::now();
           self.frame_clock = frame::FrameClock::new(self.started_at);
-          env.window.set_visible(true);
+          let adapter = AccessKitAdapter::with_event_loop_proxy(event_loop, &env.window, self.event_proxy.clone());
           self.env = Some(env);
+          self.accessibility_adapter = Some(adapter);
+          self.env().window.set_visible(true);
         }
         Err(error) => {
           eprintln!("failed initializing paint window in resumed: {error}");
@@ -382,6 +445,9 @@ where
     };
     if window_id != env.window.id() {
       return;
+    }
+    if let Some(adapter) = self.accessibility_adapter.as_mut() {
+      adapter.process_event(&env.window, &event);
     }
 
     match event {
@@ -544,6 +610,7 @@ where
 
   fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: PaintUserEvent) {
     match event {
+      PaintUserEvent::AccessKit(event) => self.handle_accesskit_event(event),
       PaintUserEvent::FileDialogResult(result) => {
         if let Err(error) = window_lifecycle::complete_file_dialog() {
           eprintln!("failed completing native file dialog request: {error}");
@@ -685,6 +752,7 @@ fn launch_canvas_impl(
   let started_at = Instant::now();
   let mut application = PaintApplication {
     env: None,
+    accessibility_adapter: None,
     options,
     handler,
     input: handlers::InputState::new(Vector2D::new(0.0, 0.0), ModifiersState::empty()),

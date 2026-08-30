@@ -134,10 +134,11 @@ enum RenderMode {
 use crate::{
   color::extract_color,
   extracter::{
-    extract_event_target, extract_fill_style, extract_paragraph_layout, extract_polyline_stroke_style,
-    extract_position, extract_shortcut_modifiers, extract_stroke_style, extract_text_style, extract_touch_area_shape,
-    read_blend_mode, read_bool, read_color, read_f32, read_optional_cursor_icon, read_optional_f32, read_optional_i32,
-    read_optional_string_field, read_points, read_position, read_string, read_text_align, tag,
+    extract_accessibility, extract_event_target, extract_fill_style, extract_paragraph_layout,
+    extract_polyline_stroke_style, extract_position, extract_shortcut_modifiers, extract_stroke_style,
+    extract_text_style, extract_touch_area_shape, read_blend_mode, read_bool, read_color, read_f32,
+    read_optional_cursor_icon, read_optional_f32, read_optional_i32, read_optional_string_field, read_points,
+    read_position, read_string, read_text_align, tag,
   },
   key_listener,
   primes::{
@@ -1027,6 +1028,7 @@ fn draw_shape_with_mode(
       position,
       target,
       cursor,
+      accessibility,
       line_style,
       fill_style,
       area,
@@ -1070,6 +1072,9 @@ fn draw_shape_with_mode(
           tr,
           clips,
         );
+        if let Some(accessibility) = accessibility {
+          crate::accessibility::register(accessibility, target, *position, area.clone(), tr, None)?;
+        }
       }
     }
     Shape::KeyListener {
@@ -1094,6 +1099,7 @@ fn draw_shape_with_mode(
       area,
       tab_index,
       text_input,
+      accessibility,
       line_style,
       fill_style,
     } => {
@@ -1128,6 +1134,9 @@ fn draw_shape_with_mode(
           text_input: *text_input,
           order: 0,
         })?;
+        if let Some(accessibility) = accessibility {
+          crate::accessibility::register(accessibility, target, *position, area.clone(), tr, Some(id))?;
+        }
       }
     }
     Shape::PaintOps {
@@ -1397,6 +1406,7 @@ fn extract_shape_at(tree: &Edn, path: &str) -> Result<Shape, SceneDiagnostics> {
           position: read_position(m, "position")?,
           area: extract_touch_area_shape(m)?,
           cursor: read_optional_cursor_icon(m)?,
+          accessibility: extract_accessibility(m)?,
           fill_style: extract_fill_style(m)?,
           line_style: extract_stroke_style(m)?,
         }),
@@ -1413,6 +1423,7 @@ fn extract_shape_at(tree: &Edn, path: &str) -> Result<Shape, SceneDiagnostics> {
           area: extract_touch_area_shape(m)?,
           tab_index: read_optional_i32(m, "tab-index")?.unwrap_or(0),
           text_input: read_bool(m, "text-input?")?,
+          accessibility: extract_accessibility(m)?,
           fill_style: extract_fill_style(m)?,
           line_style: extract_stroke_style(m)?,
         }),
@@ -1997,6 +2008,7 @@ mod tests {
         position: Vector2D::new(50.0, 30.0),
         area: TouchAreaShape::Rect(50.0, 30.0),
         cursor: Some(winit::window::CursorIcon::Pointer),
+        accessibility: None,
         line_style: None,
         fill_style: None,
       }],
@@ -2021,6 +2033,7 @@ mod tests {
         position: Vector2D::new(20.0, 15.0),
         area: TouchAreaShape::Rect(50.0, 40.0),
         cursor: None,
+        accessibility: None,
         line_style: None,
         fill_style: Some(PaintSource::Solid(Color::RED)),
       }],

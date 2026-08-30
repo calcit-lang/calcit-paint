@@ -866,12 +866,12 @@ runnable demo uses configured startup options; press `T` to change its title,
 callback receives the closed `PaintEvent` enum instead of legacy `nil` and
 heterogeneous maps. Startup is `(:ready)`; every payload-bearing variant uses a
 nominal struct, and `match` checks variant names, payload arity, and exhaustiveness.
-The bundled runnable demo uses this entry and matches all 31 variants.
+The bundled runnable demo uses this entry and matches all 32 variants.
 
 新 Calcit 应用优先使用 `launch-canvas-typed!`。callback 接收封闭的 `PaintEvent`
 enum，不再接收旧版 `nil` 与异构 map。启动事件为 `(:ready)`；所有带 payload 的 variant
 都使用 nominal struct，`match` 会检查 variant 名称、payload 数量与穷尽性。仓库内可运行
-demo 已切换到该入口，并完整匹配全部 31 个 variant。
+demo 已切换到该入口，并完整匹配全部 32 个 variant。
 
 Payloads are grouped by domain: `PaintPointerEvent`, `PaintKeyboardEvent`,
 `PaintFocusEvent`, `PaintTextInputEvent`, `PaintFileEvent`, `PaintFrameEvent`,
@@ -1185,6 +1185,51 @@ focused? |field-a
 
 blur!
 ```
+
+#### Accessibility semantic tree / 可访问性语义树
+
+Paint exposes accessibility only when an interactive `touch-area` or `focus-area`
+has an explicit `:accessibility` map. This avoids guessing semantics from pixels
+and keeps rendering and hit-testing unchanged. Each annotation requires a stable
+string `:id`, a `:role` of `:button`, `:text-input`, or `:image`, and a nonempty
+`:label`. Optional `:value` is a string, `:enabled?` defaults to `true`, and
+`:focusable?` defaults to `false`. A focusable annotation must be attached to a
+`focus-area`. Duplicate accessibility IDs in one rendered frame are rejected.
+
+Paint 仅在交互式 `touch-area` 或 `focus-area` 显式提供 `:accessibility` map 时暴露
+可访问性语义；它不会从像素推断语义，因此不改变渲染或 hit-test。每个标注都要求稳定字符串
+`:id`、`:button` / `:text-input` / `:image` 之一的 `:role`，以及非空 `:label`。
+可选 `:value` 为字符串；`:enabled?` 默认 `true`，`:focusable?` 默认 `false`。可聚焦
+标注必须挂在 `focus-area` 上。同一渲染帧中重复的 accessibility ID 会被拒绝。
+
+```cirru.no-check
+{} (:type :touch-area) (:dx 80) (:dy 24)
+  :position $ [] 280 180
+  :action :save-document
+  :fill-color $ [] 210 76 48
+  :accessibility $ {} (:id |save-document) (:role :button) (:label "|Save document / 保存文档") (:enabled? true)
+
+{} (:type :focus-area) (:focus-id |editor) (:text-input? true)
+  :position $ [] 280 250
+  :dx 180
+  :dy 28
+  :action :edit-document
+  :accessibility $ {} (:id |editor) (:role :text-input) (:label "|Document body / 文档正文") (:value |Draft) (:focusable? true)
+```
+
+The AccessKit tree is rebuilt from the latest rendered scene after redraw, with
+the transformed interactive bounds. Platform `Focus` and `Click` requests are
+translated to typed `(:accessibility-action payload)` events. Its
+`PaintAccessibilityActionEvent` contains `:id`, `:operation` (`:focus` or
+`:activate`), and the existing `PaintTarget`; focus also uses the same focus
+transition and IME lifecycle as pointer/Tab focus. Disabled nodes publish no
+focus or activate action.
+
+AccessKit tree 会在每次重绘后根据最新 scene 与变换后的交互 bounds 重建。平台的
+`Focus` 与 `Click` 请求会转换为强类型 `(:accessibility-action payload)` 事件；其
+`PaintAccessibilityActionEvent` 包含 `:id`、`:operation`（`:focus` 或 `:activate`）
+及既有 `PaintTarget`。focus 同时复用 pointer/Tab 焦点的 transition 与 IME 生命周期。
+禁用节点不会发布 focus 或 activate action。
 
 An old `:key-listener` without `:modifiers` remains a wildcard over modifier
 state. Supplying a `:modifiers` map makes all four flags (`:shift?`,

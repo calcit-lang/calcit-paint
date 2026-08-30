@@ -8,14 +8,19 @@
   :files $ {}
     'calcit-paint.core $ %{} 'FileEntry
       :defs $ {}
+        'PaintAccessibilityActionEvent $ %{} 'CodeEntry (:doc "|Typed accessibility action from the platform semantic tree. Operation is :focus or :activate. / 来自平台语义树的强类型可访问性动作。operation 为 :focus 或 :activate。")
+          :code $ quote
+            defstruct PaintAccessibilityActionEvent (:id 'String) (:operation 'Tag) (:target 'calcit-paint.core/PaintTarget)
+          :examples $ []
+          :schema $ :: 'StructDef
         'PaintEvent $ %{} 'CodeEntry (:doc "|Nominal exhaustive event protocol for typed Paint callbacks, including system theme observations. / 用于强类型 Paint callback 的 nominal 穷尽事件协议，包含系统主题观测。")
           :code $ quote
-            defenum PaintEvent (:ready) (:frame 'calcit-paint.core/PaintFrameEvent) (:mouse-down 'calcit-paint.core/PaintPointerEvent) (:mouse-up 'calcit-paint.core/PaintPointerEvent) (:mouse-move 'calcit-paint.core/PaintPointerEvent) (:mouse-leave 'calcit-paint.core/PaintPointerEvent) (:mouse-wheel 'calcit-paint.core/PaintPointerEvent) (:pointer-enter 'calcit-paint.core/PaintPointerEvent) (:pointer-leave 'calcit-paint.core/PaintPointerEvent) (:pointer-cancel 'calcit-paint.core/PaintPointerEvent) (:key-down 'calcit-paint.core/PaintKeyboardEvent) (:key-up 'calcit-paint.core/PaintKeyboardEvent) (:focus-in 'calcit-paint.core/PaintFocusEvent) (:focus-out 'calcit-paint.core/PaintFocusEvent) (:ime-enabled 'calcit-paint.core/PaintTextInputEvent) (:ime-disabled 'calcit-paint.core/PaintTextInputEvent) (:composition-start 'calcit-paint.core/PaintTextInputEvent) (:composition-update 'calcit-paint.core/PaintTextInputEvent) (:composition-end 'calcit-paint.core/PaintTextInputEvent) (:text-input 'calcit-paint.core/PaintTextInputEvent) (:file-hover 'calcit-paint.core/PaintFileEvent) (:file-drop 'calcit-paint.core/PaintFileEvent) (:file-hover-cancel 'calcit-paint.core/PaintFileHoverCancelEvent) (:file-dialog-result 'calcit-paint.core/PaintFileDialogEvent) (:window-focus) (:window-blur) (:resize 'calcit-paint.core/PaintWindowMetricsEvent) (:scale-factor 'calcit-paint.core/PaintWindowMetricsEvent) (:window-theme 'calcit-paint.core/PaintWindowThemeEvent) (:window-title-applied 'calcit-paint.core/PaintWindowTitleEvent) (:window-size-request 'calcit-paint.core/PaintWindowSizeEvent) (:window-close 'calcit-paint.core/PaintWindowCloseEvent)
+            defenum PaintEvent (:ready) (:frame 'calcit-paint.core/PaintFrameEvent) (:mouse-down 'calcit-paint.core/PaintPointerEvent) (:mouse-up 'calcit-paint.core/PaintPointerEvent) (:mouse-move 'calcit-paint.core/PaintPointerEvent) (:mouse-leave 'calcit-paint.core/PaintPointerEvent) (:mouse-wheel 'calcit-paint.core/PaintPointerEvent) (:pointer-enter 'calcit-paint.core/PaintPointerEvent) (:pointer-leave 'calcit-paint.core/PaintPointerEvent) (:pointer-cancel 'calcit-paint.core/PaintPointerEvent) (:key-down 'calcit-paint.core/PaintKeyboardEvent) (:key-up 'calcit-paint.core/PaintKeyboardEvent) (:focus-in 'calcit-paint.core/PaintFocusEvent) (:focus-out 'calcit-paint.core/PaintFocusEvent) (:ime-enabled 'calcit-paint.core/PaintTextInputEvent) (:ime-disabled 'calcit-paint.core/PaintTextInputEvent) (:composition-start 'calcit-paint.core/PaintTextInputEvent) (:composition-update 'calcit-paint.core/PaintTextInputEvent) (:composition-end 'calcit-paint.core/PaintTextInputEvent) (:text-input 'calcit-paint.core/PaintTextInputEvent) (:file-hover 'calcit-paint.core/PaintFileEvent) (:file-drop 'calcit-paint.core/PaintFileEvent) (:file-hover-cancel 'calcit-paint.core/PaintFileHoverCancelEvent) (:file-dialog-result 'calcit-paint.core/PaintFileDialogEvent) (:accessibility-action 'calcit-paint.core/PaintAccessibilityActionEvent) (:window-focus) (:window-blur) (:resize 'calcit-paint.core/PaintWindowMetricsEvent) (:scale-factor 'calcit-paint.core/PaintWindowMetricsEvent) (:window-theme 'calcit-paint.core/PaintWindowThemeEvent) (:window-title-applied 'calcit-paint.core/PaintWindowTitleEvent) (:window-size-request 'calcit-paint.core/PaintWindowSizeEvent) (:window-close 'calcit-paint.core/PaintWindowCloseEvent)
           :examples $ []
           :schema $ :: 'EnumDef
         'PaintEventFfi $ %{} 'CodeEntry (:doc "|Internal generic envelope received from the native typed-event transport.")
           :code $ quote
-            defenum PaintEventFfi ([] 'Raw) (:ready) (:frame 'Raw) (:mouse-down 'Raw) (:mouse-up 'Raw) (:mouse-move 'Raw) (:mouse-leave 'Raw) (:mouse-wheel 'Raw) (:pointer-enter 'Raw) (:pointer-leave 'Raw) (:pointer-cancel 'Raw) (:key-down 'Raw) (:key-up 'Raw) (:focus-in 'Raw) (:focus-out 'Raw) (:ime-enabled 'Raw) (:ime-disabled 'Raw) (:composition-start 'Raw) (:composition-update 'Raw) (:composition-end 'Raw) (:text-input 'Raw) (:file-hover 'Raw) (:file-drop 'Raw) (:file-hover-cancel 'Raw) (:file-dialog-result 'Raw) (:window-focus) (:window-blur) (:resize 'Raw) (:scale-factor 'Raw) (:window-theme 'Raw) (:window-title-applied 'Raw) (:window-size-request 'Raw) (:window-close 'Raw)
+            defenum PaintEventFfi ([] 'Raw) (:ready) (:frame 'Raw) (:mouse-down 'Raw) (:mouse-up 'Raw) (:mouse-move 'Raw) (:mouse-leave 'Raw) (:mouse-wheel 'Raw) (:pointer-enter 'Raw) (:pointer-leave 'Raw) (:pointer-cancel 'Raw) (:key-down 'Raw) (:key-up 'Raw) (:focus-in 'Raw) (:focus-out 'Raw) (:ime-enabled 'Raw) (:ime-disabled 'Raw) (:composition-start 'Raw) (:composition-update 'Raw) (:composition-end 'Raw) (:text-input 'Raw) (:file-hover 'Raw) (:file-drop 'Raw) (:file-hover-cancel 'Raw) (:file-dialog-result 'Raw) (:accessibility-action 'Raw) (:window-focus) (:window-blur) (:resize 'Raw) (:scale-factor 'Raw) (:window-theme 'Raw) (:window-title-applied 'Raw) (:window-size-request 'Raw) (:window-close 'Raw)
           :examples $ []
           :schema $ :: 'EnumDef
         'PaintFileDialogEvent $ %{} 'CodeEntry (:doc "|Typed terminal native-dialog result. Status is :selected, :cancelled, or :failed. / 强类型原生对话框终态结果。status 为 :selected、:cancelled 或 :failed。")
@@ -330,6 +335,13 @@
                         :selected $ PaintEvent :file-dialog-result result
                         :cancelled $ PaintEvent :file-dialog-result result
                         :failed $ PaintEvent :file-dialog-result result
+                (:accessibility-action payload)
+                  let
+                      action $ decode-map-as payload PaintAccessibilityActionEvent
+                    case-default (:operation action)
+                      raise $ str "|unsupported typed accessibility operation: " (:operation action)
+                      :focus $ PaintEvent :accessibility-action action
+                      :activate $ PaintEvent :accessibility-action action
                 (:window-focus) (PaintEvent :window-focus)
                 (:window-blur) (PaintEvent :window-blur)
                 (:resize payload)
@@ -436,6 +448,23 @@
                         assert= (fs:path |/tmp/image.png)
                           .unwrap $ :path payload
                     _ $ raise |expected-file-dialog-result
+            %{} 'TestEntry (:name |decodes-accessibility-action)
+              :code $ quote
+                let
+                    event $ paint-event-from-ffi
+                      PaintEventFfi :accessibility-action $ {} (:id |field-a) (:operation :focus)
+                        :target $ {} (:action :focus-demo)
+                  assert-type event 'calcit-paint.core/PaintEvent
+                  match event
+                    (:accessibility-action payload)
+                      do
+                        assert= |field-a $ :id payload
+                        assert= :focus $ :operation payload
+                        assert= :focus-demo $ .unwrap-or
+                          :action $ :target payload
+                          , :missing
+                    _ $ raise |expected-accessibility-action
+              :tags $ #{} :unit
         'push-drawing-data! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn push-drawing-data! (op data)
@@ -682,6 +711,10 @@
                 (:file-drop payload) (handle-file-event! :file-drop payload)
                 (:file-hover-cancel payload) (handle-file-hover-cancel! payload)
                 (:file-dialog-result payload) (handle-file-dialog-event! payload)
+                (:accessibility-action payload)
+                  do
+                    handle-target-event! (:operation payload) (:target payload) false
+                    println $ str "|accessibility " (:operation payload) "|: " (:id payload)
                 (:window-focus) (println |window-focus)
                 (:window-blur) (println |window-blur)
                 (:resize payload) (println |resize: payload)
@@ -821,6 +854,7 @@
                             :fill-color $ [] 285 74 54
                             :line-color $ [] 285 92 82
                             :line-width 2
+                            :accessibility $ {} (:id |clipped-input-button) (:role :button) (:label "|Clipped input demo") (:enabled? true)
                           {} (:type :text) (:text "|Clipped hit area →")
                             :position $ [] 415 210
                             :color $ [] 0 0 98
@@ -1029,6 +1063,7 @@
                         :fill-color $ [] 215 70 45
                         :line-color $ [] 215 88 76
                         :line-width 3
+                        :accessibility $ {} (:id |field-a) (:role :text-input) (:label "|Focus A IME input") (:value |) (:enabled? true) (:focusable? true)
                       {} (:type :text) (:text "|Focus A · IME text input")
                         :position $ [] 180 450
                         :color $ [] 0 0 98
@@ -1045,6 +1080,7 @@
                         :fill-color $ [] 165 65 42
                         :line-color $ [] 165 88 74
                         :line-width 3
+                        :accessibility $ {} (:id |field-b) (:role :text-input) (:label "|Focus B Tab input") (:value |) (:enabled? true) (:focusable? true)
                       {} (:type :text) (:text "|Focus B · Tab / Shift+Tab")
                         :position $ [] 180 525
                         :color $ [] 0 0 98
