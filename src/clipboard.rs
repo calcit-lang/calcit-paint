@@ -29,9 +29,12 @@ pub fn write_text(text: &str) -> Result<(), String> {
 }
 
 pub fn release() -> Result<(), String> {
-  TEXT_CLIPBOARD
-    .lock()
-    .map_err(|_| "text clipboard lock is poisoned".to_owned())?
-    .take();
+  let clipboard = {
+    TEXT_CLIPBOARD
+      .lock()
+      .map_err(|_| "text clipboard lock is poisoned".to_owned())?
+      .take()
+  };
+  drop(clipboard);
   Ok(())
 }
