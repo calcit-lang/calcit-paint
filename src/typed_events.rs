@@ -104,7 +104,13 @@ pub fn from_legacy(event: Edn) -> Result<Edn, String> {
     || FILE_EVENTS.contains(&variant)
     || matches!(
       variant,
-      "frame" | "resize" | "scale-factor" | "window-title-applied" | "window-size-request" | "window-close"
+      "frame"
+        | "resize"
+        | "scale-factor"
+        | "window-theme"
+        | "window-title-applied"
+        | "window-size-request"
+        | "window-close"
     )
   {
     Ok(typed_event(variant, Some(payload)))
@@ -226,5 +232,21 @@ mod tests {
       panic!("file hover cancellation must contain one map payload");
     };
     assert!(!payload.contains_key("path"));
+  }
+
+  #[test]
+  fn preserves_window_theme_payload_for_the_strict_calcit_decoder() {
+    let mut legacy = EdnMapView::default();
+    legacy.insert(Edn::tag("type"), Edn::tag("window-theme"));
+    legacy.insert(Edn::tag("theme"), Edn::tag("dark"));
+    legacy.insert(Edn::tag("initial?"), Edn::Bool(false));
+
+    let event = enum_view(from_legacy(Edn::Map(legacy)).unwrap());
+    assert_eq!(event.variant.as_ref(), "window-theme");
+    let [Edn::Map(payload)] = event.extra.as_slice() else {
+      panic!("window theme must contain one map payload");
+    };
+    assert_eq!(payload.tag_get("theme"), Some(&Edn::tag("dark")));
+    assert_eq!(payload.tag_get("initial?"), Some(&Edn::Bool(false)));
   }
 }

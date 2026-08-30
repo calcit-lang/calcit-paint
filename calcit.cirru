@@ -8,14 +8,14 @@
   :files $ {}
     'calcit-paint.core $ %{} 'FileEntry
       :defs $ {}
-        'PaintEvent $ %{} 'CodeEntry (:doc "|Nominal exhaustive event protocol for typed Paint callbacks.")
+        'PaintEvent $ %{} 'CodeEntry (:doc "|Nominal exhaustive event protocol for typed Paint callbacks, including system theme observations. / 用于强类型 Paint callback 的 nominal 穷尽事件协议，包含系统主题观测。")
           :code $ quote
-            defenum PaintEvent (:ready) (:frame 'calcit-paint.core/PaintFrameEvent) (:mouse-down 'calcit-paint.core/PaintPointerEvent) (:mouse-up 'calcit-paint.core/PaintPointerEvent) (:mouse-move 'calcit-paint.core/PaintPointerEvent) (:mouse-leave 'calcit-paint.core/PaintPointerEvent) (:mouse-wheel 'calcit-paint.core/PaintPointerEvent) (:pointer-enter 'calcit-paint.core/PaintPointerEvent) (:pointer-leave 'calcit-paint.core/PaintPointerEvent) (:pointer-cancel 'calcit-paint.core/PaintPointerEvent) (:key-down 'calcit-paint.core/PaintKeyboardEvent) (:key-up 'calcit-paint.core/PaintKeyboardEvent) (:focus-in 'calcit-paint.core/PaintFocusEvent) (:focus-out 'calcit-paint.core/PaintFocusEvent) (:ime-enabled 'calcit-paint.core/PaintTextInputEvent) (:ime-disabled 'calcit-paint.core/PaintTextInputEvent) (:composition-start 'calcit-paint.core/PaintTextInputEvent) (:composition-update 'calcit-paint.core/PaintTextInputEvent) (:composition-end 'calcit-paint.core/PaintTextInputEvent) (:text-input 'calcit-paint.core/PaintTextInputEvent) (:file-hover 'calcit-paint.core/PaintFileEvent) (:file-drop 'calcit-paint.core/PaintFileEvent) (:file-hover-cancel 'calcit-paint.core/PaintFileHoverCancelEvent) (:window-focus) (:window-blur) (:resize 'calcit-paint.core/PaintWindowMetricsEvent) (:scale-factor 'calcit-paint.core/PaintWindowMetricsEvent) (:window-title-applied 'calcit-paint.core/PaintWindowTitleEvent) (:window-size-request 'calcit-paint.core/PaintWindowSizeEvent) (:window-close 'calcit-paint.core/PaintWindowCloseEvent)
+            defenum PaintEvent (:ready) (:frame 'calcit-paint.core/PaintFrameEvent) (:mouse-down 'calcit-paint.core/PaintPointerEvent) (:mouse-up 'calcit-paint.core/PaintPointerEvent) (:mouse-move 'calcit-paint.core/PaintPointerEvent) (:mouse-leave 'calcit-paint.core/PaintPointerEvent) (:mouse-wheel 'calcit-paint.core/PaintPointerEvent) (:pointer-enter 'calcit-paint.core/PaintPointerEvent) (:pointer-leave 'calcit-paint.core/PaintPointerEvent) (:pointer-cancel 'calcit-paint.core/PaintPointerEvent) (:key-down 'calcit-paint.core/PaintKeyboardEvent) (:key-up 'calcit-paint.core/PaintKeyboardEvent) (:focus-in 'calcit-paint.core/PaintFocusEvent) (:focus-out 'calcit-paint.core/PaintFocusEvent) (:ime-enabled 'calcit-paint.core/PaintTextInputEvent) (:ime-disabled 'calcit-paint.core/PaintTextInputEvent) (:composition-start 'calcit-paint.core/PaintTextInputEvent) (:composition-update 'calcit-paint.core/PaintTextInputEvent) (:composition-end 'calcit-paint.core/PaintTextInputEvent) (:text-input 'calcit-paint.core/PaintTextInputEvent) (:file-hover 'calcit-paint.core/PaintFileEvent) (:file-drop 'calcit-paint.core/PaintFileEvent) (:file-hover-cancel 'calcit-paint.core/PaintFileHoverCancelEvent) (:window-focus) (:window-blur) (:resize 'calcit-paint.core/PaintWindowMetricsEvent) (:scale-factor 'calcit-paint.core/PaintWindowMetricsEvent) (:window-theme 'calcit-paint.core/PaintWindowThemeEvent) (:window-title-applied 'calcit-paint.core/PaintWindowTitleEvent) (:window-size-request 'calcit-paint.core/PaintWindowSizeEvent) (:window-close 'calcit-paint.core/PaintWindowCloseEvent)
           :examples $ []
           :schema $ :: 'EnumDef
         'PaintEventFfi $ %{} 'CodeEntry (:doc "|Internal generic envelope received from the native typed-event transport.")
           :code $ quote
-            defenum PaintEventFfi ([] 'Raw) (:ready) (:frame 'Raw) (:mouse-down 'Raw) (:mouse-up 'Raw) (:mouse-move 'Raw) (:mouse-leave 'Raw) (:mouse-wheel 'Raw) (:pointer-enter 'Raw) (:pointer-leave 'Raw) (:pointer-cancel 'Raw) (:key-down 'Raw) (:key-up 'Raw) (:focus-in 'Raw) (:focus-out 'Raw) (:ime-enabled 'Raw) (:ime-disabled 'Raw) (:composition-start 'Raw) (:composition-update 'Raw) (:composition-end 'Raw) (:text-input 'Raw) (:file-hover 'Raw) (:file-drop 'Raw) (:file-hover-cancel 'Raw) (:window-focus) (:window-blur) (:resize 'Raw) (:scale-factor 'Raw) (:window-title-applied 'Raw) (:window-size-request 'Raw) (:window-close 'Raw)
+            defenum PaintEventFfi ([] 'Raw) (:ready) (:frame 'Raw) (:mouse-down 'Raw) (:mouse-up 'Raw) (:mouse-move 'Raw) (:mouse-leave 'Raw) (:mouse-wheel 'Raw) (:pointer-enter 'Raw) (:pointer-leave 'Raw) (:pointer-cancel 'Raw) (:key-down 'Raw) (:key-up 'Raw) (:focus-in 'Raw) (:focus-out 'Raw) (:ime-enabled 'Raw) (:ime-disabled 'Raw) (:composition-start 'Raw) (:composition-update 'Raw) (:composition-end 'Raw) (:text-input 'Raw) (:file-hover 'Raw) (:file-drop 'Raw) (:file-hover-cancel 'Raw) (:window-focus) (:window-blur) (:resize 'Raw) (:scale-factor 'Raw) (:window-theme 'Raw) (:window-title-applied 'Raw) (:window-size-request 'Raw) (:window-close 'Raw)
           :examples $ []
           :schema $ :: 'EnumDef
         'PaintFileEvent $ %{} 'CodeEntry (:doc "|Typed file hover/drop payload with a nominal Calcit filesystem path.")
@@ -107,6 +107,11 @@
               :actual-height $ :: 'Option 'Number
               :matched? $ :: 'Option 'Bool
               :scale-factor 'Number
+          :examples $ []
+          :schema $ :: 'StructDef
+        'PaintWindowThemeEvent $ %{} 'CodeEntry (:doc "|Typed system theme payload: :light, :dark, or :unknown, plus whether it is the initial observation. / 强类型系统主题 payload：:light、:dark 或 :unknown，并标明是否为初始观测。")
+          :code $ quote
+            defstruct PaintWindowThemeEvent (:theme 'Tag) (:initial? 'Bool)
           :examples $ []
           :schema $ :: 'StructDef
         'PaintWindowTitleEvent $ %{} 'CodeEntry (:doc "|Typed applied window-title acknowledgement.")
@@ -210,7 +215,7 @@
             {}
               :args $ [] (:: 'Map 'Tag 'Dynamic)
               :return $ :: 'Map 'Tag 'Number
-        'paint-event-from-ffi $ %{} 'CodeEntry (:doc "|Strictly decode one native typed-event envelope into the public nominal protocol.")
+        'paint-event-from-ffi $ %{} 'CodeEntry (:doc "|Strictly decode one native typed-event envelope into the public nominal protocol, validating system theme tags. / 严格将原生强类型事件 envelope 解码为公开 nominal 协议，并校验系统主题 tag。")
           :code $ quote
             defn paint-event-from-ffi (event)
               match event
@@ -273,6 +278,14 @@
                   PaintEvent :resize $ decode-map-as payload PaintWindowMetricsEvent
                 (:scale-factor payload)
                   PaintEvent :scale-factor $ decode-map-as payload PaintWindowMetricsEvent
+                (:window-theme payload)
+                  let
+                      theme-event $ decode-map-as payload PaintWindowThemeEvent
+                    case-default (:theme theme-event)
+                      raise $ str "|unsupported typed system theme: " (:theme theme-event)
+                      :light $ PaintEvent :window-theme theme-event
+                      :dark $ PaintEvent :window-theme theme-event
+                      :unknown $ PaintEvent :window-theme theme-event
                 (:window-title-applied payload)
                   PaintEvent :window-title-applied $ decode-map-as payload PaintWindowTitleEvent
                 (:window-size-request payload)
@@ -339,6 +352,18 @@
                         assert= 12 $ :x payload
                     _ $ raise |expected-file-drop-event
               :tags $ #{} :unit
+            %{} 'TestEntry (:name |decodes-window-theme-payload)
+              :code $ quote
+                do $ let
+                    event $ paint-event-from-ffi
+                      PaintEventFfi :window-theme $ {} (:theme :dark) (:initial? false)
+                  assert-type event 'calcit-paint.core/PaintEvent
+                  match event
+                    (:window-theme payload)
+                      do
+                        assert= :dark $ :theme payload
+                        assert= false $ :initial? payload
+                    _ $ raise |expected-window-theme-event
         'push-drawing-data! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn push-drawing-data! (op data)
@@ -443,6 +468,10 @@
           :code $ quote (defatom *pointer-status |hover:idle)
           :examples $ []
           :schema $ :: 'Ref 'String
+        '*system-theme $ %{} 'CodeEntry (:doc |)
+          :code $ quote (defatom *system-theme :unknown)
+          :examples $ []
+          :schema $ :: 'Ref 'Tag
         'export-offscreen-demo! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn export-offscreen-demo! ()
@@ -561,6 +590,11 @@
                 (:window-blur) (println |window-blur)
                 (:resize payload) (println |resize: payload)
                 (:scale-factor payload) (println |scale-factor: payload)
+                (:window-theme payload)
+                  do
+                    reset! *system-theme $ :theme payload
+                    reset! *pointer-dirty? true
+                    request-frame!
                 (:window-title-applied payload) (println |window-title-applied: payload)
                 (:window-size-request payload) (println |window-size-request: payload)
                 (:window-close payload) (println |window-close: payload)
@@ -619,7 +653,8 @@
         'render! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn render! (start-loop?)
-              push-drawing-data! |reset-canvas! $ [] 200 50 30
+              push-drawing-data! |reset-canvas! $ if (= @*system-theme :dark) ([] 225 24 12)
+                if (= @*system-theme :light) ([] 200 50 30) ([] 210 32 18)
               push-drawing-data! |render-canvas! $ {} (:type :group)
                 :children $ []
                   {} (:type :rectangle)
@@ -684,11 +719,13 @@
                             :size 13
                             :baseline :middle
                             :align :center
-                  {} (:type :text) (:text |Demo)
-                    :position $ [] 140 40
-                    :color $ [] 0 80 100
-                    :size 40
-                    :weight |300
+                  {} (:type :text)
+                    :text $ str "|Demo · system theme / 系统主题: " @*system-theme
+                    :position $ [] 200 40
+                    :color $ if (= @*system-theme :dark) ([] 48 90 72)
+                      if (= @*system-theme :light) ([] 0 80 100) ([] 42 80 84)
+                    :size 28
+                    :weight |500
                     :align :center
                   {} (:type :group)
                     :children $ []
