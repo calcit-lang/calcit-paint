@@ -8,9 +8,10 @@
   :files $ {}
     'calcit-paint.core $ %{} 'FileEntry
       :defs $ {}
-        'PaintAccessibilityActionEvent $ %{} 'CodeEntry (:doc "|Typed accessibility action from the platform semantic tree. Operation is :focus or :activate. / 来自平台语义树的强类型可访问性动作。operation 为 :focus 或 :activate。")
+        'PaintAccessibilityActionEvent $ %{} 'CodeEntry (:doc "|Typed accessibility request. Operation is :focus, :activate, or :set-value; only :set-value carries an optional requested String value. / 强类型无障碍请求。operation 为 :focus、:activate 或 :set-value；仅 :set-value 携带可选的请求 String 值。")
           :code $ quote
             defstruct PaintAccessibilityActionEvent (:id 'String) (:operation 'Tag) (:target 'calcit-paint.core/PaintTarget)
+              :value $ :: 'Option 'String
           :examples $ []
           :schema $ :: 'StructDef
         'PaintEvent $ %{} 'CodeEntry (:doc "|Nominal exhaustive event protocol for typed Paint callbacks, including system theme observations. / 用于强类型 Paint callback 的 nominal 穷尽事件协议，包含系统主题观测。")
@@ -342,6 +343,11 @@
                       raise $ str "|unsupported typed accessibility operation: " (:operation action)
                       :focus $ PaintEvent :accessibility-action action
                       :activate $ PaintEvent :accessibility-action action
+                      :set-value $ let
+                          value $ :value action
+                        match value
+                          (:some _) (PaintEvent :accessibility-action action)
+                          (:none) (raise |typed-set-value-accessibility-action-requires-value)
                 (:window-focus) (PaintEvent :window-focus)
                 (:window-blur) (PaintEvent :window-blur)
                 (:resize payload)
@@ -465,6 +471,19 @@
                           , :missing
                     _ $ raise |expected-accessibility-action
               :tags $ #{} :unit
+            %{} 'TestEntry (:name |decodes-accessibility-set-value)
+              :code $ quote
+                let
+                    event $ paint-event-from-ffi
+                      PaintEventFfi :accessibility-action $ {} (:id |field-a) (:operation :set-value) (:value |Updated)
+                        :target $ {} (:action :focus-demo)
+                  assert-type event 'calcit-paint.core/PaintEvent
+                  match event
+                    (:accessibility-action payload)
+                      do
+                        assert= :set-value $ :operation payload
+                        assert= |Updated $ .unwrap (:value payload)
+                    _ $ raise |expected-accessibility-set-value
         'push-drawing-data! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn push-drawing-data! (op data)
@@ -554,6 +573,10 @@
             calcit-paint.util :refer $ get-dylib-path
     'calcit-paint.main $ %{} 'FileEntry
       :defs $ {}
+        '*accessibility-value $ %{} 'CodeEntry (:doc |)
+          :code $ quote (defatom *accessibility-value |Draft)
+          :examples $ []
+          :schema $ :: 'Ref 'String
         '*animation-active? $ %{} 'CodeEntry (:doc |)
           :code $ quote (defatom *animation-active? false)
           :examples $ []
@@ -713,8 +736,14 @@
                 (:file-dialog-result payload) (handle-file-dialog-event! payload)
                 (:accessibility-action payload)
                   do
+                    if
+                      = (:operation payload) :set-value
+                      let
+                          value $ :value payload
+                        reset! *accessibility-value $ value.unwrap-or @*accessibility-value
                     handle-target-event! (:operation payload) (:target payload) false
                     println $ str "|accessibility " (:operation payload) "|: " (:id payload)
+                    render! false
                 (:window-focus) (println |window-focus)
                 (:window-blur) (println |window-blur)
                 (:resize payload) (println |resize: payload)
@@ -1089,8 +1118,9 @@
                         :fill-color $ [] 215 70 45
                         :line-color $ [] 215 88 76
                         :line-width 3
-                        :accessibility $ {} (:id |field-a) (:role :text-input) (:label "|Focus A IME input") (:value |) (:enabled? true) (:focusable? true)
-                      {} (:type :text) (:text "|Focus A · IME text input")
+                        :accessibility $ {} (:id |field-a) (:role :text-input) (:label "|Focus A IME input") (:value @*accessibility-value) (:enabled? true) (:focusable? true)
+                      {} (:type :text)
+                        :text $ str "|Focus A · " @*accessibility-value
                         :position $ [] 180 450
                         :color $ [] 0 0 98
                         :size 18

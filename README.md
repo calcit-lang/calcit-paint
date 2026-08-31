@@ -1276,17 +1276,25 @@ Paint 仅在交互式 `touch-area` 或 `focus-area` 显式提供 `:accessibility
 
 The AccessKit tree is rebuilt from the latest rendered scene after redraw, with
 the transformed interactive bounds. Platform `Focus` and `Click` requests are
-translated to typed `(:accessibility-action payload)` events. Its
-`PaintAccessibilityActionEvent` contains `:id`, `:operation` (`:focus` or
-`:activate`), and the existing `PaintTarget`; focus also uses the same focus
+translated to typed `(:accessibility-action payload)` events. Enabled
+`:text-input` annotations on `focus-area` additionally publish AccessKit
+`SetValue`; it becomes operation `:set-value` with `:value` as `Option<String>`.
+The native layer never changes application state: handle that event in Calcit,
+then render the new `:accessibility :value` on the next frame. The default
+runnable demo does exactly this for Focus A. `PaintAccessibilityActionEvent`
+contains `:id`, `:operation` (`:focus`, `:activate`, or `:set-value`), optional
+`:value`, and the existing `PaintTarget`; focus also uses the same focus
 transition and IME lifecycle as pointer/Tab focus. Disabled nodes publish no
-focus or activate action.
+focus, activate, or set-value action.
 
 AccessKit tree 会在每次重绘后根据最新 scene 与变换后的交互 bounds 重建。平台的
-`Focus` 与 `Click` 请求会转换为强类型 `(:accessibility-action payload)` 事件；其
-`PaintAccessibilityActionEvent` 包含 `:id`、`:operation`（`:focus` 或 `:activate`）
-及既有 `PaintTarget`。focus 同时复用 pointer/Tab 焦点的 transition 与 IME 生命周期。
-禁用节点不会发布 focus 或 activate action。
+`Focus` 与 `Click` 请求会转换为强类型 `(:accessibility-action payload)` 事件；启用的
+`focus-area` 上 `:text-input` 标注还会发布 AccessKit `SetValue`，并转换为 operation
+`:set-value` 与 `Option<String>` `:value`。native 层绝不直接修改应用状态：应由 Calcit
+处理该事件，再在下一帧渲染新的 `:accessibility :value`。默认可运行 demo 已对 Focus A
+这样处理。`PaintAccessibilityActionEvent` 包含 `:id`、`:operation`（`:focus`、`:activate`
+或 `:set-value`）、可选 `:value` 及既有 `PaintTarget`。focus 同时复用 pointer/Tab 焦点的
+transition 与 IME 生命周期；禁用节点不会发布 focus、activate 或 set-value action。
 
 An old `:key-listener` without `:modifiers` remains a wildcard over modifier
 state. Supplying a `:modifiers` map makes all four flags (`:shift?`,
