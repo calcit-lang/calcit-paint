@@ -8,6 +8,14 @@ cookbook when copying one focused pattern into an application or an Agent task.
 `calcit-paint.main/render!` 仍是集成 demo；在应用或 Agent 任务中复制一个聚焦模式时，
 请使用本手册。
 
+Each recipe uses `cirru.no-run`: `calcit docs check-md` parses and statically
+checks its `ns`/definition snippet, but does not execute native FFI or write
+files. `./scripts/check-cookbook.sh` remains the runnable public-API check.
+
+每个 recipe 使用 `cirru.no-run`：`calcit docs check-md` 会解析并静态检查其中的
+`ns`/定义片段，但不会执行 native FFI 或写入文件。可运行的公开 API 检查仍由
+`./scripts/check-cookbook.sh` 提供。
+
 ## First run / 首次运行
 
 ```bash
@@ -47,7 +55,7 @@ the remaining cookbook recipes, including explicit-write offscreen export.
 
 Expected result: an empty diagnostic list. / 预期结果：空诊断列表。
 
-```cirru.no-check
+```cirru.no-run
 ns cookbook.basic $ :require
   calcit-paint.core :refer $ validate-scene
 
@@ -63,7 +71,7 @@ validate-scene $ {} (:type :rectangle)
 Expected result: the circle is visible only inside the rounded card. /
 预期结果：圆形只在圆角卡片内部可见。
 
-```cirru.no-check
+```cirru.no-run
 ns cookbook.clip $ :require
   calcit-paint.core :refer $ validate-scene
 
@@ -89,7 +97,7 @@ hits. The container position is hit geometry, not a local origin for children.
 预期结果：嵌套交互 child 后绘制，并在重叠命中中胜出。容器 position 是 hit geometry，
 不是 children 的局部原点。
 
-```cirru.no-check
+```cirru.no-run
 ns cookbook.interaction $ :require
   calcit-paint.core :refer $ validate-scene
 
@@ -129,7 +137,7 @@ reference.
 新应用使用 typed 入口。这个最小 recipe 展示真实的 `PaintEvent` case；默认 demo 是
 可运行的穷尽协议参考。
 
-```cirru.no-check
+```cirru.no-run
 ns cookbook.events $ :require
   calcit-paint.core :refer $ WindowOptions launch-canvas-typed!
 
@@ -153,7 +161,7 @@ be attached to `:focus-area`; a touch-only button must omit it.
 只为交互 area 添加语义。`:focusable? true` 标注必须挂在 `:focus-area`；纯 touch
 按钮必须省略它。
 
-```cirru.no-check
+```cirru.no-run
 ns cookbook.accessibility $ :require
   calcit-paint.core :refer $ validate-scene
 
@@ -172,7 +180,7 @@ scene construction before a native-window smoke test.
 
 它只会写入指定文件。可在原生窗口 smoke 前，用于 CI 中快速覆盖视觉场景构造。
 
-```cirru.no-check
+```cirru.no-run
 ns cookbook.offscreen $ :require
   calcit-paint.core :refer $ render-to-png!
 
@@ -194,7 +202,7 @@ relative path and choose sampling deliberately.
 资源保持本地，并在绘制前校验 image scene。仓库自带 fixture 适合首次检查；应用应使用
 自己的显式相对路径，并明确选择 sampling。
 
-```cirru.no-check
+```cirru.no-run
 ns cookbook.asset $ :require
   calcit-paint.core :refer $ validate-scene
 
