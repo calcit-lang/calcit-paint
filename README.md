@@ -222,6 +222,63 @@ against the existing backdrop. Supported modes are `:src-over`, `:multiply`,
       :fill-color $ [] 215 90 60
 ```
 
+#### Compositing effects / 合成效果
+
+`drop-shadow`, `blur`, and `color-filter` composite their `:children` through
+one Skia offscreen layer. They are visual-only containers: child pointer,
+keyboard, focus, and accessibility behavior is unchanged. The initial API
+intentionally provides content blur rather than backdrop blur, and does not
+expose an unbounded arbitrary Skia filter graph.
+
+`drop-shadow` needs finite `:dx` / `:dy`, non-negative `:sigma-x` /
+`:sigma-y`, and a Paint HSL(A) `:color`. `blur` needs non-negative
+`:sigma-x` / `:sigma-y`. `color-filter` needs `:matrix`, a row-major list of
+exactly 20 finite RGBA matrix coefficients. All three accept `:children`.
+
+`drop-shadow`、`blur` 和 `color-filter` 会通过一个 Skia 离屏图层合成自己的
+`:children`。它们仅改变视觉效果，不改变子节点的指针、键盘、焦点或无障碍语义。首版
+刻意只提供内容模糊，不提供 backdrop blur，也不暴露无限制的任意 Skia filter graph。
+
+`drop-shadow` 需要有限的 `:dx` / `:dy`、非负 `:sigma-x` / `:sigma-y`，以及 Paint
+HSL(A) `:color`；`blur` 需要非负 `:sigma-x` / `:sigma-y`；`color-filter` 需要
+`:matrix`，即恰好 20 个有限 RGBA 行主序矩阵系数。三者都接受 `:children`。
+
+```cirru
+{} (:type :drop-shadow) (:dx 8) (:dy 7) (:sigma-x 3) (:sigma-y 3)
+  :color $ [] 230 40 18 0.72
+  :children $ []
+    {} (:type :rounded-rect) (:radius 14)
+      :position $ [] 80 80
+      :width 110
+      :height 58
+      :fill-color $ [] 200 72 52
+
+{} (:type :blur) (:sigma-x 3) (:sigma-y 3)
+  :children $ []
+    {} (:type :circle)
+      :position $ [] 250 108
+      :radius 30
+      :fill-color $ [] 45 88 60
+
+{} (:type :color-filter)
+  :matrix $ [] 0.213 0.715 0.072 0 0 0.213 0.715 0.072 0 0 0.213 0.715 0.072 0 0 0 0 0 1 0
+  :children $ []
+    {} (:type :circle)
+      :position $ [] 350 108
+      :radius 30
+      :fill-color $ [] 315 88 62
+```
+
+The default runnable `calcit-paint.main/render!` demo shows all three effects.
+Effects inside `cached-group` are rendered into its declared local raster
+surface, so pixels beyond that cache surface are intentionally clipped; provide
+enough cache bounds for blur and shadow spread. `render-to-png` uses the same
+renderer and preserves the same effect behavior.
+
+默认可运行的 `calcit-paint.main/render!` demo 展示三种效果。`cached-group` 内的
+效果会渲染到其声明的本地 raster surface 中，因此超出 cache surface 的像素会按约定裁切；
+请为阴影与模糊扩散预留足够的 cache 边界。`render-to-png` 使用同一渲染器，保留相同的效果行为。
+
 - Rect, using `rect` or `rectangle`:
 
 ```rust

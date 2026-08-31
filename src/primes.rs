@@ -297,6 +297,23 @@ pub enum Shape {
     mode: BlendMode,
     children: Vec<Shape>,
   },
+  DropShadow {
+    dx: f32,
+    dy: f32,
+    sigma_x: f32,
+    sigma_y: f32,
+    color: Color,
+    children: Vec<Shape>,
+  },
+  Blur {
+    sigma_x: f32,
+    sigma_y: f32,
+    children: Vec<Shape>,
+  },
+  ColorFilter {
+    matrix: [f32; 20],
+    children: Vec<Shape>,
+  },
   Image {
     id: String,
     file_path: String,

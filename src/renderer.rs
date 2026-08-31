@@ -5,6 +5,8 @@ use crate::{
 };
 use std::collections::HashMap;
 use std::fs;
+#[cfg(test)]
+use std::sync::Mutex;
 use std::sync::{
   atomic::{AtomicU64, Ordering},
   RwLock,
@@ -26,9 +28,9 @@ use skia_safe::textlayout::{
   TextDirection as SkTextDirection, TextStyle as ParagraphTextStyle,
 };
 use skia_safe::{
-  gradient, surfaces, AlphaType, Color, Color4f, ColorSpace, ColorType, CubicResampler, Data, EncodedImageFormat,
-  FilterMode, Font, FontMgr, FontStyle, Image, ImageInfo, Paint, PaintStyle, PathBuilder, PathEffect, RRect, Rect,
-  SamplingOptions, Shader, Surface, TextBlob, TileMode,
+  color_filters, gradient, image_filters, surfaces, AlphaType, Color, Color4f, ColorSpace, ColorType, CubicResampler,
+  Data, EncodedImageFormat, FilterMode, Font, FontMgr, FontStyle, Image, ImageInfo, Paint, PaintStyle, PathBuilder,
+  PathEffect, RRect, Rect, SamplingOptions, Shader, Surface, TextBlob, TileMode,
 };
 
 #[derive(Clone)]
@@ -69,6 +71,11 @@ lazy_static! {
   static ref SHADER_CACHE: RwLock<HashMap<String, Shader>> = RwLock::new(HashMap::new());
   static ref DASH_EFFECT_CACHE: RwLock<HashMap<String, PathEffect>> = RwLock::new(HashMap::new());
   static ref SUBTREE_CACHE: RwLock<SubtreeCache> = RwLock::new(SubtreeCache::default());
+}
+
+#[cfg(test)]
+lazy_static! {
+  static ref SUBTREE_CACHE_TEST_LOCK: Mutex<()> = Mutex::new(());
 }
 
 static SUBTREE_CACHE_TICK: AtomicU64 = AtomicU64::new(1);
@@ -662,7 +669,10 @@ fn shape_contains_interactive(shape: &Shape) -> bool {
     | Shape::ClipRect { children, .. }
     | Shape::ClipRoundedRect { children, .. }
     | Shape::Opacity { children, .. }
-    | Shape::Blend { children, .. } => children.iter().any(shape_contains_interactive),
+    | Shape::Blend { children, .. }
+    | Shape::DropShadow { children, .. }
+    | Shape::Blur { children, .. }
+    | Shape::ColorFilter { children, .. } => children.iter().any(shape_contains_interactive),
     _ => false,
   }
 }
@@ -1278,6 +1288,57 @@ fn draw_shape_with_mode(
       }
       canvas.restore();
     }
+    Shape::DropShadow {
+      dx,
+      dy,
+      sigma_x,
+      sigma_y,
+      color,
+      children,
+    } => {
+      let filter = image_filters::drop_shadow(
+        (*dx, *dy),
+        (*sigma_x, *sigma_y),
+        Color4f::from(*color),
+        None,
+        None,
+        None,
+      )
+      .ok_or_else(|| "Skia could not create drop-shadow image filter".to_owned())?;
+      let mut paint = Paint::default();
+      paint.set_image_filter(filter);
+      canvas.save_layer(&SaveLayerRec::default().paint(&paint));
+      for child in children {
+        draw_shape_with_mode(canvas, child, tr, render_mode, clips)?;
+      }
+      canvas.restore();
+    }
+    Shape::Blur {
+      sigma_x,
+      sigma_y,
+      children,
+    } => {
+      let filter = image_filters::blur((*sigma_x, *sigma_y), TileMode::Decal, None, None)
+        .ok_or_else(|| "Skia could not create blur image filter".to_owned())?;
+      let mut paint = Paint::default();
+      paint.set_image_filter(filter);
+      canvas.save_layer(&SaveLayerRec::default().paint(&paint));
+      for child in children {
+        draw_shape_with_mode(canvas, child, tr, render_mode, clips)?;
+      }
+      canvas.restore();
+    }
+    Shape::ColorFilter { matrix, children } => {
+      let filter = image_filters::color_filter(color_filters::matrix_row_major(matrix, None), None, None)
+        .ok_or_else(|| "Skia could not create color-filter image filter".to_owned())?;
+      let mut paint = Paint::default();
+      paint.set_image_filter(filter);
+      canvas.save_layer(&SaveLayerRec::default().paint(&paint));
+      for child in children {
+        draw_shape_with_mode(canvas, child, tr, render_mode, clips)?;
+      }
+      canvas.restore();
+    }
   }
   Ok(())
 }
@@ -1492,6 +1553,23 @@ fn extract_shape_at(tree: &Edn, path: &str) -> Result<Shape, SceneDiagnostics> {
           mode: read_blend_mode(m, "mode")?,
           children: extract_children(m.get(&tag("children")), path)?,
         }),
+        "drop-shadow" => Ok(Shape::DropShadow {
+          dx: read_finite_f32(m, "dx")?,
+          dy: read_finite_f32(m, "dy")?,
+          sigma_x: read_non_negative_f32(m, "sigma-x")?,
+          sigma_y: read_non_negative_f32(m, "sigma-y")?,
+          color: read_color(m, "color")?,
+          children: extract_children(m.get(&tag("children")), path)?,
+        }),
+        "blur" => Ok(Shape::Blur {
+          sigma_x: read_non_negative_f32(m, "sigma-x")?,
+          sigma_y: read_non_negative_f32(m, "sigma-y")?,
+          children: extract_children(m.get(&tag("children")), path)?,
+        }),
+        "color-filter" => Ok(Shape::ColorFilter {
+          matrix: read_color_filter_matrix(m)?,
+          children: extract_children(m.get(&tag("children")), path)?,
+        }),
         "image" => {
           let crop = match m.get(&tag("crop")) {
             Some(Edn::Map(m)) => Some(Rect::from_xywh(
@@ -1615,6 +1693,39 @@ fn extract_children(children: Option<&Edn>, parent_path: &str) -> Result<Vec<Sha
     )),
     None => Ok(vec![]),
   }
+}
+
+fn read_color_filter_matrix(tree: &EdnMapView) -> Result<[f32; 20], String> {
+  let value = tree
+    .get(&tag("matrix"))
+    .ok_or_else(|| "color-filter requires :matrix".to_owned())?;
+  let Edn::List(EdnListView(values)) = value else {
+    return Err(format!(
+      "color-filter :matrix must be a list of 20 finite numbers, got {value}"
+    ));
+  };
+  if values.len() != 20 {
+    return Err(format!(
+      "color-filter :matrix must contain exactly 20 entries, got {}",
+      values.len()
+    ));
+  }
+  let mut matrix = [0.0; 20];
+  for (index, value) in values.iter().enumerate() {
+    let Edn::Number(value) = value else {
+      return Err(format!(
+        "color-filter :matrix[{index}] must be a finite number, got {value}"
+      ));
+    };
+    let value = *value as f32;
+    if !value.is_finite() {
+      return Err(format!(
+        "color-filter :matrix[{index}] must be a finite number, got {value}"
+      ));
+    }
+    matrix[index] = value;
+  }
+  Ok(matrix)
 }
 
 fn extract_paint_path(data: &Edn) -> Result<Vec<PaintPathTo>, String> {
@@ -1770,6 +1881,12 @@ mod tests {
     IMAGE_CACHE_TICK.store(1, Ordering::Relaxed);
   }
 
+  fn identity_color_matrix() -> [f32; 20] {
+    [
+      1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+    ]
+  }
+
   fn write_two_color_image(path: &std::path::Path) {
     let mut surface = surfaces::raster_n32_premul((2, 1)).unwrap();
     let mut paint = Paint::default();
@@ -1880,6 +1997,95 @@ mod tests {
     assert_eq!(&pixels[0..4], &[0, 0, 0, 0]);
     assert_eq!(&pixels[(3 * 8 + 3) * 4..(3 * 8 + 3) * 4 + 4], &[255, 0, 0, 255]);
     assert_eq!(fnv1a64(&pixels), 0xc795_b70a_8da3_da05);
+  }
+
+  #[test]
+  fn compositing_effects_render_offscreen_and_preserve_child_pixels() {
+    let child = solid_rectangle(Color::from_argb(255, 255, 0, 0));
+    let shadow = Shape::DropShadow {
+      dx: 4.0,
+      dy: 0.0,
+      sigma_x: 0.0,
+      sigma_y: 0.0,
+      color: Color::from_argb(255, 0, 0, 255),
+      children: vec![child.clone()],
+    };
+    let shadow_image = render_offscreen_shape(12, 8, Color::TRANSPARENT, &shadow).unwrap();
+    let shadow_pixels = rgba_pixels(&shadow_image, 12, 8);
+    assert_eq!(
+      &shadow_pixels[(3 * 12 + 3) * 4..(3 * 12 + 3) * 4 + 4],
+      &[255, 0, 0, 255]
+    );
+    assert_eq!(
+      &shadow_pixels[(3 * 12 + 7) * 4..(3 * 12 + 7) * 4 + 4],
+      &[0, 0, 255, 255]
+    );
+
+    let blur = Shape::Blur {
+      sigma_x: 1.5,
+      sigma_y: 1.5,
+      children: vec![child.clone()],
+    };
+    let blur_image = render_offscreen_shape(12, 8, Color::TRANSPARENT, &blur).unwrap();
+    let blur_pixels = rgba_pixels(&blur_image, 12, 8);
+    assert!(blur_pixels[(3 * 12 + 1) * 4 + 3] > 0);
+    assert!(blur_pixels[(3 * 12 + 1) * 4 + 3] < 255);
+
+    let color_filter = Shape::ColorFilter {
+      matrix: [
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+      ],
+      children: vec![child],
+    };
+    let filtered_image = render_offscreen_shape(8, 8, Color::TRANSPARENT, &color_filter).unwrap();
+    let filtered_pixels = rgba_pixels(&filtered_image, 8, 8);
+    assert_eq!(
+      &filtered_pixels[(3 * 8 + 3) * 4..(3 * 8 + 3) * 4 + 4],
+      &[0, 0, 255, 255]
+    );
+  }
+
+  #[test]
+  fn compositing_effects_validate_strict_parameters_and_nested_diagnostics() {
+    let shadow = map([
+      ("type", Edn::tag("drop-shadow")),
+      ("dx", Edn::Number(1.0)),
+      ("dy", Edn::Number(2.0)),
+      ("sigma-x", Edn::Number(-1.0)),
+      ("sigma-y", Edn::Number(2.0)),
+      (
+        "color",
+        list([Edn::Number(210.0), Edn::Number(80.0), Edn::Number(60.0)]),
+      ),
+    ]);
+    assert!(extract_shape(&shadow)
+      .unwrap_err()
+      .contains("sigma-x must be a finite non-negative number"));
+
+    let short_matrix = map([("type", Edn::tag("color-filter")), ("matrix", list([Edn::Number(1.0)]))]);
+    assert!(extract_shape(&short_matrix)
+      .unwrap_err()
+      .contains("must contain exactly 20 entries"));
+
+    let valid_filter = map([
+      ("type", Edn::tag("color-filter")),
+      (
+        "matrix",
+        list(identity_color_matrix().map(|value| Edn::Number(value.into()))),
+      ),
+      (
+        "children",
+        list([map([
+          ("type", Edn::tag("blur")),
+          ("sigma-x", Edn::Number(-1.0)),
+          ("sigma-y", Edn::Number(1.0)),
+        ])]),
+      ),
+    ]);
+    assert_eq!(
+      validate_scene(&valid_filter),
+      vec!["$.children[0]: sigma-x must be a finite non-negative number, got -1"]
+    );
   }
 
   #[test]
@@ -2074,6 +2280,7 @@ mod tests {
 
   #[test]
   fn cached_groups_use_revision_invalidation_and_reject_interaction() {
+    let _cache_lock = SUBTREE_CACHE_TEST_LOCK.lock().unwrap();
     reset_subtree_cache();
     let red = solid_rectangle(Color::from_argb(255, 255, 0, 0));
     let blue = solid_rectangle(Color::from_argb(255, 0, 0, 255));
@@ -2109,6 +2316,30 @@ mod tests {
     assert_eq!(cache.entries.len(), SUBTREE_CACHE_MAX_ENTRIES);
     assert!(!cache.entries.contains_key("entry-0"));
     drop(cache);
+    reset_subtree_cache();
+  }
+
+  #[test]
+  fn cached_group_preserves_compositing_effects_within_declared_bounds() {
+    let _cache_lock = SUBTREE_CACHE_TEST_LOCK.lock().unwrap();
+    reset_subtree_cache();
+    let filtered = Shape::ColorFilter {
+      matrix: [
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+      ],
+      children: vec![solid_rectangle(Color::RED)],
+    };
+    let direct = render_offscreen_shape(8, 8, Color::TRANSPARENT, &filtered).unwrap();
+    let cached = Shape::CachedGroup {
+      cache_key: "effects".into(),
+      revision: 1,
+      position: Vector2D::new(0.0, 0.0),
+      width: 8,
+      height: 8,
+      children: vec![filtered],
+    };
+    let cached_image = render_offscreen_shape(8, 8, Color::TRANSPARENT, &cached).unwrap();
+    assert_eq!(rgba_pixels(&direct, 8, 8), rgba_pixels(&cached_image, 8, 8));
     reset_subtree_cache();
   }
 

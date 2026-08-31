@@ -985,6 +985,32 @@
                             :position $ [] 830 545
                             :radius 42
                             :fill-color $ [] 215 90 60
+                      {} (:type :group)
+                        :children $ []
+                          {} (:type :text) (:text "|Skia effects / Skia 效果")
+                            :position $ [] 595 325
+                            :color $ [] 195 72 92
+                            :size 15
+                            :align :center
+                          {} (:type :drop-shadow) (:dx 8) (:dy 7) (:sigma-x 3) (:sigma-y 3)
+                            :color $ [] 230 40 18 0.72
+                            :children $ []
+                              {} (:type :rounded-rect) (:radius 14)
+                                :position $ [] 510 345
+                                :width 110
+                                :height 58
+                                :fill-color $ [] 200 72 52
+                          {} (:type :blur) (:sigma-x 3) (:sigma-y 3)
+                            :children $ []
+                              {} (:type :circle) (:radius 30)
+                                :position $ [] 670 374
+                                :fill-color $ [] 45 88 60
+                          {} (:type :color-filter)
+                            :matrix $ [] 0.213 0.715 0.072 0 0 0.213 0.715 0.072 0 0 0.213 0.715 0.072 0 0 0 0 0 1 0
+                            :children $ []
+                              {} (:type :circle) (:radius 30)
+                                :position $ [] 770 374
+                                :fill-color $ [] 315 88 62
                   {} (:type :group)
                     :children $ []
                       {} (:type :touch-area) (:dx 150) (:dy 42)
