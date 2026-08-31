@@ -33,6 +33,10 @@ jobs:
         run: |
           calcit docs format-md README.md --check
           calcit docs check-md README.md --failures-only
+          calcit docs format-md docs/cookbook.md --check
+          calcit docs check-md docs/cookbook.md --failures-only
+      - name: Check discoverable cookbook examples
+        run: calcit analyze check-examples --ns calcit-paint.core --def validate-scene
       - run: cargo fmt --check
       - run: cargo test
       - run: cargo clippy --all-targets -- -D warnings
@@ -57,5 +61,7 @@ jobs:
           calcit ./calcit.cirru eval '&call-dylib-edn |./dylibs/libcalcit_paint.so |render_to_png $ {} (:path |offscreen-ci.png) (:width 12) (:height 8) (:scene ({} (:type :rectangle) (:position ([] 2 2)) (:width 6) (:height 4) (:fill-color ([] 0 100 50))))'
           test "$(od -An -tx1 -N8 offscreen-ci.png | tr -d ' \n')" = "89504e470d0a1a0a"
           rm offscreen-ci.png
+      - name: Run executable cookbook smoke
+        run: ./scripts/check-cookbook.sh
       - name: Run blocking canvas smoke
         run: xvfb-run -a env CALCIT_PAINT_SMOKE_ONCE=1 calcit ./calcit.cirru

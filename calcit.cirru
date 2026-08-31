@@ -552,6 +552,12 @@
             defn validate-scene (scene)
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |validate_scene scene
           :examples $ []
+            quote $ validate-scene
+              {} (:type :rectangle)
+                :position $ [] 20 20
+                :width 120
+                :height 48
+                :fill-color $ [] 210 72 48
           :schema $ :: 'Fn
             {}
               :args $ [] 'T
