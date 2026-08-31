@@ -632,7 +632,7 @@ TouchArea {
     data: Option<Calcit>,
   },
   position: Vec2,
-  // children: Vec<Shape>, // TODO
+  children: Vec<Shape>,
   area: TouchAreaShape,
   cursor: Option<CursorIcon>,
   line_style: Option<StrokeStyle>,
@@ -663,6 +663,7 @@ FocusArea {
   id: String,
   target: EventTarget,
   position: Vec2,
+  children: Vec<Shape>,
   area: TouchAreaShape,
   tab_index: i32,
   text_input: bool,
@@ -703,6 +704,52 @@ W3C cursor 名称，包括 `:default`、`:pointer`、`:text`、`:crosshair`、`:
   :position $ [] 200 120
   :action :drag-card
   :path $ [] :card |demo
+```
+
+#### Interactive scene containers / 交互场景容器
+
+`touch-area` and `focus-area` (including the `focusable` alias) accept an
+optional `:children` list. Paint draws and registers the container first, then
+draws its children in the same transform, clip, opacity, and compositing
+context. A visual-only child therefore keeps the outer container's target;
+nested interactive children are registered later and win overlapping pointer
+and focus hit tests, matching their visual stacking order. `cached-group`
+continues to reject an interactive container anywhere in its subtree.
+
+`touch-area` 与 `focus-area`（包括 `focusable` 别名）支持可选的 `:children`
+列表。Paint 会先绘制并注册容器，再在相同的 transform、clip、opacity 与合成效果
+上下文中绘制其 children。因此纯视觉 child 保持外层容器的 target；嵌套交互 child
+由于后注册，会在重叠的 pointer 与 focus 命中中胜出，与视觉堆叠顺序一致。
+`cached-group` 仍拒绝其任何后代中的交互容器。
+
+Children use the surrounding scene coordinate system: an interactive
+container's `:position` defines its hit geometry but does not translate its
+children. The default runnable demo includes a nested touch button and a
+focusable container with an icon and label.
+
+children 使用周围场景坐标系：交互容器的 `:position` 只定义自身 hit geometry，
+不会平移 children。默认可运行 demo 包含嵌套 touch 按钮，以及带图标和标签的可聚焦
+容器。
+
+```cirru.no-check
+{} (:type :touch-area) (:dx 120) (:dy 28)
+  :position $ [] 240 160
+  :action :outer
+  :fill-color $ [] 210 70 48
+  :children $ []
+    {} (:type :text) (:text "|Outer container")
+      :position $ [] 180 160
+      :color $ [] 0 0 98
+      :align :center
+    {} (:type :touch-area) (:dx 34) (:dy 18)
+      :position $ [] 320 160
+      :action :inner
+      :fill-color $ [] 285 76 54
+      :children $ []
+        {} (:type :text) (:text |Inner)
+          :position $ [] 320 160
+          :color $ [] 0 0 98
+          :align :center
 ```
 
 

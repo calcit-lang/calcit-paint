@@ -1268,6 +1268,64 @@
                         :color $ [] 0 0 86
                         :size 13
                         :align :left
+                  {} (:type :group)
+                    :children $ []
+                      {} (:type :touch-area) (:dx 155) (:dy 30)
+                        :position $ [] 850 455
+                        :action :container-outer
+                        :path $ [] :demo :interactive-container
+                        :data :outer
+                        :cursor :pointer
+                        :fill-color $ [] 198 70 48
+                        :line-color $ [] 198 90 78
+                        :line-width 2
+                        :accessibility $ {} (:id |nested-touch-outer) (:role :button) (:label "|Nested touch container") (:enabled? true)
+                        :children $ []
+                          {} (:type :text) (:text "|Touch container · child wins →")
+                            :position $ [] 770 455
+                            :color $ [] 0 0 98
+                            :size 14
+                            :baseline :middle
+                            :align :center
+                          {} (:type :touch-area) (:dx 45) (:dy 20)
+                            :position $ [] 965 455
+                            :action :container-inner
+                            :path $ [] :demo :interactive-container
+                            :data :inner
+                            :cursor :pointer
+                            :fill-color $ [] 285 78 54
+                            :line-color $ [] 285 92 80
+                            :line-width 2
+                            :accessibility $ {} (:id |nested-touch-inner) (:role :button) (:label "|Nested child action") (:enabled? true)
+                            :children $ []
+                              {} (:type :text) (:text |Inner)
+                                :position $ [] 965 455
+                                :color $ [] 0 0 98
+                                :size 13
+                                :baseline :middle
+                                :align :center
+                      {} (:type :focus-area) (:focus-id |nested-focus-container) (:tab-index 2) (:text-input? false)
+                        :position $ [] 850 525
+                        :dx 155
+                        :dy 26
+                        :action :focus-demo
+                        :path $ [] :demo :interactive-container
+                        :data :focus-container
+                        :fill-color $ [] 138 58 44
+                        :line-color $ [] 138 82 76
+                        :line-width 2
+                        :accessibility $ {} (:id |nested-focus-container) (:role :button) (:label "|Focusable container with child text") (:enabled? true) (:focusable? true)
+                        :children $ []
+                          {} (:type :circle)
+                            :position $ [] 730 525
+                            :radius 9
+                            :fill-color $ [] 52 88 68
+                          {} (:type :text) (:text "|Focus container · Tab then Enter")
+                            :position $ [] 875 525
+                            :color $ [] 0 0 98
+                            :size 15
+                            :baseline :middle
+                            :align :center
               if start-loop?
                 launch-canvas-typed! (WindowOptions :title "|Calcit Paint · typed events / 强类型事件" :width 1100 :height 760 :min-width 720 :min-height 520 :resizable? true)
                   fn (event) (handle-paint-event! event)

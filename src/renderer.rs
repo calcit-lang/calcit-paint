@@ -1039,6 +1039,7 @@ fn draw_shape_with_mode(
       target,
       cursor,
       accessibility,
+      children,
       line_style,
       fill_style,
       area,
@@ -1086,6 +1087,9 @@ fn draw_shape_with_mode(
           crate::accessibility::register(accessibility, target, *position, area.clone(), tr, clips, None)?;
         }
       }
+      for child in children {
+        draw_shape_with_mode(canvas, child, tr, render_mode, clips)?;
+      }
     }
     Shape::KeyListener {
       key,
@@ -1110,6 +1114,7 @@ fn draw_shape_with_mode(
       tab_index,
       text_input,
       accessibility,
+      children,
       line_style,
       fill_style,
     } => {
@@ -1147,6 +1152,9 @@ fn draw_shape_with_mode(
         if let Some(accessibility) = accessibility {
           crate::accessibility::register(accessibility, target, *position, area.clone(), tr, clips, Some(id))?;
         }
+      }
+      for child in children {
+        draw_shape_with_mode(canvas, child, tr, render_mode, clips)?;
       }
     }
     Shape::PaintOps {
@@ -1468,6 +1476,7 @@ fn extract_shape_at(tree: &Edn, path: &str) -> Result<Shape, SceneDiagnostics> {
           area: extract_touch_area_shape(m)?,
           cursor: read_optional_cursor_icon(m)?,
           accessibility: extract_accessibility(m)?,
+          children: extract_children(m.get(&tag("children")), path)?,
           fill_style: extract_fill_style(m)?,
           line_style: extract_stroke_style(m)?,
         }),
@@ -1485,6 +1494,7 @@ fn extract_shape_at(tree: &Edn, path: &str) -> Result<Shape, SceneDiagnostics> {
           tab_index: read_optional_i32(m, "tab-index")?.unwrap_or(0),
           text_input: read_bool(m, "text-input?")?,
           accessibility: extract_accessibility(m)?,
+          children: extract_children(m.get(&tag("children")), path)?,
           fill_style: extract_fill_style(m)?,
           line_style: extract_stroke_style(m)?,
         }),
@@ -1930,14 +1940,23 @@ mod tests {
       ("type", Edn::tag("touch-area")),
       ("radius", Edn::Number(12.0)),
       ("cursor", Edn::tag("pointer")),
+      (
+        "children",
+        list([map([
+          ("type", Edn::tag("rect")),
+          ("width", Edn::Number(4.0)),
+          ("height", Edn::Number(4.0)),
+        ])]),
+      ),
     ]);
     assert!(matches!(
       extract_shape(&touch),
       Ok(Shape::TouchArea {
         ref id,
+        ref children,
         cursor: Some(winit::window::CursorIcon::Pointer),
         ..
-      }) if id.len() == 1
+      }) if id.len() == 1 && children.len() == 1
     ));
 
     let invalid_cursor = map([
@@ -2201,6 +2220,102 @@ mod tests {
   }
 
   #[test]
+  fn interactive_containers_paint_children_after_their_own_fill() {
+    let scene = Shape::TouchArea {
+      id: "$.container".into(),
+      target: Default::default(),
+      position: Vector2D::new(6.0, 6.0),
+      area: TouchAreaShape::Rect(6.0, 6.0),
+      cursor: None,
+      accessibility: None,
+      line_style: None,
+      fill_style: Some(PaintSource::Solid(Color::RED)),
+      children: vec![Shape::Rectangle {
+        position: Vector2D::new(2.0, 2.0),
+        width: 8.0,
+        height: 8.0,
+        line_style: None,
+        fill_style: Some(PaintSource::Solid(Color::BLUE)),
+      }],
+    };
+    let image = render_offscreen_shape(12, 12, Color::TRANSPARENT, &scene).unwrap();
+    let pixels = rgba_pixels(&image, 12, 12);
+    assert_eq!(&pixels[(6 * 12 + 6) * 4..(6 * 12 + 6) * 4 + 4], &[0, 0, 255, 255]);
+  }
+
+  #[test]
+  fn nested_interactive_containers_prefer_the_later_painted_child() {
+    touches::reset_pointer_state();
+    touches::reset_touches_stack();
+    let scene = Shape::TouchArea {
+      id: "$.outer".into(),
+      target: crate::primes::EventTarget {
+        action: Some(Edn::tag("outer")),
+        ..Default::default()
+      },
+      position: Vector2D::new(20.0, 20.0),
+      area: TouchAreaShape::Rect(20.0, 20.0),
+      cursor: None,
+      accessibility: None,
+      line_style: None,
+      fill_style: None,
+      children: vec![Shape::TouchArea {
+        id: "$.outer.children[0]".into(),
+        target: crate::primes::EventTarget {
+          action: Some(Edn::tag("inner")),
+          ..Default::default()
+        },
+        position: Vector2D::new(20.0, 20.0),
+        area: TouchAreaShape::Rect(10.0, 10.0),
+        cursor: None,
+        accessibility: None,
+        line_style: None,
+        fill_style: None,
+        children: vec![],
+      }],
+    };
+    let mut surface = surfaces::raster_n32_premul((40, 40)).unwrap();
+    draw_shape(surface.canvas(), &scene, &Transform::identity()).unwrap();
+    let hit = touches::find_touch_area(Vector2D::new(20.0, 20.0)).unwrap();
+    assert_eq!(hit.target.action, Some(Edn::tag("inner")));
+  }
+
+  #[test]
+  fn nested_focus_containers_prefer_the_later_painted_child() {
+    let _focus_lock = focus::FOCUS_TEST_LOCK.lock().unwrap();
+    focus::reset_for_test();
+    focus::begin_frame();
+    let scene = Shape::FocusArea {
+      id: "outer".into(),
+      target: Default::default(),
+      position: Vector2D::new(20.0, 20.0),
+      area: TouchAreaShape::Rect(20.0, 20.0),
+      tab_index: 0,
+      text_input: false,
+      accessibility: None,
+      line_style: None,
+      fill_style: None,
+      children: vec![Shape::FocusArea {
+        id: "inner".into(),
+        target: Default::default(),
+        position: Vector2D::new(20.0, 20.0),
+        area: TouchAreaShape::Rect(10.0, 10.0),
+        tab_index: 0,
+        text_input: false,
+        accessibility: None,
+        line_style: None,
+        fill_style: None,
+        children: vec![],
+      }],
+    };
+    let mut surface = surfaces::raster_n32_premul((40, 40)).unwrap();
+    draw_shape(surface.canvas(), &scene, &Transform::identity()).unwrap();
+    let transition = focus::focus_at(Vector2D::new(20.0, 20.0)).unwrap();
+    assert_eq!(transition.to.unwrap().id, "inner");
+    focus::reset_for_test();
+  }
+
+  #[test]
   fn renderer_propagates_clips_to_touch_hits() {
     touches::reset_pointer_state();
     touches::reset_touches_stack();
@@ -2215,6 +2330,7 @@ mod tests {
         area: TouchAreaShape::Rect(50.0, 30.0),
         cursor: Some(winit::window::CursorIcon::Pointer),
         accessibility: None,
+        children: vec![],
         line_style: None,
         fill_style: None,
       }],
@@ -2240,6 +2356,7 @@ mod tests {
         area: TouchAreaShape::Rect(50.0, 40.0),
         cursor: None,
         accessibility: None,
+        children: vec![],
         line_style: None,
         fill_style: Some(PaintSource::Solid(Color::RED)),
       }],
@@ -2305,6 +2422,24 @@ mod tests {
       target: Default::default(),
     };
     assert!(render_cached_subtree("interactive", 0, 8, 8, &[listener])
+      .unwrap_err()
+      .contains("cannot contain"));
+
+    let nested_touch = Shape::Group {
+      position: Vector2D::new(0.0, 0.0),
+      children: vec![Shape::TouchArea {
+        id: "$.children[0]".into(),
+        target: Default::default(),
+        position: Vector2D::new(4.0, 4.0),
+        area: TouchAreaShape::Rect(4.0, 4.0),
+        cursor: None,
+        accessibility: None,
+        line_style: None,
+        fill_style: None,
+        children: vec![solid_rectangle(Color::BLUE)],
+      }],
+    };
+    assert!(render_cached_subtree("nested-interactive", 0, 8, 8, &[nested_touch])
       .unwrap_err()
       .contains("cannot contain"));
 
@@ -2676,15 +2811,20 @@ mod tests {
       ("dy", Edn::Number(20.0)),
       ("tab-index", Edn::Number(2.0)),
       ("text-input?", Edn::Bool(true)),
+      (
+        "children",
+        list([map([("type", Edn::tag("circle")), ("radius", Edn::Number(8.0))])]),
+      ),
     ]);
     assert!(matches!(
       extract_shape(&focus_area),
       Ok(Shape::FocusArea {
         id,
+        children,
         tab_index: 2,
         text_input: true,
         ..
-      }) if id == "editor"
+      }) if id == "editor" && children.len() == 1
     ));
 
     let mut modifier_values = EdnMapView::default();
