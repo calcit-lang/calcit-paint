@@ -24,6 +24,7 @@ const TEXT_INPUT_EVENTS: [&str; 6] = [
 ];
 const FILE_EVENTS: [&str; 3] = ["file-hover", "file-drop", "file-hover-cancel"];
 const FILE_DIALOG_EVENTS: [&str; 1] = ["file-dialog-result"];
+const ACCESSIBILITY_EVENTS: [&str; 1] = ["accessibility-action"];
 
 fn take_tag(map: &mut EdnMapView, key: &str) -> Result<String, String> {
   match map.0.remove(&Edn::tag(key)) {
@@ -84,7 +85,8 @@ pub fn from_legacy(event: Edn) -> Result<Edn, String> {
   let has_target = POINTER_EVENTS.contains(&variant)
     || KEYBOARD_EVENTS.contains(&variant)
     || FOCUS_EVENTS.contains(&variant)
-    || TEXT_INPUT_EVENTS.contains(&variant);
+    || TEXT_INPUT_EVENTS.contains(&variant)
+    || ACCESSIBILITY_EVENTS.contains(&variant);
   if has_target {
     move_target_fields(&mut payload);
   }
@@ -104,6 +106,7 @@ pub fn from_legacy(event: Edn) -> Result<Edn, String> {
     || TEXT_INPUT_EVENTS.contains(&variant)
     || FILE_EVENTS.contains(&variant)
     || FILE_DIALOG_EVENTS.contains(&variant)
+    || ACCESSIBILITY_EVENTS.contains(&variant)
     || matches!(
       variant,
       "frame"
@@ -269,5 +272,25 @@ mod tests {
     };
     assert_eq!(payload.tag_get("request-id"), Some(&Edn::str("open-image")));
     assert!(!payload.contains_key("error"));
+  }
+
+  #[test]
+  fn normalizes_accessibility_actions_with_the_existing_target_boundary() {
+    let mut legacy = EdnMapView::default();
+    legacy.insert(Edn::tag("type"), Edn::tag("accessibility-action"));
+    legacy.insert(Edn::tag("id"), Edn::str("save"));
+    legacy.insert(Edn::tag("operation"), Edn::tag("activate"));
+    legacy.insert(Edn::tag("action"), Edn::tag("save-document"));
+
+    let event = enum_view(from_legacy(Edn::Map(legacy)).unwrap());
+    assert_eq!(event.variant.as_ref(), "accessibility-action");
+    let [Edn::Map(payload)] = event.extra.as_slice() else {
+      panic!("accessibility action must contain one map payload");
+    };
+    assert_eq!(payload.tag_get("operation"), Some(&Edn::tag("activate")));
+    let Edn::Map(target) = payload.tag_get("target").unwrap() else {
+      panic!("accessibility action must normalize its target");
+    };
+    assert_eq!(target.tag_get("action"), Some(&Edn::tag("save-document")));
   }
 }

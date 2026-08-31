@@ -11,7 +11,8 @@ use winit::{
 };
 
 use crate::{
-  extracter::tag, file_dialog::FileDialogResult, focus, frame::FrameTiming, key_listener, primes::EventTarget, touches,
+  accessibility::SemanticNode, extracter::tag, file_dialog::FileDialogResult, focus, frame::FrameTiming, key_listener,
+  primes::EventTarget, touches,
 };
 
 fn map_view(pairs: impl IntoIterator<Item = (Edn, Edn)>) -> EdnMapView {
@@ -225,6 +226,16 @@ fn focus_event(kind: &str, area: &focus::FocusArea, related: Option<&focus::Focu
     (tag("reason"), tag(reason)),
   ]);
   add_target_fields(&mut info, &area.target);
+  Edn::Map(info)
+}
+
+pub fn handle_accessibility_action(node: &SemanticNode, action: &str) -> Edn {
+  let mut info = map_view([
+    (tag("type"), tag("accessibility-action")),
+    (tag("id"), Edn::str(node.properties.id.as_str())),
+    (tag("operation"), tag(action)),
+  ]);
+  add_target_fields(&mut info, &node.target);
   Edn::Map(info)
 }
 

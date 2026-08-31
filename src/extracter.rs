@@ -10,8 +10,8 @@ use winit::window::CursorIcon;
 use crate::{
   color::extract_color,
   primes::{
-    DashPattern, EventTarget, GradientStop, PaintSource, ParagraphLayout, ShortcutModifiers, StrokeStyle, TextAlign,
-    TextBaseline, TextDirection, TextSlant, TextStyle, TouchAreaShape,
+    AccessibilityProperties, AccessibilityRole, DashPattern, EventTarget, GradientStop, PaintSource, ParagraphLayout,
+    ShortcutModifiers, StrokeStyle, TextAlign, TextBaseline, TextDirection, TextSlant, TextStyle, TouchAreaShape,
   },
 };
 
@@ -25,6 +25,63 @@ pub fn extract_event_target(tree: &EdnMapView) -> EventTarget {
     path: read_optional_edn(tree, "path"),
     data: read_optional_edn(tree, "data"),
   }
+}
+
+pub fn extract_accessibility(tree: &EdnMapView) -> Result<Option<AccessibilityProperties>, String> {
+  let Some(value) = tree.get(&tag("accessibility")) else {
+    return Ok(None);
+  };
+  let Edn::Map(metadata) = value else {
+    return Err(format!(":accessibility must be a map, got {value}"));
+  };
+  for key in metadata.0.keys() {
+    let Edn::Tag(key) = key else {
+      return Err(":accessibility keys must be tags".to_owned());
+    };
+    if !matches!(
+      key.ref_str(),
+      "id" | "role" | "label" | "value" | "enabled?" | "focusable?"
+    ) {
+      return Err(format!("unsupported :accessibility field :{key}"));
+    }
+  }
+  let id = read_string(metadata, "id")?;
+  if id.is_empty() {
+    return Err(":accessibility :id must not be empty".to_owned());
+  }
+  let role = match metadata.get(&tag("role")) {
+    Some(Edn::Tag(role)) => match role.ref_str() {
+      "button" => AccessibilityRole::Button,
+      "text-input" => AccessibilityRole::TextInput,
+      "image" => AccessibilityRole::Image,
+      role => return Err(format!("unsupported :accessibility :role :{role}")),
+    },
+    Some(value) => return Err(format!(":accessibility :role must be a tag, got {value}")),
+    None => return Err(":accessibility requires :role".to_owned()),
+  };
+  let label = read_string(metadata, "label")?;
+  if label.is_empty() {
+    return Err(":accessibility :label must not be empty".to_owned());
+  }
+  let value = read_optional_string_field(metadata, "value")?;
+  let enabled = match metadata.get(&tag("enabled?")) {
+    Some(Edn::Bool(value)) => *value,
+    Some(value) => return Err(format!(":accessibility :enabled? must be a bool, got {value}")),
+    None => true,
+  };
+  let focusable = match metadata.get(&tag("focusable?")) {
+    Some(Edn::Bool(value)) => *value,
+    Some(value) => return Err(format!(":accessibility :focusable? must be a bool, got {value}")),
+    None => false,
+  };
+  Ok(Some(AccessibilityProperties {
+    id,
+    role,
+    label,
+    value,
+    enabled,
+    focusable,
+  }))
 }
 
 fn read_optional_edn(tree: &EdnMapView, key: &str) -> Option<Edn> {
@@ -647,6 +704,34 @@ mod tests {
     );
     assert!(read_optional_cursor_icon(map_view(&map([("cursor", Edn::str("pointer"))]))).is_err());
     assert!(read_optional_cursor_icon(map_view(&map([("cursor", tag("unknown-cursor"))]))).is_err());
+  }
+
+  #[test]
+  fn extracts_explicit_accessibility_metadata_and_rejects_invalid_roles() {
+    let mut metadata = EdnMapView::default();
+    metadata.insert(tag("id"), Edn::str("save"));
+    metadata.insert(tag("role"), tag("button"));
+    metadata.insert(tag("label"), Edn::str("Save document"));
+    metadata.insert(tag("enabled?"), Edn::Bool(true));
+    let scene = map([("accessibility", Edn::Map(metadata))]);
+    assert!(matches!(
+      extract_accessibility(map_view(&scene)),
+      Ok(Some(AccessibilityProperties {
+        id,
+        role: AccessibilityRole::Button,
+        enabled: true,
+        ..
+      })) if id == "save"
+    ));
+
+    let mut invalid = EdnMapView::default();
+    invalid.insert(tag("id"), Edn::str("save"));
+    invalid.insert(tag("role"), tag("slider"));
+    invalid.insert(tag("label"), Edn::str("Save document"));
+    let invalid = map([("accessibility", Edn::Map(invalid))]);
+    assert!(extract_accessibility(map_view(&invalid))
+      .unwrap_err()
+      .contains("unsupported :accessibility :role :slider"));
   }
 
   #[test]

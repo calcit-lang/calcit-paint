@@ -130,6 +130,23 @@ pub enum ImageSampling {
   Cubic,
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum AccessibilityRole {
+  Button,
+  TextInput,
+  Image,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct AccessibilityProperties {
+  pub id: String,
+  pub role: AccessibilityRole,
+  pub label: String,
+  pub value: Option<String>,
+  pub enabled: bool,
+  pub focusable: bool,
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Shape {
   Rectangle {
@@ -223,6 +240,7 @@ pub enum Shape {
     // children: Vec<Shape>, // TODO
     area: TouchAreaShape,
     cursor: Option<CursorIcon>,
+    accessibility: Option<AccessibilityProperties>,
     line_style: Option<StrokeStyle>,
     fill_style: Option<PaintSource>,
   },
@@ -240,6 +258,7 @@ pub enum Shape {
     area: TouchAreaShape,
     tab_index: i32,
     text_input: bool,
+    accessibility: Option<AccessibilityProperties>,
     line_style: Option<StrokeStyle>,
     fill_style: Option<PaintSource>,
   },
