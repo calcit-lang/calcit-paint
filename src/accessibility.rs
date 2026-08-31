@@ -1,4 +1,4 @@
-use std::sync::RwLock;
+use std::{collections::HashSet, sync::RwLock};
 
 use accesskit::{Action, Node, NodeId, Rect, Role, Tree, TreeId, TreeUpdate};
 use euclid::{Point2D, Vector2D};
@@ -30,6 +30,7 @@ pub struct SemanticNode {
 #[derive(Default)]
 struct AccessibilityState {
   nodes: Vec<SemanticNode>,
+  declared_ids: HashSet<String>,
 }
 
 lazy_static! {
@@ -40,7 +41,9 @@ lazy_static! {
 pub static ACCESSIBILITY_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 pub fn begin_frame() {
-  ACCESSIBILITY_STATE.write().unwrap().nodes.clear();
+  let mut state = ACCESSIBILITY_STATE.write().unwrap();
+  state.nodes.clear();
+  state.declared_ids.clear();
 }
 
 pub fn register(
@@ -58,16 +61,16 @@ pub fn register(
       properties.id
     ));
   }
-  let Some(bounds) = clipped_bounds(transformed_bounds(position, area, transform), clips) else {
-    return Ok(());
-  };
   let mut state = ACCESSIBILITY_STATE.write().unwrap();
-  if state.nodes.iter().any(|node| node.properties.id == properties.id) {
+  if !state.declared_ids.insert(properties.id.clone()) {
     return Err(format!(
       "duplicate accessibility :id in rendered scene: {}",
       properties.id
     ));
   }
+  let Some(bounds) = clipped_bounds(transformed_bounds(position, area, transform), clips) else {
+    return Ok(());
+  };
   state.nodes.push(SemanticNode {
     properties: properties.clone(),
     target: target.clone(),
@@ -358,5 +361,42 @@ mod tests {
     )
     .unwrap();
     assert!(node_for_id(node_id("confirm")).is_none());
+  }
+
+  #[test]
+  fn rejects_duplicate_ids_even_when_the_first_node_is_fully_clipped() {
+    let _guard = ACCESSIBILITY_TEST_LOCK.lock().unwrap();
+    reset_for_test();
+    let metadata = properties("duplicate");
+    let hidden_clip = ClipRegion {
+      shape: ClipShape::Rect {
+        position: Vector2D::new(100.0, 100.0),
+        width: 10.0,
+        height: 10.0,
+      },
+      transform: focus::Transform::identity(),
+    };
+    register(
+      &metadata,
+      &EventTarget::default(),
+      Vector2D::new(10.0, 20.0),
+      TouchAreaShape::Rect(5.0, 3.0),
+      &focus::Transform::identity(),
+      &[hidden_clip],
+      None,
+    )
+    .unwrap();
+
+    assert!(register(
+      &metadata,
+      &EventTarget::default(),
+      Vector2D::new(10.0, 20.0),
+      TouchAreaShape::Rect(5.0, 3.0),
+      &focus::Transform::identity(),
+      &[],
+      None,
+    )
+    .unwrap_err()
+    .contains("duplicate accessibility :id"));
   }
 }
