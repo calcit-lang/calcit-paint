@@ -237,7 +237,7 @@ pub enum Shape {
     id: String,
     target: EventTarget,
     position: Vector2D<f32, f32>,
-    // children: Vec<Shape>, // TODO
+    children: Vec<Shape>,
     area: TouchAreaShape,
     cursor: Option<CursorIcon>,
     accessibility: Option<AccessibilityProperties>,
@@ -255,6 +255,7 @@ pub enum Shape {
     id: String,
     target: EventTarget,
     position: Vector2D<f32, f32>,
+    children: Vec<Shape>,
     area: TouchAreaShape,
     tab_index: i32,
     text_input: bool,
