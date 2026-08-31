@@ -35,12 +35,12 @@ jobs:
           calcit docs check-md README.md --failures-only
           calcit docs format-md docs/cookbook.md --check
           calcit docs check-md docs/cookbook.md --failures-only
-      - name: Check discoverable cookbook examples
-        run: calcit analyze check-examples --ns calcit-paint.core --def validate-scene
       - run: cargo fmt --check
       - run: cargo test
       - run: cargo clippy --all-targets -- -D warnings
       - run: ./build.sh
+      - name: Check discoverable cookbook examples
+        run: calcit analyze check-examples --ns calcit-paint.core --def validate-scene
       - name: Audit C-safe exports
         run: |
           symbols=$(nm -D --defined-only dylibs/libcalcit_paint.so | awk '{print $3}')
