@@ -1073,7 +1073,7 @@ fn draw_shape_with_mode(
           clips,
         );
         if let Some(accessibility) = accessibility {
-          crate::accessibility::register(accessibility, target, *position, area.clone(), tr, None)?;
+          crate::accessibility::register(accessibility, target, *position, area.clone(), tr, clips, None)?;
         }
       }
     }
@@ -1135,7 +1135,7 @@ fn draw_shape_with_mode(
           order: 0,
         })?;
         if let Some(accessibility) = accessibility {
-          crate::accessibility::register(accessibility, target, *position, area.clone(), tr, Some(id))?;
+          crate::accessibility::register(accessibility, target, *position, area.clone(), tr, clips, Some(id))?;
         }
       }
     }
