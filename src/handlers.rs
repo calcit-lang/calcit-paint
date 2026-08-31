@@ -229,12 +229,15 @@ fn focus_event(kind: &str, area: &focus::FocusArea, related: Option<&focus::Focu
   Edn::Map(info)
 }
 
-pub fn handle_accessibility_action(node: &SemanticNode, action: &str) -> Edn {
+pub fn handle_accessibility_action(node: &SemanticNode, action: &str, value: Option<&str>) -> Edn {
   let mut info = map_view([
     (tag("type"), tag("accessibility-action")),
     (tag("id"), Edn::str(node.properties.id.as_str())),
     (tag("operation"), tag(action)),
   ]);
+  if let Some(value) = value {
+    info.insert(tag("value"), Edn::str(value));
+  }
   add_target_fields(&mut info, &node.target);
   Edn::Map(info)
 }
@@ -762,6 +765,36 @@ mod tests {
       .into_iter()
       .map(|event| event_map(event).get(&tag("type")).unwrap().clone())
       .collect()
+  }
+
+  #[test]
+  fn accessibility_value_action_preserves_target_and_text() {
+    let node = SemanticNode {
+      properties: crate::primes::AccessibilityProperties {
+        id: "editor".into(),
+        role: crate::primes::AccessibilityRole::TextInput,
+        label: "Editor".into(),
+        value: Some("Draft".into()),
+        enabled: true,
+        focusable: true,
+      },
+      target: EventTarget {
+        action: Some(tag("edit-document")),
+        path: None,
+        data: None,
+      },
+      bounds: crate::accessibility::Bounds {
+        x0: 0.0,
+        y0: 0.0,
+        x1: 10.0,
+        y1: 10.0,
+      },
+      focus_id: Some("editor".into()),
+    };
+    let event = event_map(handle_accessibility_action(&node, "set-value", Some("Updated")));
+    assert_eq!(event.get(&tag("operation")), Some(&tag("set-value")));
+    assert_eq!(event.get(&tag("value")), Some(&Edn::str("Updated")));
+    assert_eq!(event.get(&tag("action")), Some(&tag("edit-document")));
   }
 
   #[test]

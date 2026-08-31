@@ -142,6 +142,9 @@ fn build_node(node: &SemanticNode) -> Node {
     if node.properties.focusable {
       result.add_action(Action::Focus);
     }
+    if node.properties.role == AccessibilityRole::TextInput && node.focus_id.is_some() {
+      result.add_action(Action::SetValue);
+    }
   }
   result
 }
@@ -306,6 +309,53 @@ mod tests {
     let update = tree_update();
     assert_eq!(update.tree.unwrap().root, ROOT_NODE_ID);
     assert_eq!(update.nodes.len(), 2);
+  }
+
+  #[test]
+  fn exposes_set_value_only_for_enabled_text_input_focus_areas() {
+    let _guard = ACCESSIBILITY_TEST_LOCK.lock().unwrap();
+    reset_for_test();
+    let mut text_input = properties("editor");
+    text_input.role = AccessibilityRole::TextInput;
+    text_input.focusable = true;
+    text_input.value = Some("Draft".into());
+    register(
+      &text_input,
+      &EventTarget::default(),
+      Vector2D::new(10.0, 20.0),
+      TouchAreaShape::Rect(5.0, 3.0),
+      &focus::Transform::identity(),
+      &[],
+      Some("editor"),
+    )
+    .unwrap();
+    let update = tree_update();
+    let (_, input) = update
+      .nodes
+      .iter()
+      .find(|(id, _)| *id == node_id("editor"))
+      .expect("text input semantic node");
+    assert!(input.supports_action(Action::SetValue));
+
+    reset_for_test();
+    text_input.enabled = false;
+    register(
+      &text_input,
+      &EventTarget::default(),
+      Vector2D::new(10.0, 20.0),
+      TouchAreaShape::Rect(5.0, 3.0),
+      &focus::Transform::identity(),
+      &[],
+      Some("editor"),
+    )
+    .unwrap();
+    let update = tree_update();
+    let (_, disabled_input) = update
+      .nodes
+      .iter()
+      .find(|(id, _)| *id == node_id("editor"))
+      .expect("disabled text input semantic node");
+    assert!(!disabled_input.supports_action(Action::SetValue));
   }
 
   #[test]

@@ -7,7 +7,7 @@ use std::num::NonZeroU32;
 use std::sync::RwLock;
 use std::time::Instant;
 
-use accesskit::{Action, ActionRequest};
+use accesskit::{Action, ActionData, ActionRequest};
 use accesskit_winit::{Adapter as AccessKitAdapter, Event as AccessKitEvent, WindowEvent as AccessKitWindowEvent};
 use euclid::Vector2D;
 use gl::types::*;
@@ -169,7 +169,10 @@ where
     match event.window_event {
       AccessKitWindowEvent::InitialTreeRequested => self.update_accessibility_tree(),
       AccessKitWindowEvent::ActionRequested(ActionRequest {
-        action, target_node, ..
+        action,
+        data,
+        target_node,
+        ..
       }) => {
         let Some(node) = accessibility::node_for_id(target_node) else {
           return;
@@ -188,10 +191,22 @@ where
                   return;
                 }
               }
-              self.dispatch(handlers::handle_accessibility_action(&node, "focus"));
+              self.dispatch(handlers::handle_accessibility_action(&node, "focus", None));
             }
           }
-          Action::Click => self.dispatch(handlers::handle_accessibility_action(&node, "activate")),
+          Action::Click => self.dispatch(handlers::handle_accessibility_action(&node, "activate", None)),
+          Action::SetValue
+            if node.properties.role == primes::AccessibilityRole::TextInput && node.focus_id.is_some() =>
+          {
+            let Some(ActionData::Value(value)) = data else {
+              return;
+            };
+            self.dispatch(handlers::handle_accessibility_action(
+              &node,
+              "set-value",
+              Some(value.as_ref()),
+            ));
+          }
           _ => return,
         }
         self.update_accessibility_tree();
