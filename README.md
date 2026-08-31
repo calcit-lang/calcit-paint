@@ -15,6 +15,15 @@ It runs [Calcit](https://github.com/calcit-lang/calcit) and is driven by the can
 calcit ./calcit.cirru
 ```
 
+For focused, copyable, and CI-checked examples, start with the
+[executable cookbook](docs/cookbook.md). It provides the shortest path for
+basic scenes, interaction, typed events, accessibility, offscreen PNGs, and
+an Agent repair loop; the default demo remains the integrated reference.
+
+如需聚焦、可复制且受 CI 检查的示例，请从[可执行场景手册](docs/cookbook.md)开始。
+它提供基础场景、交互、强类型事件、无障碍、离屏 PNG 和 Agent 修复闭环的最短路径；
+默认 demo 继续作为集成参考。
+
 Available APIs:
 
 ```cirru.no-check
