@@ -14,8 +14,8 @@ exclude = ["resources", "!SourceCodePro-Medium.ttf"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-accesskit = "0.25.0"
-accesskit_winit = "0.34.0"
+accesskit = "0.24.1"
+accesskit_winit = "0.33.2"
 arboard = { version = "3.6.1", default-features = false }
 calcit_native_ffi = "0.1.2"
 cirru_edn = "0.8.0"

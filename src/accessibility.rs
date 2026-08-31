@@ -1,6 +1,6 @@
 use std::sync::RwLock;
 
-use accesskit::{Action, Node, NodeId, Rect, Role, TreeId, TreeInfo, TreeUpdate};
+use accesskit::{Action, Node, NodeId, Rect, Role, Tree, TreeId, TreeUpdate};
 use euclid::{Point2D, Vector2D};
 
 use crate::{
@@ -110,7 +110,7 @@ pub fn tree_update() -> TreeUpdate {
   );
   TreeUpdate {
     nodes: update_nodes,
-    tree: Some(TreeInfo::new(ROOT_NODE_ID)),
+    tree: Some(Tree::new(ROOT_NODE_ID)),
     tree_id: TreeId::ROOT,
     focus,
   }
