@@ -122,19 +122,24 @@ event-loop 检查。CI 使用 `CALCIT_PAINT_SMOKE_ONCE=1` 覆盖同一原生入�
 
 ## 4. Typed event callback / 强类型事件回调
 
-Use the typed entrypoint for new applications and keep the `match` exhaustive.
-Use the default demo as the runnable full protocol reference.
+Use the typed entrypoint for new applications. This minimal recipe shows real
+`PaintEvent` cases; use the default demo as the runnable exhaustive protocol
+reference.
 
-新应用使用 typed 入口，并保持 `match` 穷尽。默认 demo 是可运行的完整协议参考。
+新应用使用 typed 入口。这个最小 recipe 展示真实的 `PaintEvent` case；默认 demo 是
+可运行的穷尽协议参考。
 
 ```cirru.no-check
-launch-canvas-typed! (WindowOptions :title |Cookbook :width 640 :height 420)
+ns cookbook.events $ :require
+  calcit-paint.core :refer $ WindowOptions launch-canvas-typed!
+
+launch-canvas-typed! (WindowOptions :title |Cookbook :width 640 :height 420 :min-width 320 :min-height 240 :resizable? true)
   fn (event)
     match event
-      (:pointer payload)
-        println $ :kind payload
-      (:focus payload)
-        println $ :kind payload
+      (:mouse-down payload)
+        println $ :x payload
+      (:focus-in payload)
+        println $ :focus-id payload
       (:accessibility-action payload)
         println $ :operation payload
       _ $ println event
@@ -198,6 +203,8 @@ validate-scene $ {} (:type :image) (:file-path |resources/calcit.png) (:x 20) (:
 
 ## Agent repair loop / Agent 修复闭环
 
+### English
+
 1. Locate the API with `calcit ./calcit.cirru query defs calcit-paint.core`
    and `query examples <namespace/definition>`.
 2. Copy the smallest matching recipe above; do not begin with the integrated
@@ -209,6 +216,8 @@ validate-scene $ {} (:type :image) (:file-path |resources/calcit.png) (:x 20) (:
    focus, or accessibility is involved.
 5. When changing `calcit.cirru`, first run `calcit docs agents --full` and use
    structural `calcit edit`, `calcit tree`, or cursor commands.
+
+### 中文
 
 1. 用 `calcit ./calcit.cirru query defs calcit-paint.core` 与
    `query examples <namespace/definition>` 定位 API。
