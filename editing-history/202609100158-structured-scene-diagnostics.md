@@ -16,6 +16,9 @@
 - Add bilingual Agent/developer troubleshooting guidance, a checked cookbook
   recipe, a declarative architecture contract, CI example execution, and C-safe
   export auditing.
+- Isolate native dependency installation from the unrelated Chrome apt source
+  preinstalled on GitHub-hosted runners, after its transient hash mismatch
+  blocked the first PR run before repository code was executed.
 
 Validation used the project-pinned Calcit 0.13.77:
 
@@ -40,6 +43,8 @@ Validation used the project-pinned Calcit 0.13.77:
 - 默认 Creative Art 预览启动前，先通过新的公共边界校验生成的 scene。
 - 增加双语 Agent/开发者排障说明、静态检查 cookbook recipe、声明式架构契约、CI
   example 执行和 C-safe 导出审计。
+- GitHub hosted runner 预装的 Chrome apt source 出现瞬时 hash mismatch，并在仓库代码
+  运行前阻断首次 PR Actions；native 依赖安装现与该无关源隔离。
 
 验证使用项目锁定的 Calcit 0.13.77：
 
