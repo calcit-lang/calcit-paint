@@ -936,6 +936,22 @@ fn validate_scene(args: Vec<Edn>) -> Result<Edn, String> {
 
 calcit_native_ffi::export_edn_buffer_method_v1!(validate_scene_calcit_ffi_v1, validate_scene);
 
+fn validate_scene_structured(args: Vec<Edn>) -> Result<Edn, String> {
+  let [scene] = args.as_slice() else {
+    return Err(format!(
+      "validate-scene-structured expected one scene value, got: {args:?}"
+    ));
+  };
+  Ok(Edn::List(EdnListView(
+    renderer::validate_scene_structured(scene)
+      .into_iter()
+      .map(renderer::SceneDiagnostic::into_edn)
+      .collect(),
+  )))
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(validate_scene_structured_calcit_ffi_v1, validate_scene_structured);
+
 fn set_window_title(args: Vec<Edn>) -> Result<Edn, String> {
   let [Edn::Str(title)] = args.as_slice() else {
     return Err(format!("set-window-title expected one title string, got: {args:?}"));
@@ -1108,6 +1124,21 @@ mod tests {
     assert!(render_to_png(vec![Edn::Nil]).is_err());
     assert!(validate_scene(vec![]).is_err());
     assert_eq!(validate_scene(vec![Edn::Nil]).unwrap(), Edn::List(EdnListView(vec![])));
+    assert!(validate_scene_structured(vec![]).is_err());
+    assert_eq!(
+      validate_scene_structured(vec![Edn::Nil]).unwrap(),
+      Edn::List(EdnListView(vec![]))
+    );
+
+    let Edn::List(EdnListView(diagnostics)) = validate_scene_structured(vec![Edn::Bool(true)]).unwrap() else {
+      panic!("expected structured scene diagnostics");
+    };
+    let [Edn::Map(diagnostic)] = diagnostics.as_slice() else {
+      panic!("expected one structured scene diagnostic map");
+    };
+    assert_eq!(diagnostic.get(&Edn::tag("path")), Some(&Edn::str("$")));
+    assert_eq!(diagnostic.get(&Edn::tag("code")), Some(&Edn::tag("expected-map")));
+    assert_eq!(diagnostic.get(&Edn::tag("field")), None);
   }
 
   #[test]

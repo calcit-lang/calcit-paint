@@ -94,10 +94,9 @@ fn read_optional_edn(tree: &EdnMapView, key: &str) -> Option<Edn> {
 pub fn read_f32(tree: &EdnMapView, key: &str) -> Result<f32, String> {
   match tree.get(&tag(key)) {
     Some(Edn::Number(n)) => Ok(*n as f32),
-    Some(a) => Err(format!("cannot be used as f32: {}", a)),
+    Some(value) => Err(format!("{key} must be a number, got {value}")),
     None => Err(format!(
-      "cannot read f32 {} from empty from: {}",
-      key,
+      "cannot read f32 {key} from empty from: {}",
       Edn::Map(tree.to_owned())
     )),
   }
@@ -106,7 +105,7 @@ pub fn read_f32(tree: &EdnMapView, key: &str) -> Result<f32, String> {
 pub fn read_optional_f32(tree: &EdnMapView, key: &str) -> Result<Option<f32>, String> {
   match tree.get(&tag(key)) {
     Some(Edn::Number(n)) => Ok(Some(*n as f32)),
-    Some(a) => Err(format!("cannot be used as f32: {a}")),
+    Some(value) => Err(format!("{key} must be a number or nil, got {value}")),
     None => Ok(None),
   }
 }
@@ -114,7 +113,7 @@ pub fn read_optional_f32(tree: &EdnMapView, key: &str) -> Result<Option<f32>, St
 pub fn read_bool(tree: &EdnMapView, key: &str) -> Result<bool, String> {
   match tree.get(&tag(key)) {
     Some(Edn::Bool(b)) => Ok(*b),
-    Some(a) => Err(format!("cannot be used as bool: {}", a)),
+    Some(value) => Err(format!("{key} must be a bool, got {value}")),
     None => Ok(false),
   }
 }
@@ -123,11 +122,7 @@ pub fn read_string(tree: &EdnMapView, key: &str) -> Result<String, String> {
   match tree.get(&tag(key)) {
     Some(Edn::Str(s)) => Ok(s.to_string()),
     Some(Edn::Tag(s)) => Ok(s.to_string()),
-    Some(a) => Err(format!(
-      "cannot be used as string {} in {}",
-      a,
-      Edn::Map(tree.to_owned())
-    )),
+    Some(value) => Err(format!("{key} must be a string or tag, got {value}")),
     None => Err(format!("cannot read string from empty from: {}", key)),
   }
 }
@@ -136,15 +131,11 @@ pub fn read_position(tree: &EdnMapView, key: &str) -> Result<Vector2D<f32, f32>,
   match tree.get(&tag(key)) {
     Some(Edn::List(EdnListView(xs))) if xs.len() == 2 => match (&xs[0], &xs[1]) {
       (Edn::Number(x), Edn::Number(y)) => Ok(Vector2D::new(*x as f32, *y as f32)),
-      (a, b) => Err(format!("invalid positon values: {} {}", a, b)),
+      (a, b) => Err(format!("{key} must contain two numbers, got {a} {b}")),
     },
-    Some(Edn::List(EdnListView(xs))) => Err(format!("invalid position length: {:?}", xs)),
+    Some(Edn::List(EdnListView(xs))) => Err(format!("{key} must contain two numbers, got {xs:?}")),
     Some(Edn::Nil) => Ok(Vector2D::new(0.0, 0.0)),
-    Some(a) => Err(format!(
-      "cannot be used as position: {} in {}",
-      a,
-      Edn::Map(tree.to_owned())
-    )),
+    Some(value) => Err(format!("{key} must be a two-number list or nil, got {value}")),
     None => Ok(Vector2D::new(0.0, 0.0)),
   }
 }
@@ -162,7 +153,7 @@ pub fn extract_position(x: &Edn) -> Result<Point2D<f32, f32>, String> {
 
 pub fn read_color(tree: &EdnMapView, key: &str) -> Result<Color, String> {
   match tree.get(&tag(key)) {
-    Some(a) => extract_color(a),
+    Some(value) => extract_color(value).map_err(|message| format!("{key} has invalid color: {message}")),
     None => Err(format!("cannot read color from empty from: {}", key)),
   }
 }

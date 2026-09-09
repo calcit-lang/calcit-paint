@@ -89,9 +89,203 @@ const IMAGE_CACHE_LIMIT_BYTES: usize = 64 * 1024 * 1024;
 const IMAGE_CACHE_MAX_ENTRIES: usize = 64;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-struct SceneDiagnostic {
-  path: String,
-  message: String,
+pub(crate) struct SceneDiagnostic {
+  pub(crate) path: String,
+  pub(crate) code: &'static str,
+  pub(crate) field: Option<String>,
+  pub(crate) expected: String,
+  pub(crate) actual: String,
+  pub(crate) message: String,
+}
+
+impl SceneDiagnostic {
+  fn new(path: &str, message: impl Into<String>) -> Self {
+    let message = message.into();
+    let (code, field, expected, actual) = classify_scene_diagnostic(&message);
+    Self {
+      path: path.to_owned(),
+      code,
+      field,
+      expected,
+      actual,
+      message,
+    }
+  }
+
+  pub(crate) fn into_edn(self) -> Edn {
+    let mut fields = EdnMapView::default();
+    fields.insert(tag("path"), Edn::Str(self.path.into()));
+    fields.insert(tag("code"), tag(self.code));
+    if let Some(field) = self.field {
+      fields.insert(tag("field"), Edn::Str(field.into()));
+    }
+    fields.insert(tag("expected"), Edn::Str(self.expected.into()));
+    fields.insert(tag("actual"), Edn::Str(self.actual.into()));
+    fields.insert(tag("message"), Edn::Str(self.message.into()));
+    Edn::Map(fields)
+  }
+}
+
+fn classify_scene_diagnostic(message: &str) -> (&'static str, Option<String>, String, String) {
+  if message == "nil type" {
+    return (
+      "missing-type",
+      Some("type".to_owned()),
+      "shape type tag".to_owned(),
+      "missing".to_owned(),
+    );
+  }
+  if let Some(actual) = message.strip_prefix("unknown kind: ") {
+    return (
+      "unknown-shape",
+      Some("type".to_owned()),
+      "supported shape tag".to_owned(),
+      actual.to_owned(),
+    );
+  }
+  if let Some(actual) = message.strip_prefix("unknown kind value, ") {
+    return (
+      "invalid-type",
+      Some("type".to_owned()),
+      "shape type tag".to_owned(),
+      actual.to_owned(),
+    );
+  }
+  if let Some(actual) = message.strip_prefix("expected a map, got ") {
+    return ("expected-map", None, "map or nil".to_owned(), actual.to_owned());
+  }
+  if let Some(actual) = message.strip_prefix("expected a list, got ") {
+    return (
+      "invalid-children",
+      Some("children".to_owned()),
+      "list".to_owned(),
+      actual.to_owned(),
+    );
+  }
+  if message.starts_with("cached-group") && message.contains("cannot contain touch-area") {
+    return (
+      "cached-group-interactive",
+      Some("children".to_owned()),
+      "visual-only child scene".to_owned(),
+      "interactive child scene".to_owned(),
+    );
+  }
+
+  let field = scene_diagnostic_field(message);
+  if message.contains("cannot use both") || message.contains("cannot combine") {
+    return (
+      "conflicting-fields",
+      field,
+      "one compatible field form".to_owned(),
+      message.to_owned(),
+    );
+  }
+  if message.contains(" requires :") || message.contains("from empty") {
+    return (
+      "missing-field",
+      field,
+      "present required field".to_owned(),
+      "missing".to_owned(),
+    );
+  }
+  if message.starts_with("unsupported ") || message.contains("unsupported :") || message.starts_with("unknown align") {
+    let actual = message
+      .rsplit_once(": ")
+      .map_or_else(|| message.to_owned(), |(_, actual)| actual.to_owned());
+    return ("unsupported-value", field, "supported field value".to_owned(), actual);
+  }
+  if let Some((requirement, actual)) = message.split_once(", got ") {
+    let expected = requirement
+      .rsplit_once(" must be ")
+      .map_or_else(|| "valid field value".to_owned(), |(_, expected)| expected.to_owned());
+    return ("invalid-field", field, expected, actual.to_owned());
+  }
+  if message.contains("must be") || message.contains("invalid ") || message.contains("cannot be used") {
+    return (
+      "invalid-field",
+      field,
+      "valid field value".to_owned(),
+      message.to_owned(),
+    );
+  }
+  (
+    "invalid-scene",
+    field,
+    "valid scene value".to_owned(),
+    message.to_owned(),
+  )
+}
+
+fn scene_diagnostic_field(message: &str) -> Option<String> {
+  const NESTED_FIELDS: [(&str, &str); 6] = [
+    (":accessibility :focusable?", "accessibility.focusable?"),
+    (":accessibility :enabled?", "accessibility.enabled?"),
+    (":accessibility :label", "accessibility.label"),
+    (":accessibility :role", "accessibility.role"),
+    (":accessibility :id", "accessibility.id"),
+    ("key-listener :modifiers", "modifiers"),
+  ];
+  for (needle, field) in NESTED_FIELDS {
+    if message.contains(needle) {
+      return Some(field.to_owned());
+    }
+  }
+
+  const FIELDS: [&str; 38] = [
+    "font-family",
+    "miter-limit",
+    "dash-offset",
+    "skip-first?",
+    "start-angle",
+    "sweep-angle",
+    "use-center?",
+    "radius-x",
+    "radius-y",
+    "file-path",
+    "cache-key",
+    "line-width",
+    "line-color",
+    "fill-color",
+    "max-lines",
+    "text-input?",
+    "focus-id",
+    "sampling",
+    "position",
+    "children",
+    "background",
+    "revision",
+    "expected",
+    "matrix",
+    "ellipsis",
+    "cursor",
+    "weight",
+    "baseline",
+    "direction",
+    "width",
+    "height",
+    "radius",
+    "alpha",
+    "crop",
+    "stops",
+    "path",
+    "fill",
+    "color",
+  ];
+  FIELDS.iter().find_map(|field| {
+    let tagged = format!(":{field}");
+    let leading = format!("{field} ");
+    let qualified = format!(" {field} ");
+    let qualified_colon = format!(" {field}:");
+    if message.contains(&tagged)
+      || message.starts_with(&leading)
+      || message.contains(&qualified)
+      || message.contains(&qualified_colon)
+    {
+      Some((*field).to_owned())
+    } else {
+      None
+    }
+  })
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -99,10 +293,7 @@ struct SceneDiagnostics(Vec<SceneDiagnostic>);
 
 impl SceneDiagnostics {
   fn at(path: &str, message: impl Into<String>) -> Self {
-    Self(vec![SceneDiagnostic {
-      path: path.to_owned(),
-      message: message.into(),
-    }])
+    Self(vec![SceneDiagnostic::new(path, message)])
   }
 
   fn into_messages(self) -> Vec<String> {
@@ -125,10 +316,7 @@ impl SceneDiagnostics {
 
 impl From<String> for SceneDiagnostics {
   fn from(message: String) -> Self {
-    Self(vec![SceneDiagnostic {
-      path: String::new(),
-      message,
-    }])
+    Self(vec![SceneDiagnostic::new("", message)])
   }
 }
 
@@ -1356,9 +1544,16 @@ fn extract_shape(tree: &Edn) -> Result<Shape, String> {
 }
 
 pub fn validate_scene(tree: &Edn) -> Vec<String> {
+  validate_scene_structured(tree)
+    .into_iter()
+    .map(|diagnostic| format!("{}: {}", diagnostic.path, diagnostic.message))
+    .collect()
+}
+
+pub(crate) fn validate_scene_structured(tree: &Edn) -> Vec<SceneDiagnostic> {
   match extract_shape_at(tree, "$") {
     Ok(_) => vec![],
-    Err(diagnostics) => diagnostics.into_messages(),
+    Err(diagnostics) => diagnostics.0,
   }
 }
 
@@ -1427,13 +1622,20 @@ fn extract_shape_at(tree: &Edn, path: &str) -> Result<Shape, SceneDiagnostics> {
           let width = read_surface_dimension(m, "width", "cached-group")?;
           let height = read_surface_dimension(m, "height", "cached-group")?;
           validate_surface_size(width, height, "cached-group")?;
+          let children = extract_children(m.get(&tag("children")), path)?;
+          if children.iter().any(shape_contains_interactive) {
+            return Err(SceneDiagnostics::at(
+              path,
+              "cached-group cannot contain touch-area, key-listener, or focus-area nodes",
+            ));
+          }
           Ok(Shape::CachedGroup {
             cache_key: read_string(m, "cache-key")?,
             revision: read_optional_i32(m, "revision")?.unwrap_or(0),
             position: read_position(m, "position")?,
             width,
             height,
-            children: extract_children(m.get(&tag("children")), path)?,
+            children,
           })
         }
         // "arc" => Ok(Shape::Arc {
@@ -2701,6 +2903,93 @@ mod tests {
     let error = render_to_png(&request).unwrap_err();
     assert!(error.contains("$.children[0]: unknown kind: missing-shape"));
     assert!(!path.exists());
+  }
+
+  #[test]
+  fn returns_machine_readable_diagnostics_for_scene_error_families() {
+    let invalid = map([
+      ("type", Edn::tag("group")),
+      (
+        "children",
+        list([
+          Edn::Bool(true),
+          map([
+            ("type", Edn::tag("opacity")),
+            ("alpha", Edn::Number(1.5)),
+            ("children", list([])),
+          ]),
+          map([
+            ("type", Edn::tag("image")),
+            ("file-path", Edn::str("demo.png")),
+            ("x", Edn::Number(0.0)),
+            ("y", Edn::Number(0.0)),
+            ("w", Edn::Number(20.0)),
+            ("h", Edn::Number(20.0)),
+            ("sampling", Edn::tag("unsupported")),
+          ]),
+          map([
+            ("type", Edn::tag("rectangle")),
+            ("width", Edn::Number(20.0)),
+            ("height", Edn::Number(20.0)),
+            (
+              "fill",
+              map([("type", Edn::tag("solid")), ("color", list([Edn::Number(0.0)]))]),
+            ),
+            (
+              "fill-color",
+              list([Edn::Number(0.0), Edn::Number(0.0), Edn::Number(0.0)]),
+            ),
+          ]),
+          map([
+            ("type", Edn::tag("cached-group")),
+            ("cache-key", Edn::str("invalid-interaction")),
+            ("width", Edn::Number(20.0)),
+            ("height", Edn::Number(20.0)),
+            (
+              "children",
+              list([map([
+                ("type", Edn::tag("touch-area")),
+                ("dx", Edn::Number(5.0)),
+                ("dy", Edn::Number(5.0)),
+              ])]),
+            ),
+          ]),
+        ]),
+      ),
+    ]);
+
+    let diagnostics = validate_scene_structured(&invalid);
+    assert_eq!(diagnostics.len(), 5);
+    assert_eq!(diagnostics[0].path, "$.children[0]");
+    assert_eq!(diagnostics[0].code, "expected-map");
+    assert_eq!(diagnostics[0].field, None);
+    assert_eq!(diagnostics[0].expected, "map or nil");
+    assert_eq!(diagnostics[0].actual, "true");
+
+    assert_eq!(diagnostics[1].path, "$.children[1]");
+    assert_eq!(diagnostics[1].code, "invalid-field");
+    assert_eq!(diagnostics[1].field.as_deref(), Some("alpha"));
+    assert_eq!(diagnostics[1].expected, "between 0 and 1");
+    assert_eq!(diagnostics[1].actual, "1.5");
+
+    assert_eq!(diagnostics[2].path, "$.children[2]");
+    assert_eq!(diagnostics[2].code, "unsupported-value");
+    assert_eq!(diagnostics[2].field.as_deref(), Some("sampling"));
+    assert_eq!(diagnostics[2].actual, "unsupported");
+
+    assert_eq!(diagnostics[3].path, "$.children[3]");
+    assert_eq!(diagnostics[3].code, "conflicting-fields");
+    assert_eq!(diagnostics[3].field.as_deref(), Some("fill-color"));
+
+    assert_eq!(diagnostics[4].path, "$.children[4]");
+    assert_eq!(diagnostics[4].code, "cached-group-interactive");
+    assert_eq!(diagnostics[4].field.as_deref(), Some("children"));
+
+    let compatible_messages = diagnostics
+      .iter()
+      .map(|diagnostic| format!("{}: {}", diagnostic.path, diagnostic.message))
+      .collect::<Vec<_>>();
+    assert_eq!(validate_scene(&invalid), compatible_messages);
   }
 
   #[test]
