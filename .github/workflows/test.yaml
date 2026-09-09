@@ -40,7 +40,9 @@ jobs:
       - run: cargo clippy --all-targets -- -D warnings
       - run: ./build.sh
       - name: Check discoverable cookbook examples
-        run: calcit analyze check-examples --ns calcit-paint.core --def validate-scene
+        run: |
+          calcit analyze check-examples --ns calcit-paint.core --def validate-scene
+          calcit analyze check-examples --ns calcit-paint.creative-art --def build-art-scene
       - name: Audit C-safe exports
         run: |
           symbols=$(nm -D --defined-only dylibs/libcalcit_paint.so | awk '{print $3}')
@@ -63,5 +65,7 @@ jobs:
           rm offscreen-ci.png
       - name: Run executable cookbook smoke
         run: ./scripts/check-cookbook.sh
+      - name: Run deterministic Creative Art smoke
+        run: ./scripts/check-creative-art.sh
       - name: Run blocking canvas smoke
         run: xvfb-run -a env CALCIT_PAINT_SMOKE_ONCE=1 calcit ./calcit.cirru

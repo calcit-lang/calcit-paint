@@ -7,11 +7,11 @@
   },
   "metrics": {
     "typeNone": 0,
-    "typeNotFull": 5,
-    "schemaDynamic": 5,
+    "typeNotFull": 6,
+    "schemaDynamic": 6,
     "codeDynamic": 0,
     "codeNil": 0,
-    "unresolved": 5,
+    "unresolved": 6,
     "declaredOptional": 0,
     "deprecatedCalls": 0,
     "unsafeCoerce": 0
@@ -62,6 +62,17 @@
       "unsafeCoerce": 0
     },
     "calcit-paint.core/paint-event-from-ffi": {
+      "typeNone": 0,
+      "typeNotFull": 1,
+      "schemaDynamic": 1,
+      "codeDynamic": 0,
+      "codeNil": 0,
+      "unresolved": 1,
+      "declaredOptional": 0,
+      "deprecatedCalls": 0,
+      "unsafeCoerce": 0
+    },
+    "calcit-paint.creative-art/build-art-scene": {
       "typeNone": 0,
       "typeNotFull": 1,
       "schemaDynamic": 1,

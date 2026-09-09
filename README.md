@@ -1,28 +1,60 @@
-## (Toy)Calcit Paint
+## Calcit Paint
 
-> 2D renderer for Calcit.
+> Skia-backed 2D renderer and experimental Creative Art toolkit for Calcit.
+> 基于 Skia 的 Calcit 2D 渲染器与实验性 Creative Art 工具。
+
+The `0.1.0` milestone targets a complete, runnable Creative Art workflow:
+deterministic scene generation, interactive regeneration and animation, and
+explicit PNG export. It deliberately does not promise a polished general-purpose
+desktop application framework; that broader product layer belongs to a later
+major milestone.
+
+`0.1.0` milestone 聚焦一条完整可运行的 Creative Art 工作流：确定性场景生成、交互式
+重新生成与动画，以及显式 PNG 导出。本阶段不承诺完善的通用桌面应用框架；更广泛的产品层
+留到后续大版本。
+
+This preview adds no Rust/native API: it deliberately composes the existing
+public Calcit Paint API. / 本预览不新增 Rust/native API，而是有意组合现有公开 Calcit
+Paint API 完成纵向样例。
 
 ### Usages / 使用方式
 
 It runs [Calcit](https://github.com/calcit-lang/calcit) and is driven by the canonical `calcit.cirru` Snapshot source.
 
 项目直接运行 [Calcit](https://github.com/calcit-lang/calcit)，并以规范的
-`calcit.cirru` Snapshot 作为源码。默认场景包含可直接看到效果的渐变、虚线描边和
-混合模式、输入事件、文本排版、离屏导出和静态子树缓存 demo。
+`calcit.cirru` Snapshot 作为源码。默认入口启动 Creative Art Preview；原来的综合 API
+场景仍保留在 `calcit-paint.main`，作为能力参考与回归覆盖。
 
 ```bash
 ./build.sh
 calcit ./calcit.cirru
 ```
 
+In the Creative Art window, click or press `R` to regenerate from the next
+deterministic seed, press Space to pause/resume animation, press `P` to write
+`creative-art.png`, and press `Q` to close. Startup does not write files.
+
+在 Creative Art 窗口中，点击或按 `R` 会使用下一个确定性 seed 重新生成；空格用于暂停/
+继续动画；`P` 显式写出 `creative-art.png`；`Q` 关闭窗口。启动本身不会写文件。
+
+The same seed and time produce byte-identical PNG output in one environment.
+Run the CI-backed non-interactive proof with:
+
+相同 seed 与 time 在同一环境中会产生字节完全一致的 PNG。可运行受 CI 覆盖的非交互验证：
+
+```bash
+./scripts/check-creative-art.sh
+```
+
 For focused, copyable, and CI-checked examples, start with the
 [executable cookbook](docs/cookbook.md). It provides the shortest path for
 basic scenes, interaction, typed events, accessibility, offscreen PNGs, and
-an Agent repair loop; the default demo remains the integrated reference.
+an Agent repair loop; the Creative Art entry is the product preview, while
+`calcit-paint.main` remains the integrated API reference.
 
 如需聚焦、可复制且受 CI 检查的示例，请从[可执行场景手册](docs/cookbook.md)开始。
 它提供基础场景、交互、强类型事件、无障碍、离屏 PNG 和 Agent 修复闭环的最短路径；
-默认 demo 继续作为集成参考。
+Creative Art 入口是产品预览，`calcit-paint.main` 则继续作为综合 API 参考。
 
 Available APIs:
 
@@ -75,12 +107,12 @@ calcit-paint.core/launch-canvas! $ fn (event) (println "|rendering to canvas..."
 Paint creates its native window, OpenGL context, and Skia surface from winit's
 `resumed` lifecycle callback. The window stays invisible until that environment
 is ready, preserving the required pre-display installation point for platform
-accessibility adapters. This does not yet expose accessibility scene semantics;
-that public API is tracked separately.
+accessibility adapters. Interactive scene nodes can expose explicit semantic
+metadata through their `:accessibility` map.
 
 Paint 会在 winit 的 `resumed` 生命周期回调中创建原生窗口、OpenGL context 与 Skia
 surface。窗口会在这些环境就绪前保持不可见，从而为平台可访问性 adapter 保留首次显示前的
-安装点。本阶段尚未公开 accessibility scene 语义；相应 API 将由独立任务实现。
+安装点。交互 scene node 可通过 `:accessibility` map 显式提供语义元数据。
 
 The C-safe buffer-v1 and blocking-callback descriptors, ownership rules, Cirru
 EDN transport, and adapters are provided by
@@ -278,13 +310,13 @@ HSL(A) `:color`；`blur` 需要非负 `:sigma-x` / `:sigma-y`；`color-filter` �
       :fill-color $ [] 315 88 62
 ```
 
-The default runnable `calcit-paint.main/render!` demo shows all three effects.
+The retained `calcit-paint.main/render!` API gallery shows all three effects.
 Effects inside `cached-group` are rendered into its declared local raster
 surface, so pixels beyond that cache surface are intentionally clipped; provide
 enough cache bounds for blur and shadow spread. `render-to-png` uses the same
 renderer and preserves the same effect behavior.
 
-默认可运行的 `calcit-paint.main/render!` demo 展示三种效果。`cached-group` 内的
+保留的 `calcit-paint.main/render!` API gallery 展示三种效果。`cached-group` 内的
 效果会渲染到其声明的本地 raster surface 中，因此超出 cache surface 的像素会按约定裁切；
 请为阴影与模糊扩散预留足够的 cache 边界。`render-to-png` 使用同一渲染器，保留相同的效果行为。
 
@@ -471,12 +503,12 @@ same as on single-line text.
 `:line-count`、`:max-width`、`:min-intrinsic-width`、`:max-intrinsic-width`、
 `:alphabetic-baseline` 与 `:ideographic-baseline`。绘制与测量共用同一布局实现。
 
-The maintained default Calcit demo prints paragraph metrics and renders three
+The retained `calcit-paint.main` API gallery prints paragraph metrics and renders three
 real paragraph shapes: Chinese/English with an explicit newline, constrained
 two-line ellipsis, and right-to-left Arabic. Run it with the commands at the
 top of this README.
 
-维护中的默认 Calcit demo 会打印段落度量，并实际绘制三组 paragraph shape：含显式
+保留的 `calcit-paint.main` API gallery 会打印段落度量，并实际绘制三组 paragraph shape：含显式
 换行的中英文、受限为两行并带省略号的段落，以及从右向左的阿拉伯文。使用 README
 开头的命令即可运行。
 
@@ -733,11 +765,11 @@ continues to reject an interactive container anywhere in its subtree.
 
 Children use the surrounding scene coordinate system: an interactive
 container's `:position` defines its hit geometry but does not translate its
-children. The default runnable demo includes a nested touch button and a
+children. The retained API gallery includes a nested touch button and a
 focusable container with an icon and label.
 
 children 使用周围场景坐标系：交互容器的 `:position` 只定义自身 hit geometry，
-不会平移 children。默认可运行 demo 包含嵌套 touch 按钮，以及带图标和标签的可聚焦
+不会平移 children。保留的 API gallery 包含嵌套 touch 按钮，以及带图标和标签的可聚焦
 容器。
 
 ```cirru.no-check
@@ -818,11 +850,11 @@ walking and hashing arbitrary heterogeneous EDN on every frame.
 上限为 32 个 entry、32 MiB（每项占 `width × height × 4` 字节）。交互子节点会直接报错，
 不会静默丢失事件。显式 revision 避免每帧遍历并 hash 任意异构 EDN。
 
-The default scene shows a cached badge. Press Shift+P to explicitly run
+The retained API gallery shows a cached badge. Press Shift+P there to explicitly run
 `export-offscreen-demo!` and create `offscreen-demo.png` in the current working
 directory; startup itself does not write the file.
 
-默认 scene 会显示 cached badge；按 Shift+P 会显式调用 `export-offscreen-demo!`，在当前
+保留的 API gallery 会显示 cached badge；在该场景按 Shift+P 会显式调用 `export-offscreen-demo!`，在当前
 工作目录生成 `offscreen-demo.png`，程序启动本身不会写出该文件。
 
 ### Scene validation and diagnostics / 场景校验与诊断
@@ -850,13 +882,13 @@ let
 Invalid nested shapes are no longer replaced with empty groups. Windowed
 rendering reports the strict failure on stderr, while `render-to-png!` returns
 the same diagnostic and does not write a partial PNG. Renderer diagnostics and
-unknown drawing operations never print to stdout. The default Calcit entry runs
+unknown drawing operations never print to stdout. The retained API gallery runs
 `validate-scene-demo!` before opening the window and prints both a passing scene
 and two expected nested failures, so the API is exercised by the normal demo.
 
 非法嵌套 shape 不再被静默替换为空 group。窗口渲染会将严格校验失败写到 stderr；
 `render-to-png!` 返回相同诊断，且不会写出不完整 PNG。渲染诊断与未知绘制操作均不再
-污染 stdout。默认 Calcit 入口会在打开窗口前实际运行 `validate-scene-demo!`，打印一个
+污染 stdout。保留的 API gallery 会在打开窗口前实际运行 `validate-scene-demo!`，打印一个
 通过的 scene 和两个预期的嵌套错误，因此正常 demo 会真实覆盖该 API。
 
 ### On-demand frames and animation timing / 按需帧与动画时钟
@@ -1046,7 +1078,8 @@ other theme tag; compatible callbacks receive the stable map form.
 Public wrappers use explicit `Unit` returns for side effects. Drawing and
 offscreen-export payloads are generic because each operation accepts a
 different EDN shape, while text and paragraph measurement return
-`Map<Tag, Number>`. Five partially typed definitions remain by design: the two
+`Map<Tag, Number>`. Six partially typed definitions remain by design:
+`build-art-scene` returns Paint's heterogeneous recursive scene map; the two
 compatible blocking launch APIs still deliver legacy `nil` and heterogeneous
 event maps; text-option and paragraph-option map values are heterogeneous; and
 `paint-event-from-ffi` accepts the one raw `Map<Tag, Dynamic>` transport value
@@ -1059,7 +1092,8 @@ values or JS FFI.
 
 公开 wrapper 的副作用返回值均显式声明为 `Unit`。不同绘制与离屏导出操作接收不同 EDN
 shape，因此 payload 使用泛型；单行文字与段落测量结果均明确为 `Map<Tag, Number>`。
-目前仅有五个 partial definition 是有意保留的真实框架边界：两个兼容的 blocking
+目前仅有六个 partial definition 是有意保留的真实框架边界：`build-art-scene` 返回
+Paint 的异构递归 scene map；两个兼容的 blocking
 launch API 仍先送达旧行为的 `nil`、随后送达异构事件 map；单行文字与段落选项 map 的
 value 也为异构数据；`paint-event-from-ffi` 则只在严格 nominal 解码前接收一次原始
 `Map<Tag, Dynamic>` transport。callback 返回类型 `R` 仍为泛型；三个 launch API
@@ -1336,8 +1370,8 @@ translated to typed `(:accessibility-action payload)` events. Enabled
 `:text-input` annotations on `focus-area` additionally publish AccessKit
 `SetValue`; it becomes operation `:set-value` with `:value` as `Option<String>`.
 The native layer never changes application state: handle that event in Calcit,
-then render the new `:accessibility :value` on the next frame. The default
-runnable demo does exactly this for Focus A. `PaintAccessibilityActionEvent`
+then render the new `:accessibility :value` on the next frame. The retained API
+gallery does exactly this for Focus A. `PaintAccessibilityActionEvent`
 contains `:id`, `:operation` (`:focus`, `:activate`, or `:set-value`), optional
 `:value`, and the existing `PaintTarget`; focus also uses the same focus
 transition and IME lifecycle as pointer/Tab focus. Disabled nodes publish no
@@ -1347,7 +1381,7 @@ AccessKit tree 会在每次重绘后根据最新 scene 与变换后的交互 bou
 `Focus` 与 `Click` 请求会转换为强类型 `(:accessibility-action payload)` 事件；启用的
 `focus-area` 上 `:text-input` 标注还会发布 AccessKit `SetValue`，并转换为 operation
 `:set-value` 与 `Option<String>` `:value`。native 层绝不直接修改应用状态：应由 Calcit
-处理该事件，再在下一帧渲染新的 `:accessibility :value`。默认可运行 demo 已对 Focus A
+处理该事件，再在下一帧渲染新的 `:accessibility :value`。保留的 API gallery 已对 Focus A
 这样处理。`PaintAccessibilityActionEvent` 包含 `:id`、`:operation`（`:focus`、`:activate`
 或 `:set-value`）、可选 `:value` 及既有 `PaintTarget`。focus 同时复用 pointer/Tab 焦点的
 transition 与 IME 生命周期；禁用节点不会发布 focus、activate 或 set-value action。
