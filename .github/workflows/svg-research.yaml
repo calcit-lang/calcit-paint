@@ -12,11 +12,16 @@ on:
       - src/svg_research.rs
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions-rust-lang/setup-rust-toolchain@v2.0.0
         with:
           toolchain: stable
