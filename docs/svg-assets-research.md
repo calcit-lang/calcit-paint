@@ -90,7 +90,7 @@ rust-skia binary-cache URLs returned HTTP 404.
 target directory；两个预期 rust-skia binary-cache URL 均返回 HTTP 404，因而实际执行
 源码构建。
 
-| Evidence / 证据 | Baseline | SVG research | Delta / 差异 |
+| macOS evidence / macOS 证据 | Baseline | SVG research | Delta / 差异 |
 | --- | ---: | ---: | ---: |
 | Skia ninja targets | 1,617 | 1,666 | +49 / +3.0% |
 | Linked dylib bytes | 21,721,440 | 22,303,456 | +582,016 / +2.68% |
@@ -108,14 +108,34 @@ SVG target 则为全新构建。它只证明缺失 binary-cache 覆盖会触发�
 One macOS offscreen probe produced a `192×128` RGBA PNG of 1,331 bytes with
 SHA-256 `4df3b67fd8ca6a9916cdd087f98cbed4972bd7d71a9edf443adac65eee3c4fae`.
 The native research overlay completed the one-shot Creative Art window in
-2.04 seconds. Linux release, raster, and Xvfb/native evidence is produced by
-the path-scoped `SVG Research` workflow and will be recorded on issue #83.
+2.04 seconds.
 
 一次 macOS 离屏 probe 产生 `192×128` RGBA PNG，大小 1,331 bytes，SHA-256 为
 `4df3b67fd8ca6a9916cdd087f98cbed4972bd7d71a9edf443adac65eee3c4fae`。
 native research overlay 在 2.04 秒内完成 one-shot Creative Art window。Linux 的
-release、raster 与 Xvfb/native 证据由 path-scoped `SVG Research` workflow 生成，
-并会记录到 issue #83。
+release、raster 与 Xvfb/native 证据由 path-scoped `SVG Research` workflow 生成。
+
+The first [Linux SVG Research run](https://github.com/calcit-lang/calcit-paint/actions/runs/34389883340)
+passed both the raster assertion and the Xvfb OpenGL-window overlay:
+
+首次 [Linux SVG Research run](https://github.com/calcit-lang/calcit-paint/actions/runs/34389883340)
+同时通过 raster 断言和 Xvfb OpenGL-window overlay：
+
+| Linux evidence / Linux 证据 | Baseline | SVG research | Delta / 差异 |
+| --- | ---: | ---: | ---: |
+| Linked `.so` bytes | 33,603,416 | 34,304,096 | +700,680 / +2.09% |
+| Observed release build wall time | 139.55 s | 1,004.46 s | cache-path evidence / cache 路径证据 |
+| One-shot native window | existing Test workflow passed | 2.674 s, passed | SVG overlay exercised / 已绘制 SVG overlay |
+
+The SVG step ran after the baseline in the same job yet took about 16.7
+minutes, consistent with the SVG feature combination missing the fast binary
+path and compiling a second Skia configuration. This is operational evidence,
+not a stable performance ratio; runner load and future cache coverage can
+change it.
+
+SVG step 在同一 job 的 baseline 之后执行，却仍耗时约 16.7 分钟，符合 SVG feature
+组合缺少快速 binary 路径、需要编译第二套 Skia 配置的表现。这是运维证据而非稳定性能
+比例；runner 负载与未来 cache 覆盖都可能改变结果。
 
 ## Reproduce / 复验
 

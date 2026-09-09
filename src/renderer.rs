@@ -754,6 +754,7 @@ fn render_cached_subtree(
   Ok(image)
 }
 
+/// Draws queued Calcit scene operations on the current window canvas.
 pub fn draw_page(
   canvas: &skia_safe::canvas::Canvas,
   base_messages: Vec<(Box<str>, Edn)>,

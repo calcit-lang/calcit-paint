@@ -2,10 +2,12 @@ use skia_safe::{svg::Dom, Canvas, FontMgr, Size};
 
 const FIXTURE: &str = include_str!("fixtures/svg-research.svg");
 
+/// Parses SVG without a network-capable resource provider.
 fn parse(source: &str) -> Result<Dom, String> {
   Dom::from_str(source, FontMgr::empty()).map_err(|error| error.to_string())
 }
 
+/// Renders the checked fixture into a contained destination for research probes.
 pub(crate) fn render_fixture(canvas: &Canvas, x: f32, y: f32, width: f32, height: f32) -> Result<(), String> {
   if ![x, y, width, height].iter().all(|value| value.is_finite()) || width <= 0.0 || height <= 0.0 {
     return Err("SVG research destination must use finite coordinates and positive dimensions".to_owned());
