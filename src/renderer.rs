@@ -790,6 +790,10 @@ pub fn draw_page(
       // draw_cost(canvas, cost)
     }
   }
+  #[cfg(feature = "svg-research")]
+  if std::env::var_os("CALCIT_PAINT_SVG_RESEARCH").is_some() {
+    crate::svg_research::render_fixture(canvas, 12.0, 12.0, 192.0, 128.0)?;
+  }
   Ok(())
 }
 

@@ -11,6 +11,9 @@ license = "MIT"
 repository = "https://github.com/calcit-lang/calcit-paint"
 exclude = ["resources", "!SourceCodePro-Medium.ttf"]
 
+[features]
+svg-research = ["skia-safe/svg"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
