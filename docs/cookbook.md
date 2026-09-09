@@ -1,12 +1,13 @@
 # Calcit Paint cookbook / Calcit Paint 场景手册
 
 This is the smallest executable starting point for each public scene capability.
-The default `calcit-paint.main/render!` remains the integration demo; use this
+The default entry is the Creative Art product preview; the retained
+`calcit-paint.main/render!` scene is the integration/API gallery. Use this
 cookbook when copying one focused pattern into an application or an Agent task.
 
-这是每项公开场景能力的最小可执行起点。默认的
-`calcit-paint.main/render!` 仍是集成 demo；在应用或 Agent 任务中复制一个聚焦模式时，
-请使用本手册。
+这是每项公开场景能力的最小可执行起点。默认入口是 Creative Art 产品预览；保留的
+`calcit-paint.main/render!` 场景是综合/API gallery。在应用或 Agent 任务中复制一个
+聚焦模式时，请使用本手册。
 
 Each recipe uses `cirru.no-run`: `calcit docs check-md` parses and statically
 checks its `ns`/definition snippet, but does not execute native FFI or write
@@ -35,6 +36,7 @@ For a fast non-interactive validation loop, run the checked cookbook smoke:
 
 | Capability / 能力 | Minimal entry / 最小入口 | Verify / 验证 |
 | --- | --- | --- |
+| Creative Art workflow / 创意绘制工作流 | `build-art-scene`, `export-art-frame!` | deterministic PNG smoke / 确定性 PNG smoke |
 | Basic shapes / 基础图元 | `validate-scene` + `:rectangle` | `validate-scene` returns `[]` / 返回 `[]` |
 | Group, transform, clip / group、变换、裁剪 | `:group`, `:translate`, `:clip-rect` | `validate-scene` + offscreen PNG |
 | Touch and focus / touch 与 focus | `:touch-area`, `:focus-area` | native demo or Xvfb smoke / 原生或 Xvfb smoke |
@@ -121,20 +123,20 @@ validate-scene $ {} (:type :touch-area) (:dx 120) (:dy 28)
           :align :center
 ```
 
-Run `calcit ./calcit.cirru` and use the default scene's nested touch and focus
+Run the retained API gallery and use its nested touch and focus
 containers for a real event-loop check. In CI, `CALCIT_PAINT_SMOKE_ONCE=1`
 covers the same native entrypoint.
 
-运行 `calcit ./calcit.cirru`，使用默认场景中的嵌套 touch/focus 容器进行真实
+运行保留的 API gallery，使用其中的嵌套 touch/focus 容器进行真实
 event-loop 检查。CI 使用 `CALCIT_PAINT_SMOKE_ONCE=1` 覆盖同一原生入口。
 
 ## 4. Typed event callback / 强类型事件回调
 
 Use the typed entrypoint for new applications. This minimal recipe shows real
-`PaintEvent` cases; use the default demo as the runnable exhaustive protocol
+`PaintEvent` cases; use the retained API gallery as the runnable exhaustive protocol
 reference.
 
-新应用使用 typed 入口。这个最小 recipe 展示真实的 `PaintEvent` case；默认 demo 是
+新应用使用 typed 入口。这个最小 recipe 展示真实的 `PaintEvent` case；保留的 API gallery 是
 可运行的穷尽协议参考。
 
 ```cirru.no-run
@@ -193,7 +195,33 @@ render-to-png! $ {} (:path |cookbook.png) (:width 160) (:height 90)
     :fill-color $ [] 155 70 48
 ```
 
-## 7. Local image asset / 本地图片资源
+## 7. Creative Art scene and export / Creative Art 场景与导出
+
+The preview keeps scene generation pure for a given seed/time pair. Validate
+the generated scene before rendering, and export only in response to an explicit
+user or build action. The public return is intentionally an open scene-map
+boundary because Paint's recursive scene DSL is heterogeneous.
+
+预览针对给定 seed/time 保持场景生成纯净。绘制前校验生成场景，并且只在用户或构建流程
+显式请求时导出。公开返回值有意保留为开放 scene-map 边界，因为 Paint 的递归 scene DSL
+是异构结构。
+
+```cirru.no-run
+ns cookbook.creative-art $ :require
+  calcit-paint.core :refer $ validate-scene
+  calcit-paint.creative-art :refer $ build-art-scene
+
+let
+    no-diagnostics $ []
+    scene $ build-art-scene 17 0 |preview false
+  assert= no-diagnostics $ validate-scene scene
+```
+
+Run `./scripts/check-creative-art.sh` for the executable validation and two
+byte-identical fixed-input exports. / 运行 `./scripts/check-creative-art.sh`
+可执行场景校验，并验证两次固定输入导出的字节完全一致。
+
+## 8. Local image asset / 本地图片资源
 
 Keep assets local and validate the image scene before rendering it. The bundled
 fixture is useful for a first check; applications should use their own explicit
@@ -215,8 +243,8 @@ validate-scene $ {} (:type :image) (:file-path |resources/calcit.png) (:x 20) (:
 
 1. Locate the API with `calcit ./calcit.cirru query defs calcit-paint.core`
    and `query examples <namespace/definition>`.
-2. Copy the smallest matching recipe above; do not begin with the integrated
-   default scene.
+2. Copy the smallest matching recipe above; do not begin with either the
+   Creative Art product preview or the integrated API gallery.
 3. Run `validate-scene` before launching a window. An empty list is the only
    success result; retain structural paths verbatim when reporting a failure.
 4. Run `calcit ./calcit.cirru --check-only`, then `./scripts/check-cookbook.sh`
@@ -229,7 +257,7 @@ validate-scene $ {} (:type :image) (:file-path |resources/calcit.png) (:x 20) (:
 
 1. 用 `calcit ./calcit.cirru query defs calcit-paint.core` 与
    `query examples <namespace/definition>` 定位 API。
-2. 复制上面最小的匹配 recipe，不要从集成默认场景开始。
+2. 复制上面最小的匹配 recipe，不要从 Creative Art 产品预览或综合 API gallery 开始。
 3. 启动窗口前先运行 `validate-scene`。只有空列表表示成功；报告失败时应原样保留
    结构路径。
 4. 运行 `calcit ./calcit.cirru --check-only`，再运行 `./scripts/check-cookbook.sh`

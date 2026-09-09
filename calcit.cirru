@@ -1,7 +1,7 @@
 
 {} (:about "|Machine-generated snapshot. Do not edit directly — changes will be overwritten. Use `calcit query` to inspect and `calcit edit`/`calcit tree` to modify. Run `calcit docs agents --full` first. Manual edits must follow format and schema conventions, then run `calcit edit format`.") (:package |calcit-paint)
   :entries $ {}
-    :default $ {} (:description |) (:init-fn 'calcit-paint.main/main!) (:mode :native) (:reload-fn 'calcit-paint.main/reload!)
+    :default $ {} (:description |) (:init-fn 'calcit-paint.creative-art/main!) (:mode :native) (:reload-fn 'calcit-paint.creative-art/reload!)
       :feature-policy $ {}
       :modules $ []
       :type-slots $ {}
@@ -577,6 +577,309 @@
           ns calcit-paint.core $ :require
             calcit-paint.$meta :refer $ calcit-dirname
             calcit-paint.util :refer $ get-dylib-path
+    'calcit-paint.creative-art $ %{} 'FileEntry
+      :defs $ {}
+        '*export-status $ %{} 'CodeEntry (:doc "|Visible export status for the runnable studio. / 可运行 studio 中显示的导出状态。")
+          :code $ quote (defatom *export-status "|Press P to export / 按 P 导出")
+          :examples $ []
+          :schema $ :: 'Ref 'String
+        '*playing? $ %{} 'CodeEntry (:doc "|Whether the one-shot frame chain is active. / one-shot frame 链是否活跃。")
+          :code $ quote (defatom *playing? false)
+          :examples $ []
+          :schema $ :: 'Ref 'Bool
+        '*seed $ %{} 'CodeEntry (:doc "|Current deterministic artwork seed. / 当前确定性作品 seed。")
+          :code $ quote (defatom *seed 17)
+          :examples $ []
+          :schema $ :: 'Ref 'Number
+        '*time-ms $ %{} 'CodeEntry (:doc "|Current animation time from the Paint frame clock. / 来自 Paint frame clock 的当前动画时间。")
+          :code $ quote (defatom *time-ms 0)
+          :examples $ []
+          :schema $ :: 'Ref 'Number
+        'build-art-scene $ %{} 'CodeEntry (:doc "|Build the open scene-map boundary shared by the window and offscreen export. / 构建窗口与离屏导出共享的开放 scene-map 边界。")
+          :code $ quote
+            defn build-art-scene (seed time-ms export-status controls?)
+              let
+                  phase $ / time-ms 1200
+                  pulse $ + 1
+                    * 0.08 $ sin phase
+                  primary-hue $ * 360 (seeded-unit seed 1)
+                  secondary-hue $ * 360 (seeded-unit seed 2)
+                {} (:type :group)
+                  :children $ []
+                    {} (:type :drop-shadow) (:dx 0) (:dy 18) (:sigma-x 18) (:sigma-y 18)
+                      :color $ [] 235 60 4 0.8
+                      :children $ []
+                        {} (:type :clip-rounded-rect)
+                          :position $ [] 40 40
+                          :width 880
+                          :height 600
+                          :radius 34
+                          :children $ []
+                            {} (:type :rounded-rect)
+                              :position $ [] 40 40
+                              :width 880
+                              :height 600
+                              :radius 34
+                              :fill $ {} (:type :linear-gradient)
+                                :from $ [] 40 40
+                                :to $ [] 920 640
+                                :stops $ []
+                                  [] 0 $ [] 232 58 10
+                                  [] 0.48 $ [] primary-hue 72 18
+                                  [] 1 $ [] secondary-hue 78 28
+                            {} (:type :opacity) (:alpha 0.78)
+                              :children $ []
+                                {} (:type :blend) (:mode :screen)
+                                  :children $ -> (range 48)
+                                    map $ fn (i)
+                                      let
+                                          x $ + 70
+                                            * 820 $ seeded-unit seed
+                                              + 10 $ * i 3
+                                          y $ + 65
+                                            * 540 $ seeded-unit seed
+                                              + 11 $ * i 3
+                                          radius $ + 1.5
+                                            * 5 $ seeded-unit seed
+                                              + 12 $ * i 3
+                                          hue $ * 360
+                                            seeded-unit seed $ + 90 i
+                                        {} (:type :circle)
+                                          :position $ [] x y
+                                          :radius radius
+                                          :fill-color $ [] hue 88 76
+                            {} (:type :blur) (:sigma-x 18) (:sigma-y 18)
+                              :children $ []
+                                {} (:type :circle)
+                                  :position $ [] 480 330
+                                  :radius $ * 145 pulse
+                                  :fill-color $ [] primary-hue 84 46 0.44
+                            {} (:type :drop-shadow) (:dx 0) (:dy 12) (:sigma-x 10) (:sigma-y 10)
+                              :color $ [] secondary-hue 70 8 0.7
+                              :children $ []
+                                {} (:type :translate) (:x 480) (:y 330)
+                                  :children $ []
+                                    {} (:type :rotate)
+                                      :radius $ * 0.12 phase
+                                      :children $ -> (range 16)
+                                        map $ fn (i)
+                                          let
+                                              angle $ + (* i 0.392699)
+                                                * 0.08 $ sin (+ phase i)
+                                              hue $ * 360
+                                                seeded-unit seed $ + 140 i
+                                            {} (:type :rotate) (:radius angle)
+                                              :children $ []
+                                                {} (:type :ellipse)
+                                                  :position $ [] 0 -145
+                                                  :radius-x 25
+                                                  :radius-y 118
+                                                  :fill $ {} (:type :linear-gradient)
+                                                    :from $ [] 0 -265
+                                                    :to $ [] 0 -27
+                                                    :stops $ []
+                                                      [] 0 $ [] hue 92 70 0.9
+                                                      [] 1 $ [] secondary-hue 78 36 0.56
+                            {} (:type :polyline)
+                              :position $ [] 480 330
+                              :skip-first? true
+                              :width 3
+                              :join :round
+                              :cap :round
+                              :color $ [] secondary-hue 94 78 0.9
+                              :stops $ -> (range 160)
+                                map $ fn (i)
+                                  let
+                                      angle $ * i 0.08
+                                      radius $ + 224
+                                        * 22 $ sin
+                                          + phase $ * i 0.31
+                                    []
+                                      * radius $ cos angle
+                                      * radius $ sin angle
+                            {} (:type :color-filter)
+                              :matrix $ [] 1 0 0 0 0 0 0.86 0.14 0 0 0.12 0 0.88 0 0 0 0 0 1 0
+                              :children $ []
+                                {} (:type :circle)
+                                  :position $ [] 480 330
+                                  :radius 88
+                                  :fill $ {} (:type :radial-gradient)
+                                    :center $ [] 458 306
+                                    :radius 112
+                                    :stops $ []
+                                      [] 0 $ [] 48 96 82
+                                      [] 0.58 $ [] primary-hue 90 58
+                                      [] 1 $ [] secondary-hue 88 24
+                            {} (:type :touch-area)
+                              :position $ [] 480 330
+                              :dx 440
+                              :dy 300
+                              :action :regenerate
+                              :cursor :crosshair
+                              :accessibility $ {} (:id |creative-canvas) (:role :button) (:label "|Regenerate artwork / 重新生成作品") (:enabled? true)
+                    if controls?
+                      {} (:type :group)
+                        :children $ []
+                          {} (:type :text)
+                            :text $ str "|CALCIT CREATIVE ART · seed " seed
+                            :position $ [] 480 668
+                            :color $ [] 42 88 84
+                            :size 18
+                            :weight 700
+                            :align :center
+                          {} (:type :text) (:text "|Click/R regenerate · Space animate · P export · Q quit")
+                            :position $ [] 480 692
+                            :color $ [] 205 44 72
+                            :size 13
+                            :align :center
+                          {} (:type :text) (:text export-status)
+                            :position $ [] 480 712
+                            :color $ [] 48 70 70
+                            :size 11
+                            :align :center
+                      {} (:type :group)
+                        :children $ []
+          :examples $ []
+            quote $ let
+                scene $ build-art-scene 17 0 |preview false
+              assert= (%some :group) (get scene :type)
+          :schema $ :: 'Fn
+            {}
+              :args $ [] 'Number 'Number 'String 'Bool
+              :return $ :: 'Map 'Tag 'Dynamic
+          :tests $ []
+            %{} 'TestEntry (:name |returns-group-scene)
+              :code $ quote
+                let
+                    scene $ build-art-scene 17 0 |testing false
+                    scene-type $ get scene :type
+                    children $ get scene :children
+                  assert= (%some :group) scene-type
+                  assert= true $ children.some?
+                  , &unit
+        'export-art-frame! $ %{} 'CodeEntry (:doc "|Export one explicit seed/time frame through the public offscreen API. / 通过公开离屏 API 导出显式 seed/time frame。")
+          :code $ quote
+            defn export-art-frame! (path seed time-ms)
+              render-to-png! $ {} (:path path) (:width 960) (:height 720)
+                :background $ [] 232 36 8
+                :scene $ build-art-scene seed time-ms |exported false
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'String 'Number 'Number
+        'export-current! $ %{} 'CodeEntry (:doc "|Export the current artwork to creative-art.png. / 将当前作品导出到 creative-art.png。")
+          :code $ quote
+            defn export-current! () (export-art-frame! |creative-art.png @*seed @*time-ms) (reset! *export-status "|Exported creative-art.png / 已导出 creative-art.png") (render-art!) (println "|Exported creative-art.png / 已导出 creative-art.png") &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ []
+        'handle-event! $ %{} 'CodeEntry (:doc "|Drive creative controls from the closed nominal PaintEvent protocol. / 通过封闭 nominal PaintEvent 协议驱动创作控制。")
+          :code $ quote
+            defn handle-event! (event)
+              match event
+                (:ready) (render-art!)
+                (:frame payload)
+                  if @*playing?
+                    do
+                      reset! *time-ms $ :timestamp-ms payload
+                      render-art!
+                      request-frame!
+                    , &unit
+                (:mouse-down _) (regenerate!)
+                (:key-down payload)
+                  case-default (:name payload) (do &unit)
+                    |Space $ toggle-animation!
+                    |R $ regenerate!
+                    |P $ export-current!
+                    |Q $ close-window!
+                (:accessibility-action payload)
+                  if
+                    = (:operation payload) :activate
+                    regenerate!
+                    do &unit
+                (:window-close payload)
+                  println $ str "|Creative Art window closed / 创意绘制窗口已关闭: " (:reason payload)
+                _ $ do &unit
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'calcit-paint.core/PaintEvent
+        'main! $ %{} 'CodeEntry (:doc "|Launch the runnable Creative Art Preview. / 启动可运行的 Creative Art Preview。")
+          :code $ quote
+            defn main! () (println "|Calcit Creative Art · Click/R regenerate · Space animate · P export · Q quit")
+              launch-canvas-typed! (WindowOptions :title "|Calcit Paint · Creative Art Preview" :width 960 :height 720 :min-width 960 :min-height 720 :resizable? false)
+                fn (event) (handle-event! event)
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ []
+        'regenerate! $ %{} 'CodeEntry (:doc "|Advance the deterministic seed and redraw. / 递增确定性 seed 并重绘。")
+          :code $ quote
+            defn regenerate! ()
+              reset! *seed $ + 1 @*seed
+              reset! *time-ms 0
+              reset! *export-status "|Regenerated / 已重新生成"
+              render-art!
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ []
+        'reload! $ %{} 'CodeEntry (:doc "|Redraw the artwork after a Calcit reload. / Calcit reload 后重绘作品。")
+          :code $ quote
+            defn reload! () (render-art!) (println "|Creative Art reloaded / 创意绘制已重载") &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ []
+        'render-art! $ %{} 'CodeEntry (:doc "|Render the current creative state into the active Paint window. / 将当前创作状态绘制到活跃 Paint 窗口。")
+          :code $ quote
+            defn render-art! ()
+              push-drawing-data! |reset-canvas! $ [] 232 36 8
+              push-drawing-data! |render-canvas! $ build-art-scene @*seed @*time-ms @*export-status true
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ []
+        'seeded-unit $ %{} 'CodeEntry (:doc "|Return a deterministic number in [0, 1] for one seed/index pair. / 为一组 seed/index 返回 [0, 1] 内的确定性数字。")
+          :code $ quote
+            defn seeded-unit (seed index)
+              * 0.5 $ + 1
+                sin $ + (* seed 12.9898) (* index 78.233)
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Number)
+              :args $ [] 'Number 'Number
+          :tests $ []
+            %{} 'TestEntry (:name |deterministic-unit-range)
+              :code $ quote
+                let
+                    a $ seeded-unit 17 4
+                    b $ seeded-unit 17 4
+                  assert= a b
+                  assert= true $ and (>= a 0) (<= a 1)
+                  , &unit
+        'toggle-animation! $ %{} 'CodeEntry (:doc "|Pause or resume explicit one-shot frame chaining. / 暂停或继续显式 one-shot frame 链。")
+          :code $ quote
+            defn toggle-animation! ()
+              reset! *playing? $ not @*playing?
+              reset! *export-status $ if @*playing? "|Animation playing / 动画播放中" "|Animation paused / 动画已暂停"
+              render-art!
+              if @*playing? (request-frame!) (do &unit)
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ []
+      :ns $ %{} 'NsEntry (:doc |)
+        :code $ quote
+          ns calcit-paint.creative-art $ :require
+            calcit-paint.core :refer $ WindowOptions PaintEvent launch-canvas-typed! push-drawing-data! render-to-png! request-frame! close-window!
     'calcit-paint.main $ %{} 'FileEntry
       :defs $ {}
         '*accessibility-value $ %{} 'CodeEntry (:doc |)
