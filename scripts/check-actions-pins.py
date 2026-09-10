@@ -6,7 +6,7 @@ import re
 import sys
 
 
-USES_LINE = re.compile(r"^\s*(?:-\s*)?uses:\s*")
+USES_LINE = re.compile(r'''^\s*(?:-\s*)?(?:uses|["']uses["'])\s*:''')
 USES = re.compile(r"^\s*(?:-\s*)?uses:\s+(?P<action>[^@\s]+)@(?P<revision>[^\s#]+)(?:\s+#\s+(?P<tag>\S+))?\s*$")
 SHA = re.compile(r"[0-9a-f]{40}")
 EXACT_TAG = re.compile(r"v?\d+\.\d+\.\d+")
