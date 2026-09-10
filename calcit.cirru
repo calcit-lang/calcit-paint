@@ -108,6 +108,15 @@
               :unit $ :: 'Option 'Tag
           :examples $ []
           :schema $ :: 'StructDef
+        'PaintSceneDiagnostic $ %{} 'CodeEntry (:doc "|Stable scene validation record; path and code are automation contracts while message may improve. / 稳定场景校验记录；path 与 code 是自动化契约，message 可持续改进。")
+          :code $ quote
+            defstruct PaintSceneDiagnostic (:path 'String) (:code 'Tag)
+              :field $ :: 'Option 'String
+              :expected 'String
+              :actual 'String
+              :message 'String
+          :examples $ []
+          :schema $ :: 'StructDef
         'PaintTarget $ %{} 'CodeEntry (:doc "|Application-defined target values kept at one explicit open boundary.")
           :code $ quote
             defstruct PaintTarget
@@ -547,7 +556,7 @@
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ [] 'String
-        'validate-scene $ %{} 'CodeEntry (:doc |)
+        'validate-scene $ %{} 'CodeEntry (:doc "|Return compatible path-prefixed diagnostic messages for a scene. Prefer validate-scene-structured for automation. / 返回场景的兼容 path 前缀诊断消息；自动化优先使用 validate-scene-structured。")
           :code $ quote
             defn validate-scene (scene)
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |validate_scene scene
@@ -563,6 +572,62 @@
               :args $ [] 'T
               :generics $ [] 'T
               :return $ :: 'List 'String
+        'validate-scene-structured $ %{} 'CodeEntry (:doc "|Return typed machine-readable diagnostics for a scene while leaving it unchanged. / 返回场景的强类型机器可读诊断，不修改输入场景。")
+          :code $ quote
+            defn validate-scene-structured (scene)
+              decode-map-as
+                &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |validate_scene_structured scene
+                :: 'List 'PaintSceneDiagnostic
+          :examples $ []
+            quote $ let
+                invalid-scene $ {} (:type :group)
+                  :children $ [] true
+                    {} (:type :opacity) (:alpha 1.5)
+                      :children $ []
+                    {} (:type :image) (:file-path |demo.png) (:x 0) (:y 0) (:w 20) (:h 20) (:sampling :unsupported)
+                    {} (:type :rectangle) (:width 20) (:height 20)
+                      :fill $ {} (:type :solid)
+                        :color $ [] 0 0 0
+                      :fill-color $ [] 0 0 0
+                    {} (:type :cached-group) (:cache-key |invalid-interaction) (:width 20) (:height 20)
+                      :children $ []
+                        {} (:type :touch-area) (:dx 5) (:dy 5)
+                diagnostics $ validate-scene-structured invalid-scene
+                repaired-scene $ {} (:type :group)
+                  :children $ []
+                    {} (:type :rectangle) (:width 20) (:height 20)
+                      :fill-color $ [] 0 0 0
+                no-diagnostics $ []
+              do
+                assert= 5 $ count diagnostics
+                let
+                    nested $ &list:nth diagnostics 0
+                    effect $ &list:nth diagnostics 1
+                    resource $ &list:nth diagnostics 2
+                    legacy $ &list:nth diagnostics 3
+                    cache $ &list:nth diagnostics 4
+                  assert= |$.children[0] $ :path nested
+                  assert= :expected-map $ :code nested
+                  assert= "|map or nil" $ :expected nested
+                  assert= |true $ :actual nested
+                  assert= :invalid-field $ :code effect
+                  assert= (%some |alpha) (:field effect)
+                  assert= "|between 0 and 1" $ :expected effect
+                  assert= |1.5 $ :actual effect
+                  assert= :unsupported-value $ :code resource
+                  assert= (%some |sampling) (:field resource)
+                  assert= |unsupported $ :actual resource
+                  assert= :conflicting-fields $ :code legacy
+                  assert= (%some |fill-color) (:field legacy)
+                  assert= :cached-group-interactive $ :code cache
+                  assert= (%some |children) (:field cache)
+                assert= no-diagnostics $ validate-scene-structured repaired-scene
+                , &unit
+          :schema $ :: 'Fn
+            {}
+              :args $ [] 'T
+              :generics $ [] 'T
+              :return $ :: 'List 'calcit-paint.core/PaintSceneDiagnostic
         'write-clipboard-text! $ %{} 'CodeEntry (:doc "|Write UTF-8 text to the serialized system clipboard. / 向串行系统剪贴板写入 UTF-8 文本。")
           :code $ quote
             defn write-clipboard-text! (text)
@@ -807,9 +872,9 @@
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ [] 'calcit-paint.core/PaintEvent
-        'main! $ %{} 'CodeEntry (:doc "|Launch the runnable Creative Art Preview. / 启动可运行的 Creative Art Preview。")
+        'main! $ %{} 'CodeEntry (:doc "|Validate, then launch the runnable Creative Art Preview. / 完成校验后启动可运行的 Creative Art Preview。")
           :code $ quote
-            defn main! () (println "|Calcit Creative Art · Click/R regenerate · Space animate · P export · Q quit")
+            defn main! () (println "|Calcit Creative Art · Click/R regenerate · Space animate · P export · Q quit") (validate-art-scene!)
               launch-canvas-typed! (WindowOptions :title "|Calcit Paint · Creative Art Preview" :width 960 :height 720 :min-width 960 :min-height 720 :resizable? false)
                 fn (event) (handle-event! event)
               , &unit
@@ -876,10 +941,22 @@
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ []
+        'validate-art-scene! $ %{} 'CodeEntry (:doc "|Validate the generated preview through the structured public boundary before launch. / 启动前通过公开结构化边界校验生成的预览。")
+          :code $ quote
+            defn validate-art-scene! ()
+              let
+                  diagnostics $ validate-scene-structured (build-art-scene @*seed @*time-ms @*export-status true)
+                if (empty? diagnostics) (do &unit)
+                  raise $ str |unexpected-creative-art-diagnostics: diagnostics
+              , &unit
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ []
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.creative-art $ :require
-            calcit-paint.core :refer $ WindowOptions PaintEvent launch-canvas-typed! push-drawing-data! render-to-png! request-frame! close-window!
+            calcit-paint.core :refer $ WindowOptions PaintEvent launch-canvas-typed! push-drawing-data! render-to-png! request-frame! close-window! validate-scene-structured
     'calcit-paint.main $ %{} 'FileEntry
       :defs $ {}
         '*accessibility-value $ %{} 'CodeEntry (:doc |)

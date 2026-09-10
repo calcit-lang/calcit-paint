@@ -69,6 +69,8 @@ calcit-paint.core/measure-paragraph! paragraph-options
 
 calcit-paint.core/validate-scene scene-data
 
+calcit-paint.core/validate-scene-structured scene-data
+
 calcit-paint.core/render-to-png! offscreen-options
 
 calcit-paint.core/request-frame!
@@ -869,6 +871,42 @@ compatible empty scene. Valid scenes keep their existing rendering behavior.
 `List<String>`：空列表表示 scene 合法；同级非法节点会分别产生稳定、可定位的结构路径
 诊断，例如 `$.children[1].children[0]: expected a map, got true`。`nil` 继续作为兼容的
 空 scene，合法 scene 的既有渲染行为不变。
+
+For automation, `validate-scene-structured` returns
+`List<PaintSceneDiagnostic>`. Every record contains `:path`, stable `:code`,
+optional `:field`, `:expected`, `:actual`, and the user-facing `:message`.
+`:path` and `:code` are public automation contracts; message wording may become
+clearer in compatible releases. The function only validates and never mutates
+the scene. `validate-scene` remains the compatible string API and is derived
+from the same diagnostic records.
+
+面向自动化时，`validate-scene-structured` 返回
+`List<PaintSceneDiagnostic>`。每条记录包含 `:path`、稳定的 `:code`、可选的
+`:field`、`:expected`、`:actual` 和面向用户的 `:message`。`:path` 与 `:code` 是公开
+自动化契约；message 文案可在兼容版本中继续变得更清楚。该函数只校验而不修改 scene。
+`validate-scene` 继续作为兼容字符串 API，并由同一组诊断记录产生。
+
+| Code / 代码 | Meaning / 含义 | Typical repair / 常见修复 |
+| --- | --- | --- |
+| `:expected-map` | A scene node is not a map or compatible `nil` / scene node 不是 map 或兼容 `nil` | Replace the value with a shape map / 改为 shape map |
+| `:missing-type`, `:invalid-type`, `:unknown-shape` | Missing, mistyped, or unsupported `:type` / `:type` 缺失、类型错误或不受支持 | Use a documented shape tag / 使用文档中的 shape tag |
+| `:invalid-children` | `:children` is not a list / `:children` 不是 list | Wrap child nodes in `[]` / 用 `[]` 包住 child node |
+| `:missing-field`, `:invalid-field` | A required field is missing or malformed / 必填字段缺失或格式错误 | Use `:field`, `:expected`, and `:actual` to repair it / 根据三者修复 |
+| `:unsupported-value` | A tag/value is outside the closed set / tag/value 不在封闭集合中 | Select a documented value / 选择文档支持的值 |
+| `:conflicting-fields` | Modern and legacy forms conflict / 新旧字段形式冲突 | Keep one field form / 只保留一种字段形式 |
+| `:cached-group-interactive` | A cached subtree contains interactive nodes / 缓存子树包含交互节点 | Move touch/key/focus nodes outside `cached-group` / 将交互节点移出缓存组 |
+| `:invalid-scene` | Stable fallback for another decoder failure / 其他 decoder 错误的稳定兜底 | Read `:message`, then reduce to the smallest invalid node / 根据 message 缩小非法节点 |
+
+Agent/developer troubleshooting starts from the structured fields instead of
+parsing prose:
+
+| Symptom / 现象 | Inspect / 检查 | Repair / 修复 |
+| --- | --- | --- |
+| Wrong scalar/list/map type / 标量或容器类型错误 | `:path`, `:field`, `:expected`, `:actual` | Replace only the located field / 只替换定位到的字段 |
+| Non-finite, negative, or zero geometry / 非有限、负数或零几何 | `:code :invalid-field` and geometry field | Use the documented finite range / 使用文档规定的有限范围 |
+| Image resource does not render / 图片资源未绘制 | `file-path`, crop/fit/sampling diagnostic fields, then stderr for filesystem/decode failure | Use a local path and valid dimensions/options / 使用本地路径与合法尺寸/选项 |
+| Legacy fill/stroke form conflicts / 旧 fill/stroke 形式冲突 | `:code :conflicting-fields` | Keep structured `:fill`/`:stroke` or the legacy fields, not both / 新旧形式二选一 |
+| Cached interaction is rejected / 缓存交互被拒绝 | `:code :cached-group-interactive` | Cache visual children only / 只缓存视觉 child |
 
 ```cirru.no-check
 let

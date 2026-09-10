@@ -38,6 +38,7 @@ For a fast non-interactive validation loop, run the checked cookbook smoke:
 | --- | --- | --- |
 | Creative Art workflow / 创意绘制工作流 | `build-art-scene`, `export-art-frame!` | deterministic PNG smoke / 确定性 PNG smoke |
 | Basic shapes / 基础图元 | `validate-scene` + `:rectangle` | `validate-scene` returns `[]` / 返回 `[]` |
+| Structured repair / 结构化修复 | `validate-scene-structured` | inspect stable path/code/field / 检查稳定 path/code/field |
 | Group, transform, clip / group、变换、裁剪 | `:group`, `:translate`, `:clip-rect` | `validate-scene` + offscreen PNG |
 | Touch and focus / touch 与 focus | `:touch-area`, `:focus-area` | native demo or Xvfb smoke / 原生或 Xvfb smoke |
 | Typed events / 强类型事件 | `launch-canvas-typed!`, `PaintEvent` | exhaustive `match` compiles / 穷尽 `match` 可编译 |
@@ -237,6 +238,32 @@ ns cookbook.asset $ :require
 validate-scene $ {} (:type :image) (:file-path |resources/calcit.png) (:x 20) (:y 20) (:w 96) (:h 56) (:fit :contain) (:sampling :linear)
 ```
 
+## 9. Structured diagnostic repair / 结构化诊断修复
+
+Use the typed API when a developer tool or Agent needs to locate and repair a
+field without parsing prose. The definition-attached example performs a full
+invalid scene → diagnostic → repaired scene → empty diagnostics loop.
+
+开发工具或 Agent 需要在不解析自然语言的情况下定位并修复字段时，使用强类型 API。
+definition-attached example 会完整执行“非法 scene → 诊断 → 修复后 scene → 空诊断”闭环。
+
+```cirru.no-run
+ns cookbook.structured-diagnostic $ :require
+  calcit-paint.core :refer $ validate-scene-structured
+
+validate-scene-structured $ {} (:type :opacity) (:alpha 1.5)
+  :children $ []
+```
+
+Discover and execute the full repair example after `./build.sh`:
+
+构建 dylib 后，发现并执行完整修复示例：
+
+```bash
+calcit ./calcit.cirru query examples calcit-paint.core/validate-scene-structured
+calcit ./calcit.cirru analyze check-examples --ns calcit-paint.core --def validate-scene-structured
+```
+
 ## Agent repair loop / Agent 修复闭环
 
 ### English
@@ -245,8 +272,8 @@ validate-scene $ {} (:type :image) (:file-path |resources/calcit.png) (:x 20) (:
    and `query examples <namespace/definition>`.
 2. Copy the smallest matching recipe above; do not begin with either the
    Creative Art product preview or the integrated API gallery.
-3. Run `validate-scene` before launching a window. An empty list is the only
-   success result; retain structural paths verbatim when reporting a failure.
+3. Run `validate-scene-structured` before launching a window. An empty list is
+   the only success result; use stable path/code/field data to repair failures.
 4. Run `calcit ./calcit.cirru --check-only`, then `./scripts/check-cookbook.sh`
    for offscreen/public-API coverage, and finally the native smoke when input,
    focus, or accessibility is involved.
@@ -258,8 +285,8 @@ validate-scene $ {} (:type :image) (:file-path |resources/calcit.png) (:x 20) (:
 1. 用 `calcit ./calcit.cirru query defs calcit-paint.core` 与
    `query examples <namespace/definition>` 定位 API。
 2. 复制上面最小的匹配 recipe，不要从 Creative Art 产品预览或综合 API gallery 开始。
-3. 启动窗口前先运行 `validate-scene`。只有空列表表示成功；报告失败时应原样保留
-   结构路径。
+3. 启动窗口前先运行 `validate-scene-structured`。只有空列表表示成功；使用稳定的
+   path/code/field 数据修复失败。
 4. 运行 `calcit ./calcit.cirru --check-only`，再运行 `./scripts/check-cookbook.sh`
    覆盖离屏/公开 API；涉及输入、focus 或无障碍时最后运行 native smoke。
 5. 修改 `calcit.cirru` 前先运行 `calcit docs agents --full`，并使用结构化的
