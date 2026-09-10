@@ -17,6 +17,13 @@ This preview adds no Rust/native API: it deliberately composes the existing
 public Calcit Paint API. / 本预览不新增 Rust/native API，而是有意组合现有公开 Calcit
 Paint API 完成纵向样例。
 
+SVG is intentionally not a public `0.1.0` scene node. The reproducible
+[SVG asset research](docs/svg-assets-research.md) confirms that Skia can render
+local SVG content, while documenting the remaining diagnostic, sizing, cache,
+and binary-build constraints. / SVG 有意不作为 `0.1.0` 的公开 scene node；可复验的
+[SVG 资源调研](docs/svg-assets-research.md)确认 Skia 能绘制本地 SVG，同时记录诊断、
+尺寸、缓存与二进制构建方面仍需解决的约束。
+
 ### Usages / 使用方式
 
 It runs [Calcit](https://github.com/calcit-lang/calcit) and is driven by the canonical `calcit.cirru` Snapshot source.

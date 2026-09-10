@@ -942,6 +942,7 @@ fn render_cached_subtree(
   Ok(image)
 }
 
+/// Draws queued Calcit scene operations on the current window canvas.
 pub fn draw_page(
   canvas: &skia_safe::canvas::Canvas,
   base_messages: Vec<(Box<str>, Edn)>,
@@ -977,6 +978,10 @@ pub fn draw_page(
     if shown_shape {
       // draw_cost(canvas, cost)
     }
+  }
+  #[cfg(feature = "svg-research")]
+  if std::env::var_os("CALCIT_PAINT_SVG_RESEARCH").is_some() {
+    crate::svg_research::render_fixture(canvas, 12.0, 12.0, 192.0, 128.0)?;
   }
   Ok(())
 }

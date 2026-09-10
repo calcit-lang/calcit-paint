@@ -47,6 +47,8 @@ mod hit_test;
 mod key_listener;
 mod primes;
 mod renderer;
+#[cfg(feature = "svg-research")]
+mod svg_research;
 mod touches;
 mod typed_events;
 mod window_lifecycle;

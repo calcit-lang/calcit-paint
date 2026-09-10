@@ -1,0 +1,53 @@
+name: SVG Research
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/svg-research.yaml
+      - Cargo.lock
+      - Cargo.toml
+      - src/fixtures/svg-research.svg
+      - src/lib.rs
+      - src/renderer.rs
+      - src/svg_research.rs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.0
+        with:
+          toolchain: stable
+          components: rustfmt
+          cache: false
+      - uses: calcit-lang/setup-calcit@v1.5.0
+      - name: Install native probe dependencies
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends xvfb xauth libgl1-mesa-dev libgl1-mesa-dri libfontconfig1-dev libfreetype6-dev libxkbcommon-x11-0
+      - name: Resolve Calcit dependencies
+        run: caps --strict --ci
+      - name: Record baseline release
+        run: |
+          /usr/bin/time -p -o baseline-build-time.txt cargo build --release
+          stat -c 'baseline dylib bytes: %s' target/release/libcalcit_paint.so
+          cat baseline-build-time.txt
+      - name: Build and test SVG research feature
+        run: |
+          /usr/bin/time -p -o svg-build-time.txt cargo test --release --features svg-research svg_research
+          cargo build --release --features svg-research
+          stat -c 'SVG-enabled dylib bytes: %s' target/release/libcalcit_paint.so
+          cat svg-build-time.txt
+      - name: Run SVG overlay in a native window
+        run: |
+          mkdir -p dylibs
+          cp target/release/libcalcit_paint.so dylibs/
+          xvfb-run -a env CALCIT_PAINT_SMOKE_ONCE=1 CALCIT_PAINT_SVG_RESEARCH=1 calcit ./calcit.cirru
