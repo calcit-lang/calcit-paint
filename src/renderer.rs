@@ -30,7 +30,7 @@ use skia_safe::textlayout::{
 use skia_safe::{
   color_filters, gradient, image_filters, surfaces, AlphaType, Color, Color4f, ColorSpace, ColorType, CubicResampler,
   Data, EncodedImageFormat, FilterMode, Font, FontMgr, FontStyle, Image, ImageInfo, Paint, PaintStyle, PathBuilder,
-  PathEffect, RRect, Rect, SamplingOptions, Shader, Surface, TextBlob, TileMode,
+  PathEffect, RRect, Rect, SamplingOptions, Shader, Surface, TextBlob, TileMode, Typeface,
 };
 
 #[derive(Clone)]
@@ -359,15 +359,19 @@ pub fn get_bg_color() -> Color {
   c.to_owned()
 }
 
-fn create_text_font(style: &TextStyle, size: f32) -> Result<Font, String> {
-  if !size.is_finite() || size <= 0.0 {
-    return Err(format!("text size must be a finite positive number, got {size}"));
-  }
+fn text_font_style(style: &TextStyle) -> FontStyle {
   let slant = match &style.slant {
     TextSlant::Normal => Slant::Upright,
     TextSlant::Italic => Slant::Italic,
   };
-  let font_style = FontStyle::new(Weight::from(style.weight), Width::NORMAL, slant);
+  FontStyle::new(Weight::from(style.weight), Width::NORMAL, slant)
+}
+
+fn create_text_font(style: &TextStyle, size: f32) -> Result<Font, String> {
+  if !size.is_finite() || size <= 0.0 {
+    return Err(format!("text size must be a finite positive number, got {size}"));
+  }
+  let font_style = text_font_style(style);
   let font_mgr = FontMgr::new();
   // A requested family can be absent on another desktop. In that case retain
   // the requested weight/slant while asking Skia for the platform default.
@@ -376,6 +380,64 @@ fn create_text_font(style: &TextStyle, size: f32) -> Result<Font, String> {
     .or_else(|| font_mgr.legacy_make_typeface(None, font_style))
     .ok_or_else(|| "Skia could not resolve a default typeface".to_owned())?;
   Ok(Font::new(typeface, size))
+}
+
+/// Split text into consecutive runs that share one resolved typeface so glyphs
+/// missing from the requested/primary font (for example CJK or Arabic in a
+/// Latin face) fall back to an installed font instead of rendering tofu.
+fn resolve_text_runs(text: &str, style: &TextStyle, size: f32) -> Result<(Vec<(String, Font)>, Font), String> {
+  let primary = create_text_font(style, size)?;
+  let primary_face = primary.typeface();
+  let font_mgr = FontMgr::new();
+  let font_style = text_font_style(style);
+  let family = style.family.as_deref().unwrap_or("");
+  let fallback_languages = ["zh-Hans", "zh-Hant", "ja", "ko", "ar"];
+
+  let mut fallback_faces: Vec<Typeface> = Vec::new();
+  let mut runs: Vec<(String, Font)> = vec![];
+  let mut current_text = String::new();
+  let mut current_face: Option<Typeface> = None;
+
+  for character in text.chars() {
+    let unichar = character as i32;
+    let face = if primary.unichar_to_glyph(unichar) != 0 {
+      primary_face.clone()
+    } else if let Some(found) = font_mgr.match_family_style_character(family, font_style, &fallback_languages, unichar)
+    {
+      match fallback_faces
+        .iter()
+        .find(|cached| cached.unique_id() == found.unique_id())
+      {
+        Some(cached) => cached.clone(),
+        None => {
+          fallback_faces.push(found.clone());
+          found
+        }
+      }
+    } else {
+      primary_face.clone()
+    };
+
+    let switched = current_face
+      .as_ref()
+      .map(|current| current.unique_id() != face.unique_id())
+      .unwrap_or(true);
+    if switched {
+      if !current_text.is_empty() {
+        if let Some(previous) = current_face.take() {
+          runs.push((std::mem::take(&mut current_text), Font::new(previous, size)));
+        }
+      }
+      current_face = Some(face);
+    }
+    current_text.push(character);
+  }
+  if !current_text.is_empty() {
+    if let Some(face) = current_face.take() {
+      runs.push((current_text, Font::new(face, size)));
+    }
+  }
+  Ok((runs, primary))
 }
 
 fn text_x_offset(align: &TextAlign, width: f32) -> f32 {
@@ -403,8 +465,11 @@ pub fn measure_text(data: &Edn) -> Result<Edn, String> {
   let text = read_string(data, "text")?;
   let size = read_f32(data, "size")?;
   let style = extract_text_style(data)?;
-  let font = create_text_font(&style, size)?;
-  let (width, _) = font.measure_str(&text, None);
+  let (runs, font) = resolve_text_runs(&text, &style, size)?;
+  let width: f32 = runs
+    .iter()
+    .map(|(run, run_font)| run_font.measure_str(run.as_str(), None).0)
+    .sum();
   let (line_height, metrics) = font.metrics();
   let mut result = EdnMapView::default();
   result.insert(tag("width"), Edn::Number(width as f64));
@@ -1140,16 +1205,27 @@ fn draw_shape_with_mode(
       // for now we have to by pass bug in text rendering
       // canvas.set_transform(&Transform::identity());
 
-      let font = create_text_font(style, *size)?;
-      let text_blob = TextBlob::new(text, &font).ok_or_else(|| "failed to create text blob".to_owned())?;
+      let (runs, font) = resolve_text_runs(text, style, *size)?;
 
       let mut paint = Paint::default();
       paint.set_anti_alias(true);
       paint.set_style(PaintStyle::Fill).set_color(*color);
 
-      let x_offset = text_x_offset(align, text_blob.bounds().width());
+      let total_width: f32 = runs
+        .iter()
+        .map(|(run, run_font)| run_font.measure_str(run.as_str(), None).0)
+        .sum();
+      let x_offset = text_x_offset(align, total_width);
       let y = text_baseline_y(position.y, style, &font);
-      canvas.draw_text_blob(text_blob, (position.x + x_offset, y), &paint);
+      let mut x = position.x + x_offset;
+      for (run, run_font) in &runs {
+        if run.is_empty() {
+          continue;
+        }
+        let text_blob = TextBlob::new(run.as_str(), run_font).ok_or_else(|| "failed to create text blob".to_owned())?;
+        canvas.draw_text_blob(text_blob, (x, y), &paint);
+        x += run_font.measure_str(run.as_str(), None).0;
+      }
     }
     Shape::Paragraph {
       position,
@@ -3266,6 +3342,24 @@ mod tests {
       18.0,
     )
     .is_ok());
+  }
+
+  #[test]
+  fn text_runs_preserve_text_and_resolve_fallback_typefaces() {
+    let style = text_style();
+    let (runs, primary) = resolve_text_runs("a中b", &style, 20.0).unwrap();
+    let joined: String = runs.iter().map(|(run, _)| run.as_str()).collect();
+    assert_eq!(joined, "a中b");
+    assert!(!runs.is_empty());
+    assert!(primary.measure_str("a", None).0 > 0.0);
+    let width: f32 = runs
+      .iter()
+      .map(|(run, font)| font.measure_str(run.as_str(), None).0)
+      .sum();
+    assert!(width > 0.0);
+
+    let (empty_runs, _) = resolve_text_runs("", &style, 20.0).unwrap();
+    assert!(empty_runs.is_empty());
   }
 
   #[test]

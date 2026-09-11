@@ -426,10 +426,15 @@ platform-default font is drawn with `:alphabetic` baseline.
 `:alphabetic` preserves Skia's traditional text origin. A requested font family
 that is not installed is not an error: Skia falls back to the platform default
 while retaining the requested weight and style as closely as available.
+Individual characters missing from the resolved face (for example CJK or Arabic
+in a Latin font) are rendered with an installed fallback typeface instead of
+tofu boxes; alignment and `measure-text!` accounting include those fallback runs.
 
 `position` 是所选对齐方式和基线的锚点。`:top`、`:middle`、`:bottom` 会稳定对应的
 视觉位置；`:alphabetic` 则保持 Skia 传统的文字原点。若请求的字体族未安装，不会报错：
-Skia 会回退到平台默认字体，并尽可能保留请求的字重和样式。
+Skia 会回退到平台默认字体，并尽可能保留请求的字重和样式。若某个字符在解析出的字体中缺失
+（例如拉丁字体中的中日韩或阿拉伯字符），会改用系统中已安装的 fallback 字体渲染，而不是
+显示方框；对齐与 `measure-text!` 会把 fallback run 一并计入。
 
 Weights must be integral values in the inclusive `100..900` range; unknown
 styles or baselines are rejected with field-specific errors. For compatibility,
