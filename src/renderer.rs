@@ -32,6 +32,7 @@ use skia_safe::{
   Data, EncodedImageFormat, FilterMode, Font, FontMgr, FontStyle, Image, ImageInfo, Paint, PaintStyle, PathBuilder,
   PathEffect, RRect, Rect, SamplingOptions, Shader, Surface, TextBlob, TileMode, Typeface,
 };
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Clone)]
 struct CachedImage {
@@ -382,27 +383,47 @@ fn create_text_font(style: &TextStyle, size: f32) -> Result<Font, String> {
   Ok(Font::new(typeface, size))
 }
 
+/// BCP47 fallback hints. Skia treats the last non-null entry as the most
+/// significant hint, so the requested `:lang` (when present) is appended last.
+fn text_fallback_languages(style: &TextStyle) -> Vec<&str> {
+  let mut languages = vec!["en", "ja", "ko", "zh-Hant", "zh-Hans"];
+  if let Some(language) = style.language.as_deref() {
+    languages.push(language);
+  }
+  languages
+}
+
+fn text_run_covers(font: &Font, grapheme: &str) -> bool {
+  grapheme
+    .chars()
+    .all(|character| font.unichar_to_glyph(character as i32) != 0)
+}
+
 /// Split text into consecutive runs that share one resolved typeface so glyphs
 /// missing from the requested/primary font (for example CJK or Arabic in a
 /// Latin face) fall back to an installed font instead of rendering tofu.
+/// Grapheme clusters are resolved as a unit so combining marks and ZWJ
+/// sequences are never split across typefaces.
 fn resolve_text_runs(text: &str, style: &TextStyle, size: f32) -> Result<(Vec<(String, Font)>, Font), String> {
   let primary = create_text_font(style, size)?;
   let primary_face = primary.typeface();
   let font_mgr = FontMgr::new();
   let font_style = text_font_style(style);
   let family = style.family.as_deref().unwrap_or("");
-  let fallback_languages = ["zh-Hans", "zh-Hant", "ja", "ko", "ar"];
+  let languages = text_fallback_languages(style);
 
   let mut fallback_faces: Vec<Typeface> = Vec::new();
   let mut runs: Vec<(String, Font)> = vec![];
   let mut current_text = String::new();
   let mut current_face: Option<Typeface> = None;
 
-  for character in text.chars() {
-    let unichar = character as i32;
-    let face = if primary.unichar_to_glyph(unichar) != 0 {
+  for grapheme in text.graphemes(true) {
+    let face = if text_run_covers(&primary, grapheme) {
       primary_face.clone()
-    } else if let Some(found) = font_mgr.match_family_style_character(family, font_style, &fallback_languages, unichar)
+    } else if let Some(found) = grapheme
+      .chars()
+      .find(|character| primary.unichar_to_glyph(*character as i32) == 0)
+      .and_then(|character| font_mgr.match_family_style_character(family, font_style, &languages, character as i32))
     {
       match fallback_faces
         .iter()
@@ -430,7 +451,7 @@ fn resolve_text_runs(text: &str, style: &TextStyle, size: f32) -> Result<(Vec<(S
       }
       current_face = Some(face);
     }
-    current_text.push(character);
+    current_text.push_str(grapheme);
   }
   if !current_text.is_empty() {
     if let Some(face) = current_face.take() {
@@ -2106,6 +2127,7 @@ mod tests {
   fn text_style() -> TextStyle {
     TextStyle {
       family: None,
+      language: None,
       weight: 400,
       slant: TextSlant::Normal,
       baseline: TextBaseline::Alphabetic,
@@ -3105,6 +3127,7 @@ mod tests {
           weight: 300,
           slant: TextSlant::Normal,
           baseline: TextBaseline::Alphabetic,
+          ..
         },
         ..
       })
@@ -3130,6 +3153,7 @@ mod tests {
           weight: 700,
           slant: TextSlant::Italic,
           baseline: TextBaseline::Top,
+          ..
         },
         ..
       })
@@ -3321,6 +3345,7 @@ mod tests {
   fn text_font_falls_back_and_honors_supported_weights() {
     let missing_family = TextStyle {
       family: Some("Calcit Paint Missing Family".into()),
+      language: None,
       weight: 700,
       slant: TextSlant::Italic,
       baseline: TextBaseline::Alphabetic,
@@ -3360,6 +3385,12 @@ mod tests {
 
     let (empty_runs, _) = resolve_text_runs("", &style, 20.0).unwrap();
     assert!(empty_runs.is_empty());
+
+    // A grapheme cluster stays in one run even when it mixes covered and
+    // uncovered scalars, so combining marks are never detached from the base.
+    let (cluster_runs, _) = resolve_text_runs("a\u{0301}", &style, 20.0).unwrap();
+    assert_eq!(cluster_runs.len(), 1);
+    assert_eq!(cluster_runs[0].0, "a\u{0301}");
   }
 
   #[test]

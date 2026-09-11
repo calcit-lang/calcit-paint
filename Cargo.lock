@@ -558,6 +558,7 @@ dependencies = [
  "raw-window-handle",
  "rfd",
  "skia-safe",
+ "unicode-segmentation",
  "winit",
 ]
 
