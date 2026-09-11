@@ -7,11 +7,11 @@
   },
   "metrics": {
     "typeNone": 0,
-    "typeNotFull": 6,
-    "schemaDynamic": 6,
+    "typeNotFull": 11,
+    "schemaDynamic": 11,
     "codeDynamic": 0,
     "codeNil": 0,
-    "unresolved": 6,
+    "unresolved": 11,
     "declaredOptional": 0,
     "deprecatedCalls": 0,
     "unsafeCoerce": 0
@@ -73,6 +73,61 @@
       "unsafeCoerce": 0
     },
     "calcit-paint.creative-art/build-art-scene": {
+      "typeNone": 0,
+      "typeNotFull": 1,
+      "schemaDynamic": 1,
+      "codeDynamic": 0,
+      "codeNil": 0,
+      "unresolved": 1,
+      "declaredOptional": 0,
+      "deprecatedCalls": 0,
+      "unsafeCoerce": 0
+    },
+    "calcit-paint.ui/button": {
+      "typeNone": 0,
+      "typeNotFull": 1,
+      "schemaDynamic": 1,
+      "codeDynamic": 0,
+      "codeNil": 0,
+      "unresolved": 1,
+      "declaredOptional": 0,
+      "deprecatedCalls": 0,
+      "unsafeCoerce": 0
+    },
+    "calcit-paint.ui/demo-scene": {
+      "typeNone": 0,
+      "typeNotFull": 1,
+      "schemaDynamic": 1,
+      "codeDynamic": 0,
+      "codeNil": 0,
+      "unresolved": 1,
+      "declaredOptional": 0,
+      "deprecatedCalls": 0,
+      "unsafeCoerce": 0
+    },
+    "calcit-paint.ui/icon-label": {
+      "typeNone": 0,
+      "typeNotFull": 1,
+      "schemaDynamic": 1,
+      "codeDynamic": 0,
+      "codeNil": 0,
+      "unresolved": 1,
+      "declaredOptional": 0,
+      "deprecatedCalls": 0,
+      "unsafeCoerce": 0
+    },
+    "calcit-paint.ui/text-input-focus-area": {
+      "typeNone": 0,
+      "typeNotFull": 1,
+      "schemaDynamic": 1,
+      "codeDynamic": 0,
+      "codeNil": 0,
+      "unresolved": 1,
+      "declaredOptional": 0,
+      "deprecatedCalls": 0,
+      "unsafeCoerce": 0
+    },
+    "calcit-paint.ui/touch-container": {
       "typeNone": 0,
       "typeNotFull": 1,
       "schemaDynamic": 1,

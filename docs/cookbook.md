@@ -45,6 +45,7 @@ For a fast non-interactive validation loop, run the checked cookbook smoke:
 | Accessibility / 无障碍 | `:accessibility` on a touch/focus area | native semantic-tree smoke / 原生语义树 smoke |
 | Offscreen snapshots / 离屏快照 | `render-to-png!` | PNG signature and pixel tests / PNG 签名与像素测试 |
 | Local assets / 本地资源 | `:image` | `validate-scene` then native/offscreen render / 先校验再原生/离屏绘制 |
+| Opt-in control builders / 可选控件构造辅助 | `button`, `touch-container`, `text-input-focus-area`, `icon-label` | `validate-scene` + `check-cookbook.sh` |
 
 Use `calcit ./calcit.cirru query examples calcit-paint.core/validate-scene`
 for an API-attached validation recipe. This document is the stable index for
@@ -263,6 +264,39 @@ Discover and execute the full repair example after `./build.sh`:
 calcit ./calcit.cirru query examples calcit-paint.core/validate-scene-structured
 calcit ./calcit.cirru analyze check-examples --ns calcit-paint.core --def validate-scene-structured
 ```
+
+## 10. Opt-in control builders / 可选控件构造辅助
+
+Expected result: an empty diagnostics list. Builders return ordinary scene
+maps, so the composed scene validates and renders like any hand-written one.
+Optional fields are passed as `(%some value)`.
+
+预期结果：空诊断列表。builder 返回普通 scene map，因此组合场景与手写场景一样可校验、可绘制。
+可选字段传值使用 `(%some value)`。
+
+```cirru.no-run
+ns cookbook.ui-builders $ :require
+  calcit-paint.ui :refer $ button ButtonOptions touch-container TouchContainerOptions text-input-focus-area TextInputOptions icon-label IconLabelOptions demo-scene
+  calcit-paint.core :refer $ validate-scene
+
+let
+    icon $ icon-label
+      IconLabelOptions :label |Asset :x 70 :y 190 :gap $ %some 34
+    scene $ {} (:type :group)
+      :children $ []
+        button $ ButtonOptions :id |save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action (%some :save)
+        touch-container $ TouchContainerOptions :id |card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children
+          %some $ [] icon
+        text-input-focus-area $ TextInputOptions :id |editor :label |Editor :value |Draft :x 120 :y 260 :dx 220 :dy 40
+  validate-scene scene
+```
+
+The builders are discoverable through `calcit query examples
+calcit-paint.ui/button` and the other four definitions. `demo-scene` composes
+all of them; `./scripts/check-cookbook.sh` validates and renders it.
+
+这些 builder 可通过 `calcit query examples calcit-paint.ui/button` 及其余四个定义发现。
+`demo-scene` 组合全部 builder；`./scripts/check-cookbook.sh` 会校验并绘制它。
 
 ## Agent repair loop / Agent 修复闭环
 

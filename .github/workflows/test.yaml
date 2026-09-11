@@ -55,6 +55,11 @@ jobs:
           calcit analyze check-examples --ns calcit-paint.core --def validate-scene
           calcit analyze check-examples --ns calcit-paint.core --def validate-scene-structured
           calcit analyze check-examples --ns calcit-paint.creative-art --def build-art-scene
+          calcit analyze check-examples --ns calcit-paint.ui --def button
+          calcit analyze check-examples --ns calcit-paint.ui --def touch-container
+          calcit analyze check-examples --ns calcit-paint.ui --def text-input-focus-area
+          calcit analyze check-examples --ns calcit-paint.ui --def icon-label
+          calcit analyze check-examples --ns calcit-paint.ui --def demo-scene
       - name: Audit C-safe exports
         run: |
           symbols=$(nm -D --defined-only dylibs/libcalcit_paint.so | awk '{print $3}')

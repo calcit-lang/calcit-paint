@@ -1759,6 +1759,328 @@
         :code $ quote
           ns calcit-paint.main $ :require
             calcit-paint.core :refer $ WindowOptions PaintEvent PaintTarget PaintFileDialogOptions PaintFileDialogFilter PaintFileDialogEvent launch-canvas-typed! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene request-frame! set-window-title! request-window-size! close-window! read-clipboard-text! write-clipboard-text! open-file-dialog! save-file-dialog!
+    'calcit-paint.ui $ %{} 'FileEntry
+      :defs $ {}
+        'ButtonOptions $ %{} 'CodeEntry (:doc "|Options for an accessible touch button: explicit id/label/geometry plus optional target, enabled state, and colors. / 可访问触摸按钮的选项：显式 id/label/geometry，以及可选 target、enabled 状态与颜色。")
+          :code $ quote
+            defstruct ButtonOptions (:id 'String) (:label 'String) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
+              :action $ :: 'Option 'Dynamic
+              :path $ :: 'Option 'Dynamic
+              :data $ :: 'Option 'Dynamic
+              :enabled? $ :: 'Option 'Bool
+              :fill-color $ :: 'Option (:: 'List 'Number)
+              :text-color $ :: 'Option (:: 'List 'Number)
+              :text-size $ :: 'Option 'Number
+          :examples $ []
+          :schema $ :: 'StructDef
+        'IconLabelOptions $ %{} 'CodeEntry (:doc "|Options for a decorative icon + label group. / 装饰性 icon + label group 的选项。")
+          :code $ quote
+            defstruct IconLabelOptions (:label 'String) (:x 'Number) (:y 'Number)
+              :gap $ :: 'Option 'Number
+              :icon-radius $ :: 'Option 'Number
+              :icon-color $ :: 'Option (:: 'List 'Number)
+              :text-color $ :: 'Option (:: 'List 'Number)
+              :text-size $ :: 'Option 'Number
+              :baseline $ :: 'Option 'Tag
+          :examples $ []
+          :schema $ :: 'StructDef
+        'TextInputOptions $ %{} 'CodeEntry (:doc "|Options for an explicit :text-input focus area with an accessibility value. / 显式 :text-input focus area 的选项，带无障碍 value。")
+          :code $ quote
+            defstruct TextInputOptions (:id 'String) (:label 'String) (:value 'String) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
+              :tab-index $ :: 'Option 'Number
+              :action $ :: 'Option 'Dynamic
+              :path $ :: 'Option 'Dynamic
+              :data $ :: 'Option 'Dynamic
+              :enabled? $ :: 'Option 'Bool
+              :fill-color $ :: 'Option (:: 'List 'Number)
+              :line-color $ :: 'Option (:: 'List 'Number)
+              :line-width $ :: 'Option 'Number
+              :text-color $ :: 'Option (:: 'List 'Number)
+              :text-size $ :: 'Option 'Number
+          :examples $ []
+          :schema $ :: 'StructDef
+        'TouchContainerOptions $ %{} 'CodeEntry (:doc "|Options for a labelled accessible touch container, including an optional :role, stroke, and nested children. / 带标签的可访问 touch 容器选项，包含可选 :role、描边与嵌套 children。")
+          :code $ quote
+            defstruct TouchContainerOptions (:id 'String) (:label 'String) (:role 'Tag) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
+              :action $ :: 'Option 'Dynamic
+              :path $ :: 'Option 'Dynamic
+              :data $ :: 'Option 'Dynamic
+              :cursor $ :: 'Option 'Tag
+              :enabled? $ :: 'Option 'Bool
+              :fill-color $ :: 'Option (:: 'List 'Number)
+              :line-color $ :: 'Option (:: 'List 'Number)
+              :line-width $ :: 'Option 'Number
+              :children $ :: 'Option (:: 'List 'Dynamic)
+              :text-color $ :: 'Option (:: 'List 'Number)
+              :text-size $ :: 'Option 'Number
+          :examples $ []
+          :schema $ :: 'StructDef
+        'button $ %{} 'CodeEntry (:doc "|Build one accessible touch-area button scene map with a centered label; :action/:path/:data stay explicit and are never hidden. / 构建一个带居中标签的可访问 touch-area button scene map；:action/:path/:data 保持显式，不会被隐藏。")
+          :code $ quote
+            defn button (options)
+              hint-fn $ {}
+                :args $ [] 'calcit-paint.ui/ButtonOptions
+                :return $ :: 'Map 'Tag 'Dynamic
+              let
+                  id $ :id options
+                  label $ :label options
+                  x $ :x options
+                  y $ :y options
+                  fill-color $ .unwrap-or (:fill-color options) ([] 205 72 52)
+                  text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
+                  text-size $ .unwrap-or (:text-size options) 14
+                  enabled? $ .unwrap-or (:enabled? options) true
+                  target $ merge
+                    if
+                      option:some? $ :action options
+                      {} $ :action
+                        option:unwrap $ :action options
+                      {}
+                    if
+                      option:some? $ :path options
+                      {} $ :path
+                        option:unwrap $ :path options
+                      {}
+                    if
+                      option:some? $ :data options
+                      {} $ :data
+                        option:unwrap $ :data options
+                      {}
+                  base $ {} (:type :touch-area)
+                    :position $ [] x y
+                    :dx $ :dx options
+                    :dy $ :dy options
+                    :cursor :pointer
+                    :fill-color fill-color
+                    :accessibility $ {} (:id id) (:role :button) (:label label) (:enabled? enabled?)
+                    :children $ []
+                      {} (:type :text) (:text label)
+                        :position $ [] x y
+                        :color text-color
+                        :size text-size
+                        :baseline :middle
+                        :align :center
+                merge base target
+          :examples $ []
+            quote $ let
+                scene $ button (ButtonOptions :id |example-button :label |Save :x 40 :y 40 :dx 120 :dy 36)
+              assert= ([]) (validate-scene scene)
+          :schema $ :: 'Fn
+            {}
+              :args $ [] 'calcit-paint.ui/ButtonOptions
+              :return $ :: 'Map 'Tag 'Dynamic
+          :tests $ []
+            %{} 'TestEntry (:name |builds-valid-button)
+              :code $ quote
+                let
+                    scene $ button (ButtonOptions :id |test-button :label |Test :x 1 :y 2 :dx 10 :dy 20)
+                  assert= ([]) (validate-scene scene)
+        'demo-scene $ %{} 'CodeEntry (:doc "|Compose all scene builders into one validated scene that also works with render-to-png!. / 将所有 scene builder 组合为一个可校验、也可直接用于 render-to-png! 的场景。")
+          :code $ quote
+            defn demo-scene ()
+              hint-fn $ {}
+                :args $ []
+                :return $ :: 'Map 'Tag 'Dynamic
+              let
+                  icon $ icon-label
+                    IconLabelOptions :label |Asset :x 70 :y 230 :gap $ %some 34
+                {} (:type :group)
+                  :children $ []
+                    button $ ButtonOptions :id |ui-demo-save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action (%some :save)
+                    touch-container $ TouchContainerOptions :id |ui-demo-card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children
+                      %some $ [] icon
+                    text-input-focus-area $ TextInputOptions :id |ui-demo-editor :label |Editor :value |Draft :x 120 :y 320 :dx 220 :dy 40 :action (%some :edit)
+          :examples $ []
+            quote $ assert= ([])
+              validate-scene $ demo-scene
+          :schema $ :: 'Fn
+            {}
+              :args $ []
+              :return $ :: 'Map 'Tag 'Dynamic
+          :tests $ []
+            %{} 'TestEntry (:name |composes-valid-scene)
+              :code $ quote
+                assert= ([])
+                  validate-scene $ demo-scene
+        'icon-label $ %{} 'CodeEntry (:doc "|Build a visual-only icon + label group; it adds no interaction or accessibility semantics. / 构建纯视觉 icon + label group；不添加交互或无障碍语义。")
+          :code $ quote
+            defn icon-label (options)
+              hint-fn $ {}
+                :args $ [] 'calcit-paint.ui/IconLabelOptions
+                :return $ :: 'Map 'Tag 'Dynamic
+              let
+                  label $ :label options
+                  x $ :x options
+                  y $ :y options
+                  gap $ .unwrap-or (:gap options) 34
+                  icon-radius $ .unwrap-or (:icon-radius options) 12
+                  icon-color $ .unwrap-or (:icon-color options) ([] 205 72 52)
+                  text-color $ .unwrap-or (:text-color options) ([] 0 0 96)
+                  text-size $ .unwrap-or (:text-size options) 14
+                  baseline $ .unwrap-or (:baseline options) :middle
+                {} (:type :group)
+                  :children $ []
+                    {} (:type :circle)
+                      :position $ [] x y
+                      :radius icon-radius
+                      :fill-color icon-color
+                    {} (:type :text) (:text label)
+                      :position $ [] (+ x gap) y
+                      :color text-color
+                      :size text-size
+                      :baseline baseline
+                      :align :left
+          :examples $ []
+            quote $ let
+                scene $ icon-label (IconLabelOptions :label |Asset :x 40 :y 220)
+              assert= ([]) (validate-scene scene)
+          :schema $ :: 'Fn
+            {}
+              :args $ [] 'calcit-paint.ui/IconLabelOptions
+              :return $ :: 'Map 'Tag 'Dynamic
+          :tests $ []
+            %{} 'TestEntry (:name |builds-visual-group)
+              :code $ quote
+                let
+                    scene $ icon-label (IconLabelOptions :label |Asset :x 1 :y 2)
+                  assert= ([]) (validate-scene scene)
+        'text-input-focus-area $ %{} 'CodeEntry (:doc "|Build a focus-area text input with :text-input? true and a focusable :text-input accessibility node. / 构建 :text-input? true 且可聚焦 :text-input 无障碍节点的 focus-area 文本输入。")
+          :code $ quote
+            defn text-input-focus-area (options)
+              hint-fn $ {}
+                :args $ [] 'calcit-paint.ui/TextInputOptions
+                :return $ :: 'Map 'Tag 'Dynamic
+              let
+                  id $ :id options
+                  label $ :label options
+                  value $ :value options
+                  x $ :x options
+                  y $ :y options
+                  tab-index $ .unwrap-or (:tab-index options) 0
+                  fill-color $ .unwrap-or (:fill-color options) ([] 215 70 45)
+                  line-color $ .unwrap-or (:line-color options) ([] 215 88 76)
+                  line-width $ .unwrap-or (:line-width options) 3
+                  text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
+                  text-size $ .unwrap-or (:text-size options) 18
+                  enabled? $ .unwrap-or (:enabled? options) true
+                  target $ merge
+                    if
+                      option:some? $ :action options
+                      {} $ :action
+                        option:unwrap $ :action options
+                      {}
+                    if
+                      option:some? $ :path options
+                      {} $ :path
+                        option:unwrap $ :path options
+                      {}
+                    if
+                      option:some? $ :data options
+                      {} $ :data
+                        option:unwrap $ :data options
+                      {}
+                  base $ {} (:type :focus-area) (:focus-id id) (:tab-index tab-index) (:text-input? true)
+                    :position $ [] x y
+                    :dx $ :dx options
+                    :dy $ :dy options
+                    :fill-color fill-color
+                    :line-color line-color
+                    :line-width line-width
+                    :accessibility $ {} (:id id) (:role :text-input) (:label label) (:value value) (:enabled? enabled?) (:focusable? true)
+                    :children $ []
+                      {} (:type :text) (:text value)
+                        :position $ [] x y
+                        :color text-color
+                        :size text-size
+                        :baseline :middle
+                        :align :center
+                merge base target
+          :examples $ []
+            quote $ let
+                scene $ text-input-focus-area (TextInputOptions :id |example-editor :label |Editor :value |Draft :x 40 :y 160 :dx 220 :dy 40)
+              assert= ([]) (validate-scene scene)
+          :schema $ :: 'Fn
+            {}
+              :args $ [] 'calcit-paint.ui/TextInputOptions
+              :return $ :: 'Map 'Tag 'Dynamic
+          :tests $ []
+            %{} 'TestEntry (:name |builds-valid-text-input)
+              :code $ quote
+                let
+                    scene $ text-input-focus-area (TextInputOptions :id |test-editor :label |Editor :value |Draft :x 1 :y 2 :dx 10 :dy 20)
+                  assert= ([]) (validate-scene scene)
+        'touch-container $ %{} 'CodeEntry (:doc "|Build a labelled touch-area container; children use scene coordinates and are drawn above the label. / 构建带标签的 touch-area 容器；children 使用场景坐标并绘制在标签之上。")
+          :code $ quote
+            defn touch-container (options)
+              hint-fn $ {}
+                :args $ [] 'calcit-paint.ui/TouchContainerOptions
+                :return $ :: 'Map 'Tag 'Dynamic
+              let
+                  id $ :id options
+                  label $ :label options
+                  role $ :role options
+                  x $ :x options
+                  y $ :y options
+                  fill-color $ .unwrap-or (:fill-color options) ([] 215 70 50)
+                  text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
+                  text-size $ .unwrap-or (:text-size options) 14
+                  enabled? $ .unwrap-or (:enabled? options) true
+                  children $ .unwrap-or (:children options) ([])
+                  label-child $ {} (:type :text) (:text label)
+                    :position $ [] x y
+                    :color text-color
+                    :size text-size
+                    :baseline :middle
+                    :align :center
+                  stroke $ if
+                    option:some? $ :line-color options
+                    {}
+                      :line-color $ option:unwrap (:line-color options)
+                      :line-width $ .unwrap-or (:line-width options) 1
+                    {}
+                  target $ merge
+                    if
+                      option:some? $ :action options
+                      {} $ :action
+                        option:unwrap $ :action options
+                      {}
+                    if
+                      option:some? $ :path options
+                      {} $ :path
+                        option:unwrap $ :path options
+                      {}
+                    if
+                      option:some? $ :data options
+                      {} $ :data
+                        option:unwrap $ :data options
+                      {}
+                  base $ {} (:type :touch-area)
+                    :position $ [] x y
+                    :dx $ :dx options
+                    :dy $ :dy options
+                    :cursor $ .unwrap-or (:cursor options) :default
+                    :fill-color fill-color
+                    :accessibility $ {} (:id id) (:role role) (:label label) (:enabled? enabled?)
+                    :children $ concat ([] label-child) children
+                merge (merge base stroke) target
+          :examples $ []
+            quote $ let
+                scene $ touch-container (TouchContainerOptions :id |example-card :label |Card :role :button :x 40 :y 100 :dx 160 :dy 48)
+              assert= ([]) (validate-scene scene)
+          :schema $ :: 'Fn
+            {}
+              :args $ [] 'calcit-paint.ui/TouchContainerOptions
+              :return $ :: 'Map 'Tag 'Dynamic
+          :tests $ []
+            %{} 'TestEntry (:name |builds-valid-container)
+              :code $ quote
+                let
+                    scene $ touch-container (TouchContainerOptions :id |test-card :label |Card :role :button :x 1 :y 2 :dx 10 :dy 20)
+                  assert= ([]) (validate-scene scene)
+      :ns $ %{} 'NsEntry (:doc |)
+        :code $ quote
+          ns calcit-paint.ui $ :require
+            calcit-paint.core :refer $ validate-scene
     'calcit-paint.util $ %{} 'FileEntry
       :defs $ {}
         'get-dylib-ext $ %{} 'CodeEntry (:doc |)

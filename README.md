@@ -803,6 +803,58 @@ children 使用周围场景坐标系：交互容器的 `:position` 只定义自�
 ```
 
 
+#### Opt-in scene builders / 可选场景构造辅助
+
+`calcit-paint.ui` provides opt-in builders for common controls. Each builder is
+a pure Calcit function returning the same public scene map you would write by
+hand, so the result still flows through `validate-scene`, `render-canvas!`, and
+`render-to-png!` unchanged. Builders keep `:action`/`:path`/`:data`, focus, and
+accessibility explicit and never hide them.
+
+`calcit-paint.ui` 提供可选常用控件 builder。每个 builder 都是纯 Calcit 函数，返回与手写一致
+的公开 scene map，因此结果仍可直接用于 `validate-scene`、`render-canvas!` 与
+`render-to-png!`。builder 保持 `:action`/`:path`/`:data`、focus 与无障碍语义显式，不会隐藏它们。
+
+| Builder / 构造辅助 | Output / 输出 |
+| --- | --- |
+| `button` + `ButtonOptions` | Accessible touch-area button with a centered label. / 带居中标签的可访问 touch-area 按钮。 |
+| `touch-container` + `TouchContainerOptions` | Labelled touch-area container with configurable `:role`, stroke, and children. / 带标签的 touch-area 容器，可配置 `:role`、描边与 children。 |
+| `text-input-focus-area` + `TextInputOptions` | `:text-input?` focus area with a focusable `:text-input` semantic node and value. / `:text-input?` focus area，带可聚焦 `:text-input` 语义节点与 value。 |
+| `icon-label` + `IconLabelOptions` | Visual-only icon + label group with no interaction or accessibility semantics. / 纯视觉 icon + label group，无交互或无障碍语义。 |
+| `demo-scene` | Composition of all builders into one validated scene. / 将所有 builder 组合为一个可校验场景。 |
+
+Use builders for consistent, accessible geometry and defaults on common
+controls; use a raw scene map when you need full control or a shape the helpers
+do not cover. Optional target fields stay `Option<Dynamic>` in the options
+struct and may be omitted; a present optional struct field is passed as
+`(%some value)`.
+
+需要一致、可访问的常用控件时使用 builder；需要完全控制或 helper 未覆盖的图元时直接写 scene
+map。可选 target 字段在选项 struct 中是 `Option<Dynamic>`，可省略；需要传值时写成 `(%some value)`。
+
+```cirru.no-check
+ns app.ui $ :require
+  calcit-paint.ui :refer $ button ButtonOptions touch-container TouchContainerOptions icon-label IconLabelOptions
+  calcit-paint.core :refer $ validate-scene
+
+let
+    card-icon $ icon-label
+      IconLabelOptions :label |Asset :x 70 :y 190 :gap $ %some 34
+    scene $ {} (:type :group)
+      :children $ []
+        button $ ButtonOptions :id |save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action (%some :save)
+        touch-container $ TouchContainerOptions :id |card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children
+          %some $ [] card-icon
+  assert= ([]) (validate-scene scene)
+```
+
+`calcit query examples calcit-paint.ui/button` (and the other four builders)
+shows a minimal runnable validation example. `./scripts/check-cookbook.sh`
+executes `demo-scene` end to end.
+
+`calcit query examples calcit-paint.ui/button`（以及其余四个 builder）展示最小可运行校验示例。
+`./scripts/check-cookbook.sh` 会端到端执行 `demo-scene`。
+
 ### Offscreen rendering and snapshots / 离屏渲染与快照
 
 `render-to-png!` renders the same shape maps through a CPU raster surface and
