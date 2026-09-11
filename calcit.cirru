@@ -8,10 +8,13 @@
   :files $ {}
     'calcit-paint.core $ %{} 'FileEntry
       :defs $ {}
-        'PaintAccessibilityActionEvent $ %{} 'CodeEntry (:doc "|Typed accessibility request. Operation is :focus, :activate, or :set-value; only :set-value carries an optional requested String value. / 强类型无障碍请求。operation 为 :focus、:activate 或 :set-value；仅 :set-value 携带可选的请求 String 值。")
+        'PaintAccessibilityActionEvent $ %{} 'CodeEntry (:doc "|Typed accessibility request. Operation is :focus, :activate, :set-value, :set-text-selection, or :replace-selected-text; :set-value uses value, selection operations use Unicode scalar selection-start/selection-end, and replacement adds text. / 强类型无障碍请求。operation 为 :focus、:activate、:set-value、:set-text-selection 或 :replace-selected-text；:set-value 使用 value，selection 操作使用 Unicode scalar 的 selection-start/selection-end，替换额外携带 text。")
           :code $ quote
             defstruct PaintAccessibilityActionEvent (:id 'String) (:operation 'Tag) (:target 'calcit-paint.core/PaintTarget)
               :value $ :: 'Option 'String
+              :selection-start $ :: 'Option 'Number
+              :selection-end $ :: 'Option 'Number
+              :text $ :: 'Option 'String
           :examples $ []
           :schema $ :: 'StructDef
         'PaintEvent $ %{} 'CodeEntry (:doc "|Nominal exhaustive event protocol for typed Paint callbacks, including system theme observations. / 用于强类型 Paint callback 的 nominal 穷尽事件协议，包含系统主题观测。")
@@ -268,7 +271,7 @@
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ [] 'calcit-paint.core/PaintFileDialogOptions
-        'paint-event-from-ffi $ %{} 'CodeEntry (:doc "|Strictly decode one native typed-event envelope into the public nominal protocol, validating system theme tags. / 严格将原生强类型事件 envelope 解码为公开 nominal 协议，并校验系统主题 tag。")
+        'paint-event-from-ffi $ %{} 'CodeEntry (:doc "|Strictly decode one native typed-event envelope into the public nominal protocol, validating system theme tags and accessibility selection payloads. / 严格将原生强类型事件 envelope 解码为公开 nominal 协议，并校验系统主题 tag 与无障碍 selection payload。")
           :code $ quote
             defn paint-event-from-ffi (event)
               match event
@@ -357,6 +360,19 @@
                         match value
                           (:some _) (PaintEvent :accessibility-action action)
                           (:none) (raise |typed-set-value-accessibility-action-requires-value)
+                      :set-text-selection $ if
+                        and
+                          option:some? $ :selection-start action
+                          option:some? $ :selection-end action
+                        PaintEvent :accessibility-action action
+                        raise |typed-set-text-selection-accessibility-action-requires-selection
+                      :replace-selected-text $ if
+                        and
+                          option:some? $ :selection-start action
+                          option:some? $ :selection-end action
+                          option:some? $ :text action
+                        PaintEvent :accessibility-action action
+                        raise |typed-replace-selected-text-accessibility-action-requires-selection-and-text
                 (:window-focus) (PaintEvent :window-focus)
                 (:window-blur) (PaintEvent :window-blur)
                 (:resize payload)
@@ -493,6 +509,35 @@
                         assert= :set-value $ :operation payload
                         assert= |Updated $ .unwrap (:value payload)
                     _ $ raise |expected-accessibility-set-value
+            %{} 'TestEntry (:name |decodes-set-text-selection)
+              :code $ quote
+                let
+                    event $ paint-event-from-ffi
+                      PaintEventFfi :accessibility-action $ {} (:id |ed) (:operation :set-text-selection) (:selection-start 1) (:selection-end 3)
+                        :target $ {}
+                  match event
+                    (:accessibility-action payload)
+                      do
+                        assert= :set-text-selection $ :operation payload
+                        assert= (%some 1) (:selection-start payload)
+                        assert= (%some 3) (:selection-end payload)
+                        , &unit
+                    _ $ raise |expected-accessibility-action
+            %{} 'TestEntry (:name |decodes-replace-selected-text)
+              :code $ quote
+                let
+                    event $ paint-event-from-ffi
+                      PaintEventFfi :accessibility-action $ {} (:id |ed) (:operation :replace-selected-text) (:selection-start 1) (:selection-end 3) (:text |XY)
+                        :target $ {}
+                  match event
+                    (:accessibility-action payload)
+                      do
+                        assert= :replace-selected-text $ :operation payload
+                        assert= (%some 1) (:selection-start payload)
+                        assert= (%some 3) (:selection-end payload)
+                        assert= (%some |XY) (:text payload)
+                        , &unit
+                    _ $ raise |expected-accessibility-action
         'push-drawing-data! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn push-drawing-data! (op data)
@@ -987,6 +1032,14 @@
           :code $ quote (defatom *pointer-status |hover:idle)
           :examples $ []
           :schema $ :: 'Ref 'String
+        '*selection-end $ %{} 'CodeEntry (:doc |)
+          :code $ quote (defatom *selection-end 0)
+          :examples $ []
+          :schema $ :: 'Ref 'Number
+        '*selection-start $ %{} 'CodeEntry (:doc |)
+          :code $ quote (defatom *selection-start 0)
+          :examples $ []
+          :schema $ :: 'Ref 'Number
         '*system-theme $ %{} 'CodeEntry (:doc |)
           :code $ quote (defatom *system-theme :unknown)
           :examples $ []
@@ -1122,11 +1175,27 @@
                 (:file-dialog-result payload) (handle-file-dialog-event! payload)
                 (:accessibility-action payload)
                   do
-                    if
-                      = (:operation payload) :set-value
-                      let
+                    case-default (:operation payload) (do &unit)
+                      :set-value $ let
                           value $ :value payload
-                        reset! *accessibility-value $ value.unwrap-or @*accessibility-value
+                        match value
+                          (:some next-value)
+                            do (reset! *accessibility-value next-value)
+                              reset! *selection-start $ count next-value
+                              reset! *selection-end $ count next-value
+                          (:none) &unit
+                      :set-text-selection $ do
+                        reset! *selection-start $ .unwrap-or (:selection-start payload) @*selection-start
+                        reset! *selection-end $ .unwrap-or (:selection-end payload) @*selection-end
+                      :replace-selected-text $ let
+                          start $ .unwrap-or (:selection-start payload) @*selection-start
+                          end $ .unwrap-or (:selection-end payload) @*selection-end
+                          replacement $ .unwrap-or (:text payload) |
+                          next-value $ str (slice @*accessibility-value 0 start) replacement
+                            slice @*accessibility-value end $ count @*accessibility-value
+                        do (reset! *accessibility-value next-value)
+                          reset! *selection-start $ + start (count replacement)
+                          reset! *selection-end @*selection-start
                     handle-target-event! (:operation payload) (:target payload) false
                     println $ str "|accessibility " (:operation payload) "|: " (:id payload)
                     render! false
@@ -1504,9 +1573,9 @@
                         :fill-color $ [] 215 70 45
                         :line-color $ [] 215 88 76
                         :line-width 3
-                        :accessibility $ {} (:id |field-a) (:role :text-input) (:label "|Focus A IME input") (:value @*accessibility-value) (:enabled? true) (:focusable? true)
+                        :accessibility $ {} (:id |field-a) (:role :text-input) (:label "|Focus A IME input") (:value @*accessibility-value) (:selection-start @*selection-start) (:selection-end @*selection-end) (:enabled? true) (:focusable? true)
                       {} (:type :text)
-                        :text $ str "|Focus A · " @*accessibility-value
+                        :text $ str "|Focus A · " @*accessibility-value " [" @*selection-start : @*selection-end ]
                         :position $ [] 180 450
                         :color $ [] 0 0 98
                         :size 18

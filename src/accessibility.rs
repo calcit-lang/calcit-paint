@@ -1,6 +1,6 @@
 use std::{collections::HashSet, sync::RwLock};
 
-use accesskit::{Action, Node, NodeId, Rect, Role, Tree, TreeId, TreeUpdate};
+use accesskit::{Action, Node, NodeId, Rect, Role, TextPosition, TextSelection, Tree, TreeId, TreeUpdate};
 use euclid::{Point2D, Vector2D};
 
 use crate::{
@@ -106,11 +106,14 @@ pub fn tree_update() -> TreeUpdate {
   let mut root = Node::new(Role::Window);
   root.set_children(child_ids);
   let mut update_nodes = vec![(ROOT_NODE_ID, root)];
-  update_nodes.extend(
-    nodes
-      .iter()
-      .map(|node| (node_id(&node.properties.id), build_node(node))),
-  );
+  for node in &nodes {
+    let text_run = build_text_run(node);
+    let text_run_id = text_run.as_ref().map(|(id, _)| *id);
+    update_nodes.push((node_id(&node.properties.id), build_node(node, text_run_id)));
+    if let Some(text_run) = text_run {
+      update_nodes.push(text_run);
+    }
+  }
   TreeUpdate {
     nodes: update_nodes,
     tree: Some(Tree::new(ROOT_NODE_ID)),
@@ -119,7 +122,23 @@ pub fn tree_update() -> TreeUpdate {
   }
 }
 
-fn build_node(node: &SemanticNode) -> Node {
+pub fn text_run_id(id: &str) -> NodeId {
+  node_id(&format!("{id}#text-run"))
+}
+
+fn build_text_run(node: &SemanticNode) -> Option<(NodeId, Node)> {
+  let value = node.properties.value.as_ref()?;
+  if node.properties.role != AccessibilityRole::TextInput {
+    return None;
+  }
+  let mut run = Node::new(Role::TextRun);
+  run.set_value(value.clone());
+  let lengths: Vec<u8> = value.chars().map(|character| character.len_utf8() as u8).collect();
+  run.set_character_lengths(lengths);
+  Some((text_run_id(&node.properties.id), run))
+}
+
+fn build_node(node: &SemanticNode, text_run: Option<NodeId>) -> Node {
   let mut result = Node::new(match node.properties.role {
     AccessibilityRole::Button => Role::Button,
     AccessibilityRole::TextInput => Role::TextInput,
@@ -128,6 +147,23 @@ fn build_node(node: &SemanticNode) -> Node {
   result.set_label(node.properties.label.clone());
   if let Some(value) = &node.properties.value {
     result.set_value(value.clone());
+  }
+  if node.properties.role == AccessibilityRole::TextInput {
+    if let Some(text_run) = text_run {
+      result.set_children(vec![text_run]);
+      if let Some(selection) = node.properties.selection {
+        result.set_text_selection(TextSelection {
+          anchor: TextPosition {
+            node: text_run,
+            character_index: selection.start,
+          },
+          focus: TextPosition {
+            node: text_run,
+            character_index: selection.end,
+          },
+        });
+      }
+    }
   }
   result.set_bounds(Rect::new(
     node.bounds.x0 as f64,
@@ -144,6 +180,8 @@ fn build_node(node: &SemanticNode) -> Node {
     }
     if node.properties.role == AccessibilityRole::TextInput && node.focus_id.is_some() {
       result.add_action(Action::SetValue);
+      result.add_action(Action::SetTextSelection);
+      result.add_action(Action::ReplaceSelectedText);
     }
   }
   result
@@ -248,6 +286,7 @@ mod tests {
       role: AccessibilityRole::Button,
       label: "Confirm".into(),
       value: None,
+      selection: None,
       enabled: true,
       focusable: false,
     }
@@ -356,6 +395,69 @@ mod tests {
       .find(|(id, _)| *id == node_id("editor"))
       .expect("disabled text input semantic node");
     assert!(!disabled_input.supports_action(Action::SetValue));
+  }
+
+  #[test]
+  fn exposes_text_run_selection_and_actions_for_text_inputs() {
+    let _guard = ACCESSIBILITY_TEST_LOCK.lock().unwrap();
+    reset_for_test();
+    let mut text_input = properties("editor");
+    text_input.role = AccessibilityRole::TextInput;
+    text_input.focusable = true;
+    text_input.value = Some("héllo".into());
+    text_input.selection = Some(crate::primes::TextSelectionRange { start: 1, end: 3 });
+    register(
+      &text_input,
+      &EventTarget::default(),
+      Vector2D::new(10.0, 20.0),
+      TouchAreaShape::Rect(5.0, 3.0),
+      &focus::Transform::identity(),
+      &[],
+      Some("editor"),
+    )
+    .unwrap();
+    let update = tree_update();
+    let (_, input) = update
+      .nodes
+      .iter()
+      .find(|(id, _)| *id == node_id("editor"))
+      .expect("text input semantic node");
+    assert!(input.supports_action(Action::SetTextSelection));
+    assert!(input.supports_action(Action::ReplaceSelectedText));
+    assert_eq!(input.children(), &[text_run_id("editor")]);
+    let selection = input.text_selection().expect("published text selection");
+    assert_eq!(selection.anchor.character_index, 1);
+    assert_eq!(selection.focus.character_index, 3);
+    assert_eq!(selection.anchor.node, text_run_id("editor"));
+
+    let (_, text_run) = update
+      .nodes
+      .iter()
+      .find(|(id, _)| *id == text_run_id("editor"))
+      .expect("text run node");
+    assert_eq!(text_run.role(), Role::TextRun);
+    assert_eq!(text_run.value(), Some("héllo"));
+    assert_eq!(text_run.character_lengths(), &[1, 2, 1, 1, 1]);
+
+    reset_for_test();
+    text_input.selection = None;
+    register(
+      &text_input,
+      &EventTarget::default(),
+      Vector2D::new(10.0, 20.0),
+      TouchAreaShape::Rect(5.0, 3.0),
+      &focus::Transform::identity(),
+      &[],
+      Some("editor"),
+    )
+    .unwrap();
+    let update = tree_update();
+    let (_, input) = update
+      .nodes
+      .iter()
+      .find(|(id, _)| *id == node_id("editor"))
+      .expect("text input without selection");
+    assert!(input.text_selection().is_none());
   }
 
   #[test]

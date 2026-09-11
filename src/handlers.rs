@@ -229,7 +229,13 @@ fn focus_event(kind: &str, area: &focus::FocusArea, related: Option<&focus::Focu
   Edn::Map(info)
 }
 
-pub fn handle_accessibility_action(node: &SemanticNode, action: &str, value: Option<&str>) -> Edn {
+pub fn handle_accessibility_action(
+  node: &SemanticNode,
+  action: &str,
+  value: Option<&str>,
+  selection: Option<(usize, usize)>,
+  text: Option<&str>,
+) -> Edn {
   let mut info = map_view([
     (tag("type"), tag("accessibility-action")),
     (tag("id"), Edn::str(node.properties.id.as_str())),
@@ -237,6 +243,13 @@ pub fn handle_accessibility_action(node: &SemanticNode, action: &str, value: Opt
   ]);
   if let Some(value) = value {
     info.insert(tag("value"), Edn::str(value));
+  }
+  if let Some((start, end)) = selection {
+    info.insert(tag("selection-start"), Edn::Number(start as f64));
+    info.insert(tag("selection-end"), Edn::Number(end as f64));
+  }
+  if let Some(text) = text {
+    info.insert(tag("text"), Edn::str(text));
   }
   add_target_fields(&mut info, &node.target);
   Edn::Map(info)
@@ -775,6 +788,7 @@ mod tests {
         role: crate::primes::AccessibilityRole::TextInput,
         label: "Editor".into(),
         value: Some("Draft".into()),
+        selection: None,
         enabled: true,
         focusable: true,
       },
@@ -791,10 +805,62 @@ mod tests {
       },
       focus_id: Some("editor".into()),
     };
-    let event = event_map(handle_accessibility_action(&node, "set-value", Some("Updated")));
+    let event = event_map(handle_accessibility_action(
+      &node,
+      "set-value",
+      Some("Updated"),
+      None,
+      None,
+    ));
     assert_eq!(event.get(&tag("operation")), Some(&tag("set-value")));
     assert_eq!(event.get(&tag("value")), Some(&Edn::str("Updated")));
     assert_eq!(event.get(&tag("action")), Some(&tag("edit-document")));
+  }
+
+  #[test]
+  fn accessibility_selection_actions_preserve_ranges_and_text() {
+    let node = SemanticNode {
+      properties: crate::primes::AccessibilityProperties {
+        id: "editor".into(),
+        role: crate::primes::AccessibilityRole::TextInput,
+        label: "Editor".into(),
+        value: Some("Draft".into()),
+        selection: Some(crate::primes::TextSelectionRange { start: 1, end: 3 }),
+        enabled: true,
+        focusable: true,
+      },
+      target: EventTarget::default(),
+      bounds: crate::accessibility::Bounds {
+        x0: 0.0,
+        y0: 0.0,
+        x1: 10.0,
+        y1: 10.0,
+      },
+      focus_id: Some("editor".into()),
+    };
+    let set_selection = event_map(handle_accessibility_action(
+      &node,
+      "set-text-selection",
+      None,
+      Some((1, 3)),
+      None,
+    ));
+    assert_eq!(set_selection.get(&tag("operation")), Some(&tag("set-text-selection")));
+    assert_eq!(set_selection.get(&tag("selection-start")), Some(&Edn::Number(1.0)));
+    assert_eq!(set_selection.get(&tag("selection-end")), Some(&Edn::Number(3.0)));
+    assert!(!set_selection.contains_key("text"));
+
+    let replace = event_map(handle_accessibility_action(
+      &node,
+      "replace-selected-text",
+      None,
+      Some((1, 3)),
+      Some("XY"),
+    ));
+    assert_eq!(replace.get(&tag("operation")), Some(&tag("replace-selected-text")));
+    assert_eq!(replace.get(&tag("selection-start")), Some(&Edn::Number(1.0)));
+    assert_eq!(replace.get(&tag("selection-end")), Some(&Edn::Number(3.0)));
+    assert_eq!(replace.get(&tag("text")), Some(&Edn::str("XY")));
   }
 
   #[test]

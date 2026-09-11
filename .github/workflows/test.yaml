@@ -60,6 +60,8 @@ jobs:
           calcit analyze check-examples --ns calcit-paint.ui --def text-input-focus-area
           calcit analyze check-examples --ns calcit-paint.ui --def icon-label
           calcit analyze check-examples --ns calcit-paint.ui --def demo-scene
+      - name: Run definition-attached Calcit tests
+        run: calcit ./calcit.cirru test --require-match --summary-only
       - name: Audit C-safe exports
         run: |
           symbols=$(nm -D --defined-only dylibs/libcalcit_paint.so | awk '{print $3}')

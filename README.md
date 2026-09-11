@@ -1438,13 +1438,21 @@ and keeps rendering and hit-testing unchanged. Each annotation requires a stable
 string `:id`, a `:role` of `:button`, `:text-input`, or `:image`, and a nonempty
 `:label`. Optional `:value` is a string, `:enabled?` defaults to `true`, and
 `:focusable?` defaults to `false`. A focusable annotation must be attached to a
-`focus-area`. Duplicate accessibility IDs in one rendered frame are rejected.
+`focus-area`. A `:role :text-input` annotation may also declare
+`:selection-start` and `:selection-end`: non-negative Unicode scalar indices
+into `:value` forming a half-open `[start, end)` selection, where `start == end`
+is a caret. They must appear together, require `:value`, and are rejected when
+`start > end` or `end` exceeds the value's Unicode scalar length. Duplicate
+accessibility IDs in one rendered frame are rejected.
 
 Paint 仅在交互式 `touch-area` 或 `focus-area` 显式提供 `:accessibility` map 时暴露
 可访问性语义；它不会从像素推断语义，因此不改变渲染或 hit-test。每个标注都要求稳定字符串
 `:id`、`:button` / `:text-input` / `:image` 之一的 `:role`，以及非空 `:label`。
 可选 `:value` 为字符串；`:enabled?` 默认 `true`，`:focusable?` 默认 `false`。可聚焦
-标注必须挂在 `focus-area` 上。同一渲染帧中重复的 accessibility ID 会被拒绝。
+标注必须挂在 `focus-area` 上。`:role :text-input` 标注还可声明 `:selection-start` 与
+`:selection-end`：对 `:value` 的非负 Unicode scalar 索引，构成半开区间 `[start, end)`，
+`start == end` 表示 caret。二者必须同时出现且依赖 `:value`；当 `start > end` 或 `end`
+超过 value 的 Unicode scalar 长度时会被拒绝。同一渲染帧中重复的 accessibility ID 会被拒绝。
 
 ```cirru.no-check
 {} (:type :touch-area) (:dx 80) (:dy 24)
@@ -1465,23 +1473,36 @@ The AccessKit tree is rebuilt from the latest rendered scene after redraw, with
 the transformed interactive bounds. Platform `Focus` and `Click` requests are
 translated to typed `(:accessibility-action payload)` events. Enabled
 `:text-input` annotations on `focus-area` additionally publish AccessKit
-`SetValue`; it becomes operation `:set-value` with `:value` as `Option<String>`.
-The native layer never changes application state: handle that event in Calcit,
-then render the new `:accessibility :value` on the next frame. The retained API
-gallery does exactly this for Focus A. `PaintAccessibilityActionEvent`
-contains `:id`, `:operation` (`:focus`, `:activate`, or `:set-value`), optional
-`:value`, and the existing `PaintTarget`; focus also uses the same focus
-transition and IME lifecycle as pointer/Tab focus. Disabled nodes publish no
-focus, activate, or set-value action.
+`SetValue`, `SetTextSelection`, and `ReplaceSelectedText`, backed by a `TextRun`
+child that carries the value and Unicode scalar character lengths. They become
+operations `:set-value` (`:value` as `Option<String>`), `:set-text-selection`,
+and `:replace-selected-text`; selection operations carry optional
+`:selection-start`/`:selection-end` (`Option<Number>`, Unicode scalar indices)
+and replacement adds `:text` (`Option<String>`). Invalid ranges, wrong action
+data, and disabled or non-text-input nodes are rejected natively before any event
+is emitted. The native layer never changes application state: handle the event in
+Calcit, then render the new `:accessibility :value` and selection on the next
+frame. The retained API gallery does exactly this for Focus A.
+`PaintAccessibilityActionEvent` contains `:id`, `:operation` (`:focus`,
+`:activate`, `:set-value`, `:set-text-selection`, or `:replace-selected-text`),
+optional `:value`, `:selection-start`, `:selection-end`, `:text`, and the
+existing `PaintTarget`; focus also uses the same focus transition and IME
+lifecycle as pointer/Tab focus. Disabled nodes publish no action.
 
 AccessKit tree 会在每次重绘后根据最新 scene 与变换后的交互 bounds 重建。平台的
 `Focus` 与 `Click` 请求会转换为强类型 `(:accessibility-action payload)` 事件；启用的
-`focus-area` 上 `:text-input` 标注还会发布 AccessKit `SetValue`，并转换为 operation
-`:set-value` 与 `Option<String>` `:value`。native 层绝不直接修改应用状态：应由 Calcit
-处理该事件，再在下一帧渲染新的 `:accessibility :value`。保留的 API gallery 已对 Focus A
-这样处理。`PaintAccessibilityActionEvent` 包含 `:id`、`:operation`（`:focus`、`:activate`
-或 `:set-value`）、可选 `:value` 及既有 `PaintTarget`。focus 同时复用 pointer/Tab 焦点的
-transition 与 IME 生命周期；禁用节点不会发布 focus、activate 或 set-value action。
+`focus-area` 上 `:text-input` 标注还会发布 AccessKit `SetValue`、`SetTextSelection` 与
+`ReplaceSelectedText`，并由携带 value 与 Unicode scalar 字符长度的 `TextRun` 子节点支撑。
+它们转换为 operation `:set-value`（`:value` 为 `Option<String>`）、`:set-text-selection`
+与 `:replace-selected-text`；selection 操作携带可选 `:selection-start`/`:selection-end`
+（`Option<Number>`，Unicode scalar 索引），替换额外带 `:text`（`Option<String>`）。非法
+range、错误 action data、disabled 或非 text-input 节点会在 native 层被拒绝，不会发出事件。
+native 层绝不直接修改应用状态：应由 Calcit 处理该事件，再在下一帧渲染新的
+`:accessibility :value` 与 selection。保留的 API gallery 已对 Focus A 这样处理。
+`PaintAccessibilityActionEvent` 包含 `:id`、`:operation`（`:focus`、`:activate`、
+`:set-value`、`:set-text-selection` 或 `:replace-selected-text`）、可选 `:value`、
+`:selection-start`、`:selection-end`、`:text` 及既有 `PaintTarget`。focus 同时复用
+pointer/Tab 焦点的 transition 与 IME 生命周期；禁用节点不会发布任何 action。
 
 An old `:key-listener` without `:modifiers` remains a wildcard over modifier
 state. Supplying a `:modifiers` map makes all four flags (`:shift?`,
