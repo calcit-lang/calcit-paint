@@ -11,7 +11,8 @@ use crate::{
   color::extract_color,
   primes::{
     AccessibilityProperties, AccessibilityRole, DashPattern, EventTarget, GradientStop, PaintSource, ParagraphLayout,
-    ShortcutModifiers, StrokeStyle, TextAlign, TextBaseline, TextDirection, TextSlant, TextStyle, TouchAreaShape,
+    ShortcutModifiers, StrokeStyle, TextAlign, TextBaseline, TextDirection, TextSelectionRange, TextSlant, TextStyle,
+    TouchAreaShape,
   },
 };
 
@@ -40,7 +41,7 @@ pub fn extract_accessibility(tree: &EdnMapView) -> Result<Option<AccessibilityPr
     };
     if !matches!(
       key.ref_str(),
-      "id" | "role" | "label" | "value" | "enabled?" | "focusable?"
+      "id" | "role" | "label" | "value" | "selection-start" | "selection-end" | "enabled?" | "focusable?"
     ) {
       return Err(format!("unsupported :accessibility field :{key}"));
     }
@@ -64,6 +65,10 @@ pub fn extract_accessibility(tree: &EdnMapView) -> Result<Option<AccessibilityPr
     return Err(":accessibility :label must not be empty".to_owned());
   }
   let value = read_optional_string_field(metadata, "value")?;
+  let selection = read_text_selection(metadata, value.as_deref())?;
+  if selection.is_some() && role != AccessibilityRole::TextInput {
+    return Err(":accessibility selection metadata requires :role :text-input".to_owned());
+  }
   let enabled = match metadata.get(&tag("enabled?")) {
     Some(Edn::Bool(value)) => *value,
     Some(value) => return Err(format!(":accessibility :enabled? must be a bool, got {value}")),
@@ -79,9 +84,49 @@ pub fn extract_accessibility(tree: &EdnMapView) -> Result<Option<AccessibilityPr
     role,
     label,
     value,
+    selection,
     enabled,
     focusable,
   }))
+}
+
+fn read_text_selection(metadata: &EdnMapView, value: Option<&str>) -> Result<Option<TextSelectionRange>, String> {
+  match (
+    metadata.get(&tag("selection-start")),
+    metadata.get(&tag("selection-end")),
+  ) {
+    (None, None) => Ok(None),
+    (Some(start), Some(end)) => {
+      let Some(value) = value else {
+        return Err(":accessibility :selection-start requires :value".to_owned());
+      };
+      let scalar_count = value.chars().count();
+      let start = read_selection_index(start, "selection-start")?;
+      let end = read_selection_index(end, "selection-end")?;
+      if start > end {
+        return Err(format!(
+          ":accessibility :selection-start must not exceed :selection-end, got {start} > {end}"
+        ));
+      }
+      if end > scalar_count {
+        return Err(format!(
+          ":accessibility :selection-end must not exceed the :value length {scalar_count}, got {end}"
+        ));
+      }
+      Ok(Some(TextSelectionRange { start, end }))
+    }
+    (Some(_), None) => Err(":accessibility :selection-start requires :selection-end".to_owned()),
+    (None, Some(_)) => Err(":accessibility :selection-end requires :selection-start".to_owned()),
+  }
+}
+
+fn read_selection_index(value: &Edn, key: &str) -> Result<usize, String> {
+  match value {
+    Edn::Number(number) if number.fract() == 0.0 && *number >= 0.0 => Ok(*number as usize),
+    _ => Err(format!(
+      ":accessibility :{key} must be a non-negative integer, got {value}"
+    )),
+  }
 }
 
 fn read_optional_edn(tree: &EdnMapView, key: &str) -> Option<Edn> {
@@ -723,6 +768,58 @@ mod tests {
     assert!(extract_accessibility(map_view(&invalid))
       .unwrap_err()
       .contains("unsupported :accessibility :role :slider"));
+  }
+
+  #[test]
+  fn extracts_unicode_safe_text_selection_and_rejects_invalid_ranges() {
+    let metadata = |start: f64, end: f64| {
+      let mut metadata = EdnMapView::default();
+      metadata.insert(tag("id"), Edn::str("editor"));
+      metadata.insert(tag("role"), tag("text-input"));
+      metadata.insert(tag("label"), Edn::str("Editor"));
+      metadata.insert(tag("value"), Edn::str("héllo"));
+      metadata.insert(tag("selection-start"), Edn::Number(start));
+      metadata.insert(tag("selection-end"), Edn::Number(end));
+      metadata
+    };
+    let scene = map([("accessibility", Edn::Map(metadata(1.0, 3.0)))]);
+    let properties = extract_accessibility(map_view(&scene)).unwrap().unwrap();
+    assert_eq!(properties.selection, Some(TextSelectionRange { start: 1, end: 3 }));
+
+    let scene = map([("accessibility", Edn::Map(metadata(0.0, 5.0)))]);
+    assert_eq!(
+      extract_accessibility(map_view(&scene)).unwrap().unwrap().selection,
+      Some(TextSelectionRange { start: 0, end: 5 })
+    );
+
+    let scene = map([("accessibility", Edn::Map(metadata(3.0, 1.0)))]);
+    assert!(extract_accessibility(map_view(&scene))
+      .unwrap_err()
+      .contains("must not exceed :selection-end"));
+
+    let scene = map([("accessibility", Edn::Map(metadata(0.0, 6.0)))]);
+    assert!(extract_accessibility(map_view(&scene))
+      .unwrap_err()
+      .contains("must not exceed the :value length 5"));
+
+    let scene = map([("accessibility", Edn::Map(metadata(0.5, 2.0)))]);
+    assert!(extract_accessibility(map_view(&scene))
+      .unwrap_err()
+      .contains("must be a non-negative integer"));
+
+    let mut only_start = metadata(1.0, 2.0);
+    only_start.0.remove(&tag("selection-end"));
+    let scene = map([("accessibility", Edn::Map(only_start))]);
+    assert!(extract_accessibility(map_view(&scene))
+      .unwrap_err()
+      .contains("requires :selection-end"));
+
+    let mut button_role = metadata(0.0, 1.0);
+    button_role.insert(tag("role"), tag("button"));
+    let scene = map([("accessibility", Edn::Map(button_role))]);
+    assert!(extract_accessibility(map_view(&scene))
+      .unwrap_err()
+      .contains("requires :role :text-input"));
   }
 
   #[test]

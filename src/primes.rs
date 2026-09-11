@@ -137,12 +137,19 @@ pub enum AccessibilityRole {
   Image,
 }
 
+#[derive(Debug, PartialEq, Clone, Copy, Eq)]
+pub struct TextSelectionRange {
+  pub start: usize,
+  pub end: usize,
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct AccessibilityProperties {
   pub id: String,
   pub role: AccessibilityRole,
   pub label: String,
   pub value: Option<String>,
+  pub selection: Option<TextSelectionRange>,
   pub enabled: bool,
   pub focusable: bool,
 }

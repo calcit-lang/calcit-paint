@@ -101,6 +101,28 @@ fn create_event_loop() -> Result<EventLoop<PaintUserEvent>, String> {
     .map_err(|error| format!("failed to create event loop: {error}"))
 }
 
+fn validate_text_selection(
+  node: &accessibility::SemanticNode,
+  selection: accesskit::TextSelection,
+) -> Option<(usize, usize)> {
+  let value = node.properties.value.as_deref()?;
+  let scalar_count = value.chars().count();
+  let text_run = accessibility::text_run_id(&node.properties.id);
+  let anchor = selection.anchor;
+  let focus = selection.focus;
+  if anchor.node != text_run || focus.node != text_run {
+    return None;
+  }
+  if anchor.character_index > scalar_count || focus.character_index > scalar_count {
+    return None;
+  }
+  Some(if anchor.character_index <= focus.character_index {
+    (anchor.character_index, focus.character_index)
+  } else {
+    (focus.character_index, anchor.character_index)
+  })
+}
+
 struct PaintApplication<F> {
   env: Option<Env>,
   accessibility_adapter: Option<AccessKitAdapter>,
@@ -193,10 +215,12 @@ where
                   return;
                 }
               }
-              self.dispatch(handlers::handle_accessibility_action(&node, "focus", None));
+              self.dispatch(handlers::handle_accessibility_action(&node, "focus", None, None, None));
             }
           }
-          Action::Click => self.dispatch(handlers::handle_accessibility_action(&node, "activate", None)),
+          Action::Click => self.dispatch(handlers::handle_accessibility_action(
+            &node, "activate", None, None, None,
+          )),
           Action::SetValue
             if node.properties.role == primes::AccessibilityRole::TextInput && node.focus_id.is_some() =>
           {
@@ -207,6 +231,42 @@ where
               &node,
               "set-value",
               Some(value.as_ref()),
+              None,
+              None,
+            ));
+          }
+          Action::SetTextSelection
+            if node.properties.role == primes::AccessibilityRole::TextInput && node.focus_id.is_some() =>
+          {
+            let Some(ActionData::SetTextSelection(selection)) = data else {
+              return;
+            };
+            let Some(range) = validate_text_selection(&node, selection) else {
+              return;
+            };
+            self.dispatch(handlers::handle_accessibility_action(
+              &node,
+              "set-text-selection",
+              None,
+              Some(range),
+              None,
+            ));
+          }
+          Action::ReplaceSelectedText
+            if node.properties.role == primes::AccessibilityRole::TextInput && node.focus_id.is_some() =>
+          {
+            let Some(ActionData::Value(text)) = data else {
+              return;
+            };
+            let Some(selection) = node.properties.selection else {
+              return;
+            };
+            self.dispatch(handlers::handle_accessibility_action(
+              &node,
+              "replace-selected-text",
+              None,
+              Some((selection.start, selection.end)),
+              Some(text.as_ref()),
             ));
           }
           _ => return,
@@ -1141,6 +1201,87 @@ mod tests {
     assert_eq!(diagnostic.get(&Edn::tag("path")), Some(&Edn::str("$")));
     assert_eq!(diagnostic.get(&Edn::tag("code")), Some(&Edn::tag("expected-map")));
     assert_eq!(diagnostic.get(&Edn::tag("field")), None);
+  }
+
+  #[test]
+  fn validates_text_selection_ranges_and_text_run_identity() {
+    let node = accessibility::SemanticNode {
+      properties: primes::AccessibilityProperties {
+        id: "editor".into(),
+        role: primes::AccessibilityRole::TextInput,
+        label: "Editor".into(),
+        value: Some("héllo".into()),
+        selection: Some(primes::TextSelectionRange { start: 0, end: 0 }),
+        enabled: true,
+        focusable: true,
+      },
+      target: primes::EventTarget::default(),
+      bounds: accessibility::Bounds {
+        x0: 0.0,
+        y0: 0.0,
+        x1: 10.0,
+        y1: 10.0,
+      },
+      focus_id: Some("editor".into()),
+    };
+    let run = accessibility::text_run_id("editor");
+    let position = |index| accesskit::TextPosition {
+      node: run,
+      character_index: index,
+    };
+    assert_eq!(
+      validate_text_selection(
+        &node,
+        accesskit::TextSelection {
+          anchor: position(1),
+          focus: position(3)
+        }
+      ),
+      Some((1, 3))
+    );
+    assert_eq!(
+      validate_text_selection(
+        &node,
+        accesskit::TextSelection {
+          anchor: position(3),
+          focus: position(1)
+        }
+      ),
+      Some((1, 3))
+    );
+    assert_eq!(
+      validate_text_selection(
+        &node,
+        accesskit::TextSelection {
+          anchor: position(5),
+          focus: position(5)
+        }
+      ),
+      Some((5, 5))
+    );
+    assert_eq!(
+      validate_text_selection(
+        &node,
+        accesskit::TextSelection {
+          anchor: position(6),
+          focus: position(6)
+        }
+      ),
+      None
+    );
+    assert_eq!(
+      validate_text_selection(
+        &node,
+        accesskit::TextSelection {
+          anchor: accesskit::TextPosition {
+            node: accesskit::NodeId(7),
+            character_index: 1
+          },
+          focus: position(1)
+        }
+      ),
+      None
+    );
   }
 
   #[test]
