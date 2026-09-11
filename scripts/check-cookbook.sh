@@ -2,10 +2,12 @@
 set -euo pipefail
 
 cookbook_png="$(mktemp "${TMPDIR:-/tmp}/calcit-paint-cookbook.XXXXXX")"
-trap 'rm -f "$cookbook_png"' EXIT
+demo_png="$(mktemp "${TMPDIR:-/tmp}/calcit-paint-ui-demo.XXXXXX")"
+trap 'rm -f "$cookbook_png" "$demo_png"' EXIT
 
 calcit ./calcit.cirru eval --dep ./ 'ns cookbook.smoke $ :require
   calcit-paint.core :refer $ validate-scene render-to-png!
+  calcit-paint.ui :refer $ demo-scene
 
 let
     no-diagnostics $ []
@@ -24,13 +26,18 @@ let
     focusable $ {} (:type :focus-area) (:focus-id |cookbook-editor) (:text-input? true) (:position ([] 10 6)) (:dx 8) (:dy 4)
       :accessibility $ {} (:id |cookbook-editor) (:role :text-input) (:label "|Cookbook editor") (:value |Draft) (:focusable? true)
     asset $ {} (:type :image) (:file-path |resources/calcit.png) (:x 0) (:y 0) (:w 12) (:h 8) (:fit :contain) (:sampling :linear)
+    ui-demo $ demo-scene
   do
     assert= no-diagnostics $ validate-scene basic
     assert= no-diagnostics $ validate-scene nested
     assert= no-diagnostics $ validate-scene focusable
     assert= no-diagnostics $ validate-scene asset
+    assert= no-diagnostics $ validate-scene ui-demo
     render-to-png! $ {} (:path |'"$cookbook_png"') (:width 12) (:height 8) (:scene basic)
+    render-to-png! $ {} (:path |'"$demo_png"') (:width 400) (:height 400) (:scene ui-demo)
     , &unit'
+
+test "$(od -An -tx1 -N8 "$demo_png" | tr -d ' \n')" = "89504e470d0a1a0a"
 
 python3 - "$cookbook_png" <<'PY'
 import struct
