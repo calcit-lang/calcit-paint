@@ -565,6 +565,11 @@ pub fn extract_text_style(tree: &EdnMapView) -> Result<TextStyle, String> {
     Some(Edn::Nil) | None => None,
     Some(value) => return Err(format!("font-family must be a string, got {value}")),
   };
+  let language = match tree.get(&tag("lang")) {
+    Some(Edn::Str(language)) => Some(language.to_string()),
+    Some(Edn::Nil) | None => None,
+    Some(value) => return Err(format!("lang must be a string, got {value}")),
+  };
   let weight = match tree.get(&tag("weight")) {
     Some(Edn::Number(weight)) => read_font_weight(*weight, "weight")?,
     // The original demo used a string weight before this option was implemented.
@@ -597,6 +602,7 @@ pub fn extract_text_style(tree: &EdnMapView) -> Result<TextStyle, String> {
   };
   Ok(TextStyle {
     family,
+    language,
     weight,
     slant,
     baseline,
@@ -926,6 +932,7 @@ mod tests {
       extract_text_style(map_view(&defaults)),
       Ok(TextStyle {
         family: None,
+        language: None,
         weight: 400,
         slant: TextSlant::Normal,
         baseline: TextBaseline::Alphabetic,
@@ -934,6 +941,7 @@ mod tests {
 
     let explicit = map([
       ("font-family", Edn::Str("monospace".into())),
+      ("lang", Edn::Str("zh-Hans".into())),
       // The pre-existing runnable demo used string weights.
       ("weight", Edn::Str("300".into())),
       ("style", Edn::tag("italic")),
@@ -943,6 +951,7 @@ mod tests {
       extract_text_style(map_view(&explicit)),
       Ok(TextStyle {
         family: Some("monospace".into()),
+        language: Some("zh-Hans".into()),
         weight: 300,
         slant: TextSlant::Italic,
         baseline: TextBaseline::Middle,

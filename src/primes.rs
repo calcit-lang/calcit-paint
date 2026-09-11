@@ -37,6 +37,7 @@ pub enum TextBaseline {
 #[derive(Debug, PartialEq, Clone)]
 pub struct TextStyle {
   pub family: Option<String>,
+  pub language: Option<String>,
   pub weight: i32,
   pub slant: TextSlant,
   pub baseline: TextBaseline,

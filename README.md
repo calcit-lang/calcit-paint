@@ -408,6 +408,7 @@ platform-default font is drawn with `:alphabetic` baseline.
 | `:style` | `:normal`, `:italic` | `:normal` |
 | `:baseline` | `:alphabetic`, `:top`, `:middle`, `:bottom` | `:alphabetic` |
 | `:align` | `:left`, `:center`, `:right` | Required / 必填 |
+| `:lang` | BCP47 language tag string / BCP47 语言标签字符串 | None / 无 |
 
 ```cirru.no-check
 {} (:type :text) (:text "|Bold italic · top")
@@ -426,10 +427,21 @@ platform-default font is drawn with `:alphabetic` baseline.
 `:alphabetic` preserves Skia's traditional text origin. A requested font family
 that is not installed is not an error: Skia falls back to the platform default
 while retaining the requested weight and style as closely as available.
+Individual characters missing from the resolved face (for example CJK or Arabic
+in a Latin font) are rendered with an installed fallback typeface when an
+installed fallback matches; alignment and `measure-text!` accounting include
+those fallback runs. Characters with no matching installed fallback keep the
+primary face and may still show a tofu box. Optional `:lang` supplies a BCP47
+tag that is passed to Skia's fallback lookup, so shared Han characters resolve to
+the requested script variant.
 
 `position` 是所选对齐方式和基线的锚点。`:top`、`:middle`、`:bottom` 会稳定对应的
 视觉位置；`:alphabetic` 则保持 Skia 传统的文字原点。若请求的字体族未安装，不会报错：
-Skia 会回退到平台默认字体，并尽可能保留请求的字重和样式。
+Skia 会回退到平台默认字体，并尽可能保留请求的字重和样式。若某个字符在解析出的字体中缺失
+（例如拉丁字体中的中日韩或阿拉伯字符），在有已安装 fallback 匹配时会改用该字体渲染，而不是
+显示方框；对齐与 `measure-text!` 会把 fallback run 一并计入。若系统中没有匹配的 fallback，
+字符仍使用主字体，可能显示方框。可选 `:lang` 提供 BCP47 标签并传入 Skia 的 fallback 查询，
+从而让共享汉字解析到请求的文字变体。
 
 Weights must be integral values in the inclusive `100..900` range; unknown
 styles or baselines are rejected with field-specific errors. For compatibility,
