@@ -618,6 +618,21 @@ contain/linear, and cropped cover/cubic in one scene. / 可运行的
 `calcit-paint.main/render!` demo 在同一场景中覆盖旧版 fill/nearest、
 contain/linear，以及带 crop 的 cover/cubic。
 
+Relative `:file-path` values resolve against the process working directory by
+default. Call `set-resource-root!` once at startup to resolve them against a
+project directory instead, so a bundled application keeps working regardless of
+its launch directory. Absolute paths are always used unchanged, and an empty
+string restores the default working-directory behavior.
+
+相对 `:file-path` 默认相对进程工作目录解析。启动时调用一次 `set-resource-root!` 可改为相对
+指定项目目录解析，使随包应用不受启动目录影响。绝对路径始终原样使用，空字符串恢复默认的
+工作目录行为。
+
+```cirru.no-check
+set-resource-root! /path/to/project
+```
+
+
 - Cached group, using `cached-group` (alias: `static-group`)
 
 ```rust

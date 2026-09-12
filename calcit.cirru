@@ -590,6 +590,16 @@
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ [] 'calcit-paint.core/PaintFileDialogOptions
+        'set-resource-root! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn set-resource-root! (path)
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |set_resource_root path
+              , &unit
+          :examples $ []
+            quote $ set-resource-root! |resources
+          :schema $ :: 'Fn
+            {} (:return 'Unit)
+              :args $ [] 'String
         'set-window-title! $ %{} 'CodeEntry (:doc "|Queue a title update for serialized application on the active event loop.")
           :code $ quote
             defn set-window-title! (title)
