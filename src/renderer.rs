@@ -92,6 +92,7 @@ const SUBTREE_CACHE_LIMIT_BYTES: usize = 32 * 1024 * 1024;
 const SUBTREE_CACHE_MAX_ENTRIES: usize = 32;
 const IMAGE_CACHE_LIMIT_BYTES: usize = 64 * 1024 * 1024;
 const IMAGE_CACHE_MAX_ENTRIES: usize = 64;
+const FONT_FILE_CACHE_MAX_ENTRIES: usize = 16;
 
 /// Set the base directory used to resolve relative resource paths. Passing
 /// `None` restores process-working-directory behavior.
@@ -443,6 +444,9 @@ fn load_font_typeface(font_file: &str) -> Option<Typeface> {
   match font_mgr.new_from_data(&data, 0) {
     Some(typeface) => {
       if let Ok(mut cache) = FONT_FILE_CACHE.write() {
+        if cache.len() >= FONT_FILE_CACHE_MAX_ENTRIES {
+          cache.clear();
+        }
         cache.insert(key, typeface.clone());
       }
       Some(typeface)
@@ -3581,6 +3585,28 @@ mod tests {
     };
     assert!(create_text_font(&missing, 18.0).is_ok());
     set_resource_root(None);
+  }
+
+  #[test]
+  fn bounds_the_font_file_cache() {
+    let _guard = RESOURCE_ROOT_TEST_LOCK.lock().unwrap();
+    let dir = std::env::temp_dir().join(format!("calcit-paint-font-cache-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let source = fs::read(concat!(
+      env!("CARGO_MANIFEST_DIR"),
+      "/resources/SourceCodePro-Medium.ttf"
+    ))
+    .unwrap();
+    set_resource_root(Some(dir.to_str().unwrap()));
+    for index in 0..(FONT_FILE_CACHE_MAX_ENTRIES + 1) {
+      let name = format!("font-{index}.ttf");
+      fs::write(dir.join(&name), &source).unwrap();
+      assert!(load_font_typeface(&name).is_some());
+    }
+    assert!(FONT_FILE_CACHE.read().unwrap().len() <= FONT_FILE_CACHE_MAX_ENTRIES);
+    set_resource_root(None);
+    let _ = fs::remove_dir_all(&dir);
   }
 
   #[test]

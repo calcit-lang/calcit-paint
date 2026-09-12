@@ -6,7 +6,8 @@
 - Font paths resolve through the resource root (from the resource-path convention), so bundled fonts ship alongside images. Typefaces are cached by resolved path.
 - A missing or undecodable font file logs a diagnostic and falls back to the existing family/default resolution; missing glyphs still fall back per grapheme cluster through Skia.
 - `:paragraph` intentionally keeps family-based layout; embedded font files are not applied to paragraph text yet.
-- Cover the extractor (`:font-file` parsing), the loader (bundled `resources/SourceCodePro-Medium.ttf`, missing-file fallback), and the runnable cookbook smoke (a text scene rendered with the bundled font).
+- Rust API note: `TextStyle` gains a `font_file` field, which is source-breaking for downstream explicit struct literals. The crate is not published (releases are tag-only and do not trigger crates.io), so no crate version bump is made here; the breaking change is carried by the next milestone release (0.3.0).
+- Cover the extractor (`:font-file` parsing), the loader (bundled `resources/SourceCodePro-Medium.ttf`, missing-file fallback, bounded font-file cache), and the runnable cookbook smoke (a text scene rendered with the bundled font).
 
 Validation:
 
@@ -20,7 +21,8 @@ Validation:
 - 字体路径经 resource root 解析，使随包字体与图片使用同一约定。typeface 按解析后的路径缓存。
 - 字体文件缺失或无法解码时记录诊断并回退到既有字体族/默认解析；缺失字符仍按 grapheme cluster 通过 Skia 回退。
 - `:paragraph` 仍保持字体族布局，暂不应用内嵌字体文件。
-- 覆盖 extracter（`:font-file` 解析）、loader（随包 `resources/SourceCodePro-Medium.ttf`、缺失文件回退）以及可运行 cookbook smoke（用随包字体渲染文本场景）。
+- Rust API 说明：`TextStyle` 新增 `font_file` 字段，对下游显式 struct literal 是 source-breaking。该 crate 未发布（仅 tag 发布、不触发 crates.io），因此本次不 bump crate 版本；破坏性变更由下一个 milestone 发布（0.3.0）承载。
+- 覆盖 extracter（`:font-file` 解析）、loader（随包 `resources/SourceCodePro-Medium.ttf`、缺失文件回退、有界 font-file 缓存）以及可运行 cookbook smoke（用随包字体渲染文本场景）。
 
 验证：
 
