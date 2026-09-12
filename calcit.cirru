@@ -1,5 +1,5 @@
 
-{} (:about "|Machine-generated snapshot. Do not edit directly — changes will be overwritten. Use `calcit query` to inspect and `calcit edit`/`calcit tree` to modify. Run `calcit docs agents --full` first. Manual edits must follow format and schema conventions, then run `calcit edit format`.") (:package |calcit-paint)
+{} (:about "|Machine-generated snapshot. Do not edit directly — changes will be overwritten. Use `calcit query` to inspect and `calcit edit`/`calcit tree` to modify. Run `calcit docs agents --contract` before mutations; use `--full` for first orientation or changed contract digest. Manual edits must follow format and schema conventions, then run `calcit edit format`.") (:package |calcit-paint)
   :entries $ {}
     :default $ {} (:description |) (:init-fn 'calcit-paint.creative-art/main!) (:mode :native) (:reload-fn 'calcit-paint.creative-art/reload!)
       :feature-policy $ {}
@@ -434,7 +434,7 @@
                     (:mouse-down payload)
                       do
                         assert= 12 $ :x payload
-                        assert= :select $ .unwrap-or
+                        assert= :select $ option:unwrap-or
                           :action $ :target payload
                           , :missing
                     _ $ raise |expected-mouse-down-event
@@ -477,7 +477,7 @@
                       do
                         assert= :selected $ :status payload
                         assert= (fs:path |/tmp/image.png)
-                          .unwrap $ :path payload
+                          option:unwrap $ :path payload
                     _ $ raise |expected-file-dialog-result
             %{} 'TestEntry (:name |decodes-accessibility-action)
               :code $ quote
@@ -491,7 +491,7 @@
                       do
                         assert= |field-a $ :id payload
                         assert= :focus $ :operation payload
-                        assert= :focus-demo $ .unwrap-or
+                        assert= :focus-demo $ option:unwrap-or
                           :action $ :target payload
                           , :missing
                     _ $ raise |expected-accessibility-action
@@ -507,7 +507,7 @@
                     (:accessibility-action payload)
                       do
                         assert= :set-value $ :operation payload
-                        assert= |Updated $ .unwrap (:value payload)
+                        assert= |Updated $ option:unwrap (:value payload)
                     _ $ raise |expected-accessibility-set-value
             %{} 'TestEntry (:name |decodes-set-text-selection)
               :code $ quote
@@ -852,7 +852,7 @@
           :examples $ []
             quote $ let
                 scene $ build-art-scene 17 0 |preview false
-              assert= (%some :group) (get scene :type)
+              assert= ([]) (validate-scene-structured scene)
           :schema $ :: 'Fn
             {}
               :args $ [] 'Number 'Number 'String 'Bool
@@ -862,10 +862,7 @@
               :code $ quote
                 let
                     scene $ build-art-scene 17 0 |testing false
-                    scene-type $ get scene :type
-                    children $ get scene :children
-                  assert= (%some :group) scene-type
-                  assert= true $ children.some?
+                  assert= ([]) (validate-scene-structured scene)
                   , &unit
         'export-art-frame! $ %{} 'CodeEntry (:doc "|Export one explicit seed/time frame through the public offscreen API. / 通过公开离屏 API 导出显式 seed/time frame。")
           :code $ quote
@@ -1127,28 +1124,28 @@
                       if @*pointer-dirty? $ do (reset! *pointer-dirty? false) (render! false)
                 (:mouse-down payload)
                   handle-target-event! :mouse-down (:target payload)
-                    .unwrap-or (:captured? payload) false
+                    option:unwrap-or (:captured? payload) false
                 (:mouse-up payload)
                   handle-target-event! :mouse-up (:target payload)
-                    .unwrap-or (:captured? payload) false
+                    option:unwrap-or (:captured? payload) false
                 (:mouse-move payload)
                   handle-target-event! :mouse-move (:target payload)
-                    .unwrap-or (:captured? payload) false
+                    option:unwrap-or (:captured? payload) false
                 (:mouse-leave payload)
                   handle-target-event! :mouse-leave (:target payload)
-                    .unwrap-or (:captured? payload) false
+                    option:unwrap-or (:captured? payload) false
                 (:mouse-wheel payload)
                   handle-target-event! :mouse-wheel (:target payload)
-                    .unwrap-or (:captured? payload) false
+                    option:unwrap-or (:captured? payload) false
                 (:pointer-enter payload)
                   handle-target-event! :pointer-enter (:target payload)
-                    .unwrap-or (:captured? payload) false
+                    option:unwrap-or (:captured? payload) false
                 (:pointer-leave payload)
                   handle-target-event! :pointer-leave (:target payload)
-                    .unwrap-or (:captured? payload) false
+                    option:unwrap-or (:captured? payload) false
                 (:pointer-cancel payload)
                   handle-target-event! :pointer-cancel (:target payload)
-                    .unwrap-or (:captured? payload) false
+                    option:unwrap-or (:captured? payload) false
                 (:key-down payload)
                   handle-target-event! :key-down (:target payload) false
                 (:key-up payload)
@@ -1185,12 +1182,12 @@
                               reset! *selection-end $ count next-value
                           (:none) &unit
                       :set-text-selection $ do
-                        reset! *selection-start $ .unwrap-or (:selection-start payload) @*selection-start
-                        reset! *selection-end $ .unwrap-or (:selection-end payload) @*selection-end
+                        reset! *selection-start $ option:unwrap-or (:selection-start payload) @*selection-start
+                        reset! *selection-end $ option:unwrap-or (:selection-end payload) @*selection-end
                       :replace-selected-text $ let
-                          start $ .unwrap-or (:selection-start payload) @*selection-start
-                          end $ .unwrap-or (:selection-end payload) @*selection-end
-                          replacement $ .unwrap-or (:text payload) |
+                          start $ option:unwrap-or (:selection-start payload) @*selection-start
+                          end $ option:unwrap-or (:selection-end payload) @*selection-end
+                          replacement $ option:unwrap-or (:text payload) |
                           next-value $ str (slice @*accessibility-value 0 start) replacement
                             slice @*accessibility-value end $ count @*accessibility-value
                         do (reset! *accessibility-value next-value)
@@ -1219,7 +1216,7 @@
           :code $ quote
             defn handle-target-event! (kind target captured?)
               case-default
-                .unwrap-or (:action target) :none
+                option:unwrap-or (:action target) :none
                 println |event: kind target
                 :focus-first $ focus! |field-a
                 :export-snapshot $ export-offscreen-demo!
@@ -1247,7 +1244,7 @@
                 :window-close $ close-window!
                 :input-demo $ do
                   reset! *pointer-status $ str-spaced kind
-                    .unwrap-or (:path target) ([])
+                    option:unwrap-or (:path target) ([])
                     , |captured? captured?
                   reset! *pointer-dirty? true
                   request-frame!
@@ -1895,26 +1892,27 @@
                   label $ :label options
                   x $ :x options
                   y $ :y options
-                  fill-color $ .unwrap-or (:fill-color options) ([] 205 72 52)
-                  text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
-                  text-size $ .unwrap-or (:text-size options) 14
-                  enabled? $ .unwrap-or (:enabled? options) true
-                  target $ merge
+                  fill-color $ option:unwrap-or (:fill-color options) ([] 205 72 52)
+                  text-color $ option:unwrap-or (:text-color options) ([] 0 0 98)
+                  text-size $ option:unwrap-or (:text-size options) 14
+                  enabled? $ option:unwrap-or (:enabled? options) true
+                  target $ &merge
                     if
                       option:some? $ :action options
                       {} $ :action
                         option:unwrap $ :action options
                       {}
-                    if
-                      option:some? $ :path options
-                      {} $ :path
-                        option:unwrap $ :path options
-                      {}
-                    if
-                      option:some? $ :data options
-                      {} $ :data
-                        option:unwrap $ :data options
-                      {}
+                    &merge
+                      if
+                        option:some? $ :path options
+                        {} $ :path
+                          option:unwrap $ :path options
+                        {}
+                      if
+                        option:some? $ :data options
+                        {} $ :data
+                          option:unwrap $ :data options
+                        {}
                   base $ {} (:type :touch-area)
                     :position $ [] x y
                     :dx $ :dx options
@@ -1929,7 +1927,7 @@
                         :size text-size
                         :baseline :middle
                         :align :center
-                merge base target
+                &merge base target
           :examples $ []
             quote $ let
                 scene $ button (ButtonOptions :id |example-button :label |Save :x 40 :y 40 :dx 120 :dy 36)
@@ -1944,6 +1942,7 @@
                 let
                     scene $ button (ButtonOptions :id |test-button :label |Test :x 1 :y 2 :dx 10 :dy 20)
                   assert= ([]) (validate-scene scene)
+                  , &unit
         'demo-scene $ %{} 'CodeEntry (:doc "|Compose all scene builders into one validated scene that also works with render-to-png!. / 将所有 scene builder 组合为一个可校验、也可直接用于 render-to-png! 的场景。")
           :code $ quote
             defn demo-scene ()
@@ -1969,8 +1968,10 @@
           :tests $ []
             %{} 'TestEntry (:name |composes-valid-scene)
               :code $ quote
-                assert= ([])
-                  validate-scene $ demo-scene
+                do
+                  assert= ([])
+                    validate-scene $ demo-scene
+                  , &unit
         'icon-label $ %{} 'CodeEntry (:doc "|Build a visual-only icon + label group; it adds no interaction or accessibility semantics. / 构建纯视觉 icon + label group；不添加交互或无障碍语义。")
           :code $ quote
             defn icon-label (options)
@@ -1981,12 +1982,12 @@
                   label $ :label options
                   x $ :x options
                   y $ :y options
-                  gap $ .unwrap-or (:gap options) 34
-                  icon-radius $ .unwrap-or (:icon-radius options) 12
-                  icon-color $ .unwrap-or (:icon-color options) ([] 205 72 52)
-                  text-color $ .unwrap-or (:text-color options) ([] 0 0 96)
-                  text-size $ .unwrap-or (:text-size options) 14
-                  baseline $ .unwrap-or (:baseline options) :middle
+                  gap $ option:unwrap-or (:gap options) 34
+                  icon-radius $ option:unwrap-or (:icon-radius options) 12
+                  icon-color $ option:unwrap-or (:icon-color options) ([] 205 72 52)
+                  text-color $ option:unwrap-or (:text-color options) ([] 0 0 96)
+                  text-size $ option:unwrap-or (:text-size options) 14
+                  baseline $ option:unwrap-or (:baseline options) :middle
                 {} (:type :group)
                   :children $ []
                     {} (:type :circle)
@@ -2013,6 +2014,7 @@
                 let
                     scene $ icon-label (IconLabelOptions :label |Asset :x 1 :y 2)
                   assert= ([]) (validate-scene scene)
+                  , &unit
         'text-input-focus-area $ %{} 'CodeEntry (:doc "|Build a focus-area text input with :text-input? true and a focusable :text-input accessibility node. / 构建 :text-input? true 且可聚焦 :text-input 无障碍节点的 focus-area 文本输入。")
           :code $ quote
             defn text-input-focus-area (options)
@@ -2025,29 +2027,30 @@
                   value $ :value options
                   x $ :x options
                   y $ :y options
-                  tab-index $ .unwrap-or (:tab-index options) 0
-                  fill-color $ .unwrap-or (:fill-color options) ([] 215 70 45)
-                  line-color $ .unwrap-or (:line-color options) ([] 215 88 76)
-                  line-width $ .unwrap-or (:line-width options) 3
-                  text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
-                  text-size $ .unwrap-or (:text-size options) 18
-                  enabled? $ .unwrap-or (:enabled? options) true
-                  target $ merge
+                  tab-index $ option:unwrap-or (:tab-index options) 0
+                  fill-color $ option:unwrap-or (:fill-color options) ([] 215 70 45)
+                  line-color $ option:unwrap-or (:line-color options) ([] 215 88 76)
+                  line-width $ option:unwrap-or (:line-width options) 3
+                  text-color $ option:unwrap-or (:text-color options) ([] 0 0 98)
+                  text-size $ option:unwrap-or (:text-size options) 18
+                  enabled? $ option:unwrap-or (:enabled? options) true
+                  target $ &merge
                     if
                       option:some? $ :action options
                       {} $ :action
                         option:unwrap $ :action options
                       {}
-                    if
-                      option:some? $ :path options
-                      {} $ :path
-                        option:unwrap $ :path options
-                      {}
-                    if
-                      option:some? $ :data options
-                      {} $ :data
-                        option:unwrap $ :data options
-                      {}
+                    &merge
+                      if
+                        option:some? $ :path options
+                        {} $ :path
+                          option:unwrap $ :path options
+                        {}
+                      if
+                        option:some? $ :data options
+                        {} $ :data
+                          option:unwrap $ :data options
+                        {}
                   base $ {} (:type :focus-area) (:focus-id id) (:tab-index tab-index) (:text-input? true)
                     :position $ [] x y
                     :dx $ :dx options
@@ -2063,7 +2066,7 @@
                         :size text-size
                         :baseline :middle
                         :align :center
-                merge base target
+                &merge base target
           :examples $ []
             quote $ let
                 scene $ text-input-focus-area (TextInputOptions :id |example-editor :label |Editor :value |Draft :x 40 :y 160 :dx 220 :dy 40)
@@ -2078,6 +2081,7 @@
                 let
                     scene $ text-input-focus-area (TextInputOptions :id |test-editor :label |Editor :value |Draft :x 1 :y 2 :dx 10 :dy 20)
                   assert= ([]) (validate-scene scene)
+                  , &unit
         'touch-container $ %{} 'CodeEntry (:doc "|Build a labelled touch-area container; children use scene coordinates and are drawn above the label. / 构建带标签的 touch-area 容器；children 使用场景坐标并绘制在标签之上。")
           :code $ quote
             defn touch-container (options)
@@ -2090,11 +2094,11 @@
                   role $ :role options
                   x $ :x options
                   y $ :y options
-                  fill-color $ .unwrap-or (:fill-color options) ([] 215 70 50)
-                  text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
-                  text-size $ .unwrap-or (:text-size options) 14
-                  enabled? $ .unwrap-or (:enabled? options) true
-                  children $ .unwrap-or (:children options) ([])
+                  fill-color $ option:unwrap-or (:fill-color options) ([] 215 70 50)
+                  text-color $ option:unwrap-or (:text-color options) ([] 0 0 98)
+                  text-size $ option:unwrap-or (:text-size options) 14
+                  enabled? $ option:unwrap-or (:enabled? options) true
+                  children $ option:unwrap-or (:children options) ([])
                   label-child $ {} (:type :text) (:text label)
                     :position $ [] x y
                     :color text-color
@@ -2105,33 +2109,34 @@
                     option:some? $ :line-color options
                     {}
                       :line-color $ option:unwrap (:line-color options)
-                      :line-width $ .unwrap-or (:line-width options) 1
+                      :line-width $ option:unwrap-or (:line-width options) 1
                     {}
-                  target $ merge
+                  target $ &merge
                     if
                       option:some? $ :action options
                       {} $ :action
                         option:unwrap $ :action options
                       {}
-                    if
-                      option:some? $ :path options
-                      {} $ :path
-                        option:unwrap $ :path options
-                      {}
-                    if
-                      option:some? $ :data options
-                      {} $ :data
-                        option:unwrap $ :data options
-                      {}
+                    &merge
+                      if
+                        option:some? $ :path options
+                        {} $ :path
+                          option:unwrap $ :path options
+                        {}
+                      if
+                        option:some? $ :data options
+                        {} $ :data
+                          option:unwrap $ :data options
+                        {}
                   base $ {} (:type :touch-area)
                     :position $ [] x y
                     :dx $ :dx options
                     :dy $ :dy options
-                    :cursor $ .unwrap-or (:cursor options) :default
+                    :cursor $ option:unwrap-or (:cursor options) :default
                     :fill-color fill-color
                     :accessibility $ {} (:id id) (:role role) (:label label) (:enabled? enabled?)
-                    :children $ concat ([] label-child) children
-                merge (merge base stroke) target
+                    :children $ &list:concat ([] label-child) children
+                &merge (&merge base stroke) target
           :examples $ []
             quote $ let
                 scene $ touch-container (TouchContainerOptions :id |example-card :label |Card :role :button :x 40 :y 100 :dx 160 :dy 48)
@@ -2146,6 +2151,7 @@
                 let
                     scene $ touch-container (TouchContainerOptions :id |test-card :label |Card :role :button :x 1 :y 2 :dx 10 :dy 20)
                   assert= ([]) (validate-scene scene)
+                  , &unit
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns calcit-paint.ui $ :require
