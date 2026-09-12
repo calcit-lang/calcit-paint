@@ -149,6 +149,38 @@ official GitHub release assets. CI deliberately leaves this variable unset.
 只在镜像站可用时设置 `SKIA_BINARIES_URL`；镜像异常时取消该变量，
 回退到 rust-skia 的 GitHub Release 产物。CI 不设置该变量。
 
+#### Getting the native dylib / 获取原生 dylib
+
+Paint ships as a Calcit module plus a native `cdylib` (`libcalcit_paint.dylib`
+on macOS, `libcalcit_paint.so` on Linux, or `calcit_paint.dll` on Windows).
+Install the module with `caps add calcit-lang/calcit-paint@<tag>` and run `caps`.
+When a module contains `build.sh`, `caps` copies it into a cached realization
+directory, runs `build.sh`, requires output under `dylibs/`, and records a
+`.calcit-native.cirru` receipt keyed by module, commit, and Calcit version;
+repeated runs reuse the cached realization. The from-source path is the
+repository's `./build.sh`, which installs `dylibs/libcalcit_paint.dylib` or
+`dylibs/libcalcit_paint.so`; on Windows Rust omits the `lib` prefix, so
+`build.sh` renames the built `calcit_paint.dll` to `dylibs/libcalcit_paint.dll`
+to match the resolver. Runtime resolution goes through
+`calcit-paint.util/get-dylib-path`, which joins the module directory with
+`/dylibs/libcalcit_paint` and the platform extension. Per-platform system
+libraries: Linux needs `libfontconfig1-dev`, `libfreetype6-dev`, and a
+GL/X11/Wayland stack, while macOS and Windows use system frameworks. There is no
+prebuilt cross-platform artifact yet; see #105.
+
+Paint 以 Calcit 模块加原生 `cdylib` 的形式发布（macOS 为 `libcalcit_paint.dylib`、
+Linux 为 `libcalcit_paint.so`、Windows 为 `calcit_paint.dll`）。用
+`caps add calcit-lang/calcit-paint@<tag>` 安装模块并运行 `caps`：当模块包含
+`build.sh` 时，`caps` 会把它复制到缓存的 realization 目录、执行 `build.sh`、要求
+`dylibs/` 下有产物，并写入按 module/commit/Calcit 版本索引的 `.calcit-native.cirru`
+receipt；重复运行会复用缓存。源码路径是仓库的 `./build.sh`，安装
+`dylibs/libcalcit_paint.dylib` 或 `dylibs/libcalcit_paint.so`；Windows 上 Rust 产物省略
+`lib` 前缀，因此 `build.sh` 会把 `calcit_paint.dll` 重命名为
+`dylibs/libcalcit_paint.dll` 以匹配解析逻辑。运行期解析由
+`calcit-paint.util/get-dylib-path` 完成，它把模块目录与 `/dylibs/libcalcit_paint` 以及
+平台扩展名拼接。各平台系统库：Linux 需要 `libfontconfig1-dev`、`libfreetype6-dev` 以及
+GL/X11/Wayland 栈，macOS 与 Windows 使用系统框架。目前尚无跨平台预编译产物；见 #105。
+
 ### Shapes
 
 Position represented with `[] x y`. Color with `[] h s l a?`.
