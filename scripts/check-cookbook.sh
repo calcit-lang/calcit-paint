@@ -4,7 +4,8 @@ set -euo pipefail
 cookbook_png="$(mktemp "${TMPDIR:-/tmp}/calcit-paint-cookbook.XXXXXX")"
 demo_png="$(mktemp "${TMPDIR:-/tmp}/calcit-paint-ui-demo.XXXXXX")"
 asset_png="$(mktemp "${TMPDIR:-/tmp}/calcit-paint-asset.XXXXXX")"
-trap 'rm -f "$cookbook_png" "$demo_png" "$asset_png"' EXIT
+font_png="$(mktemp "${TMPDIR:-/tmp}/calcit-paint-font.XXXXXX")"
+trap 'rm -f "$cookbook_png" "$demo_png" "$asset_png" "$font_png"' EXIT
 
 calcit ./calcit.cirru eval --dep ./ 'ns cookbook.smoke $ :require
   calcit-paint.core :refer $ validate-scene render-to-png! set-resource-root!
@@ -27,21 +28,25 @@ let
     focusable $ {} (:type :focus-area) (:focus-id |cookbook-editor) (:text-input? true) (:position ([] 10 6)) (:dx 8) (:dy 4)
       :accessibility $ {} (:id |cookbook-editor) (:role :text-input) (:label "|Cookbook editor") (:value |Draft) (:focusable? true)
     asset $ {} (:type :image) (:file-path |resources/calcit.png) (:x 0) (:y 0) (:w 12) (:h 8) (:fit :contain) (:sampling :linear)
+    font-text $ {} (:type :text) (:text "|Source Code Pro") (:position ([] 1 6)) (:color ([] 0 0 10)) (:size 6) (:align :left) (:font-file |resources/SourceCodePro-Medium.ttf)
     ui-demo $ demo-scene
   do
     assert= no-diagnostics $ validate-scene basic
     assert= no-diagnostics $ validate-scene nested
     assert= no-diagnostics $ validate-scene focusable
     assert= no-diagnostics $ validate-scene asset
+    assert= no-diagnostics $ validate-scene font-text
     assert= no-diagnostics $ validate-scene ui-demo
     set-resource-root! |./
     render-to-png! $ {} (:path |'"$cookbook_png"') (:width 12) (:height 8) (:scene basic)
     render-to-png! $ {} (:path |'"$demo_png"') (:width 400) (:height 400) (:scene ui-demo)
     render-to-png! $ {} (:path |'"$asset_png"') (:width 24) (:height 16) (:scene asset)
+    render-to-png! $ {} (:path |'"$font_png"') (:width 64) (:height 16) (:scene font-text)
     , &unit'
 
 test "$(od -An -tx1 -N8 "$demo_png" | tr -d ' \n')" = "89504e470d0a1a0a"
 test "$(od -An -tx1 -N8 "$asset_png" | tr -d ' \n')" = "89504e470d0a1a0a"
+test "$(od -An -tx1 -N8 "$font_png" | tr -d ' \n')" = "89504e470d0a1a0a"
 
 python3 - "$cookbook_png" <<'PY'
 import struct

@@ -74,6 +74,7 @@ lazy_static! {
   static ref DASH_EFFECT_CACHE: RwLock<HashMap<String, PathEffect>> = RwLock::new(HashMap::new());
   static ref SUBTREE_CACHE: RwLock<SubtreeCache> = RwLock::new(SubtreeCache::default());
   static ref RESOURCE_ROOT: RwLock<Option<PathBuf>> = RwLock::new(None);
+  static ref FONT_FILE_CACHE: RwLock<HashMap<String, Typeface>> = RwLock::new(HashMap::new());
 }
 
 #[cfg(test)]
@@ -399,6 +400,11 @@ fn create_text_font(style: &TextStyle, size: f32) -> Result<Font, String> {
     return Err(format!("text size must be a finite positive number, got {size}"));
   }
   let font_style = text_font_style(style);
+  if let Some(font_file) = style.font_file.as_deref() {
+    if let Some(typeface) = load_font_typeface(font_file) {
+      return Ok(Font::new(typeface, size));
+    }
+  }
   let font_mgr = FontMgr::new();
   // A requested family can be absent on another desktop. In that case retain
   // the requested weight/slant while asking Skia for the platform default.
@@ -407,6 +413,34 @@ fn create_text_font(style: &TextStyle, size: f32) -> Result<Font, String> {
     .or_else(|| font_mgr.legacy_make_typeface(None, font_style))
     .ok_or_else(|| "Skia could not resolve a default typeface".to_owned())?;
   Ok(Font::new(typeface, size))
+}
+
+/// Load and cache a typeface from a font file resolved through the resource
+/// root. Missing or undecodable files log a diagnostic and fall back to the
+/// family/default resolution path.
+fn load_font_typeface(font_file: &str) -> Option<Typeface> {
+  let resolved = resolve_resource_path(font_file);
+  let key = resolved.to_string_lossy().into_owned();
+  if let Some(cached) = FONT_FILE_CACHE.read().ok().and_then(|cache| cache.get(&key).cloned()) {
+    return Some(cached);
+  }
+  let Ok(data) = fs::read(&resolved) else {
+    eprintln!("[Paint Error] failed to load font {font_file} ({key})");
+    return None;
+  };
+  let font_mgr = FontMgr::new();
+  match font_mgr.new_from_data(&data, 0) {
+    Some(typeface) => {
+      if let Ok(mut cache) = FONT_FILE_CACHE.write() {
+        cache.insert(key, typeface.clone());
+      }
+      Some(typeface)
+    }
+    None => {
+      eprintln!("[Paint Error] failed to decode font {font_file} ({key})");
+      None
+    }
+  }
 }
 
 /// BCP47 fallback hints. Skia treats the last non-null entry as the most
@@ -435,7 +469,14 @@ fn resolve_text_runs(text: &str, style: &TextStyle, size: f32) -> Result<(Vec<(S
   let primary_face = primary.typeface();
   let font_mgr = FontMgr::new();
   let font_style = text_font_style(style);
-  let family = style.family.as_deref().unwrap_or("");
+  // When a font file is loaded directly, use its own family name as the
+  // fallback hint so missing glyphs still resolve through Skia.
+  let fallback_family = if style.font_file.is_some() {
+    primary_face.family_name()
+  } else {
+    style.family.clone().unwrap_or_default()
+  };
+  let family = fallback_family.as_str();
   let languages = text_fallback_languages(style);
 
   let mut fallback_faces: Vec<Typeface> = Vec::new();
@@ -2156,6 +2197,7 @@ mod tests {
   fn text_style() -> TextStyle {
     TextStyle {
       family: None,
+      font_file: None,
       language: None,
       weight: 400,
       slant: TextSlant::Normal,
@@ -3374,6 +3416,7 @@ mod tests {
   fn text_font_falls_back_and_honors_supported_weights() {
     let missing_family = TextStyle {
       family: Some("Calcit Paint Missing Family".into()),
+      font_file: None,
       language: None,
       weight: 700,
       slant: TextSlant::Italic,
@@ -3420,6 +3463,24 @@ mod tests {
     let (cluster_runs, _) = resolve_text_runs("a\u{0301}", &style, 20.0).unwrap();
     assert_eq!(cluster_runs.len(), 1);
     assert_eq!(cluster_runs[0].0, "a\u{0301}");
+  }
+
+  #[test]
+  fn loads_bundled_font_files_and_falls_back_when_missing() {
+    let _guard = RESOURCE_ROOT_TEST_LOCK.lock().unwrap();
+    set_resource_root(Some(env!("CARGO_MANIFEST_DIR")));
+    let bundled = TextStyle {
+      font_file: Some("resources/SourceCodePro-Medium.ttf".into()),
+      ..text_style()
+    };
+    let font = create_text_font(&bundled, 18.0).expect("bundled font should load");
+    assert!(font.typeface().family_name().to_lowercase().contains("source"));
+    let missing = TextStyle {
+      font_file: Some("resources/does-not-exist.ttf".into()),
+      ..text_style()
+    };
+    assert!(create_text_font(&missing, 18.0).is_ok());
+    set_resource_root(None);
   }
 
   #[test]
