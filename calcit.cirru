@@ -362,15 +362,15 @@
                           (:none) (raise |typed-set-value-accessibility-action-requires-value)
                       :set-text-selection $ if
                         and
-                          option:some? $ :selection-start action
-                          option:some? $ :selection-end action
+                          .some? $ :selection-start action
+                          .some? $ :selection-end action
                         PaintEvent :accessibility-action action
                         raise |typed-set-text-selection-accessibility-action-requires-selection
                       :replace-selected-text $ if
                         and
-                          option:some? $ :selection-start action
-                          option:some? $ :selection-end action
-                          option:some? $ :text action
+                          .some? $ :selection-start action
+                          .some? $ :selection-end action
+                          .some? $ :text action
                         PaintEvent :accessibility-action action
                         raise |typed-replace-selected-text-accessibility-action-requires-selection-and-text
                 (:window-focus) (PaintEvent :window-focus)
@@ -434,11 +434,10 @@
                     (:mouse-down payload)
                       do
                         assert= 12 $ :x payload
-                        assert= :select $ option:unwrap-or
+                        assert= :select $ .unwrap-or
                           :action $ :target payload
                           , :missing
                     _ $ raise |expected-mouse-down-event
-              :tags $ #{} :unit
             %{} 'TestEntry (:name |decodes-file-drop-as-fs-path)
               :code $ quote
                 let
@@ -477,7 +476,7 @@
                       do
                         assert= :selected $ :status payload
                         assert= (fs:path |/tmp/image.png)
-                          option:unwrap $ :path payload
+                          .unwrap $ :path payload
                     _ $ raise |expected-file-dialog-result
             %{} 'TestEntry (:name |decodes-accessibility-action)
               :code $ quote
@@ -491,11 +490,10 @@
                       do
                         assert= |field-a $ :id payload
                         assert= :focus $ :operation payload
-                        assert= :focus-demo $ option:unwrap-or
+                        assert= :focus-demo $ .unwrap-or
                           :action $ :target payload
                           , :missing
                     _ $ raise |expected-accessibility-action
-              :tags $ #{} :unit
             %{} 'TestEntry (:name |decodes-accessibility-set-value)
               :code $ quote
                 let
@@ -507,7 +505,7 @@
                     (:accessibility-action payload)
                       do
                         assert= :set-value $ :operation payload
-                        assert= |Updated $ option:unwrap (:value payload)
+                        assert= |Updated $ .unwrap (:value payload)
                     _ $ raise |expected-accessibility-set-value
             %{} 'TestEntry (:name |decodes-set-text-selection)
               :code $ quote
@@ -1124,28 +1122,28 @@
                       if @*pointer-dirty? $ do (reset! *pointer-dirty? false) (render! false)
                 (:mouse-down payload)
                   handle-target-event! :mouse-down (:target payload)
-                    option:unwrap-or (:captured? payload) false
+                    .unwrap-or (:captured? payload) false
                 (:mouse-up payload)
                   handle-target-event! :mouse-up (:target payload)
-                    option:unwrap-or (:captured? payload) false
+                    .unwrap-or (:captured? payload) false
                 (:mouse-move payload)
                   handle-target-event! :mouse-move (:target payload)
-                    option:unwrap-or (:captured? payload) false
+                    .unwrap-or (:captured? payload) false
                 (:mouse-leave payload)
                   handle-target-event! :mouse-leave (:target payload)
-                    option:unwrap-or (:captured? payload) false
+                    .unwrap-or (:captured? payload) false
                 (:mouse-wheel payload)
                   handle-target-event! :mouse-wheel (:target payload)
-                    option:unwrap-or (:captured? payload) false
+                    .unwrap-or (:captured? payload) false
                 (:pointer-enter payload)
                   handle-target-event! :pointer-enter (:target payload)
-                    option:unwrap-or (:captured? payload) false
+                    .unwrap-or (:captured? payload) false
                 (:pointer-leave payload)
                   handle-target-event! :pointer-leave (:target payload)
-                    option:unwrap-or (:captured? payload) false
+                    .unwrap-or (:captured? payload) false
                 (:pointer-cancel payload)
                   handle-target-event! :pointer-cancel (:target payload)
-                    option:unwrap-or (:captured? payload) false
+                    .unwrap-or (:captured? payload) false
                 (:key-down payload)
                   handle-target-event! :key-down (:target payload) false
                 (:key-up payload)
@@ -1182,12 +1180,12 @@
                               reset! *selection-end $ count next-value
                           (:none) &unit
                       :set-text-selection $ do
-                        reset! *selection-start $ option:unwrap-or (:selection-start payload) @*selection-start
-                        reset! *selection-end $ option:unwrap-or (:selection-end payload) @*selection-end
+                        reset! *selection-start $ .unwrap-or (:selection-start payload) @*selection-start
+                        reset! *selection-end $ .unwrap-or (:selection-end payload) @*selection-end
                       :replace-selected-text $ let
-                          start $ option:unwrap-or (:selection-start payload) @*selection-start
-                          end $ option:unwrap-or (:selection-end payload) @*selection-end
-                          replacement $ option:unwrap-or (:text payload) |
+                          start $ .unwrap-or (:selection-start payload) @*selection-start
+                          end $ .unwrap-or (:selection-end payload) @*selection-end
+                          replacement $ .unwrap-or (:text payload) |
                           next-value $ str (slice @*accessibility-value 0 start) replacement
                             slice @*accessibility-value end $ count @*accessibility-value
                         do (reset! *accessibility-value next-value)
@@ -1216,7 +1214,7 @@
           :code $ quote
             defn handle-target-event! (kind target captured?)
               case-default
-                option:unwrap-or (:action target) :none
+                .unwrap-or (:action target) :none
                 println |event: kind target
                 :focus-first $ focus! |field-a
                 :export-snapshot $ export-offscreen-demo!
@@ -1244,7 +1242,7 @@
                 :window-close $ close-window!
                 :input-demo $ do
                   reset! *pointer-status $ str-spaced kind
-                    option:unwrap-or (:path target) ([])
+                    .unwrap-or (:path target) ([])
                     , |captured? captured?
                   reset! *pointer-dirty? true
                   request-frame!
@@ -1892,26 +1890,26 @@
                   label $ :label options
                   x $ :x options
                   y $ :y options
-                  fill-color $ option:unwrap-or (:fill-color options) ([] 205 72 52)
-                  text-color $ option:unwrap-or (:text-color options) ([] 0 0 98)
-                  text-size $ option:unwrap-or (:text-size options) 14
-                  enabled? $ option:unwrap-or (:enabled? options) true
+                  fill-color $ .unwrap-or (:fill-color options) ([] 205 72 52)
+                  text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
+                  text-size $ .unwrap-or (:text-size options) 14
+                  enabled? $ .unwrap-or (:enabled? options) true
                   target $ &merge
                     if
-                      option:some? $ :action options
+                      .some? $ :action options
                       {} $ :action
-                        option:unwrap $ :action options
+                        .unwrap $ :action options
                       {}
                     &merge
                       if
-                        option:some? $ :path options
+                        .some? $ :path options
                         {} $ :path
-                          option:unwrap $ :path options
+                          .unwrap $ :path options
                         {}
                       if
-                        option:some? $ :data options
+                        .some? $ :data options
                         {} $ :data
-                          option:unwrap $ :data options
+                          .unwrap $ :data options
                         {}
                   base $ {} (:type :touch-area)
                     :position $ [] x y
@@ -1982,12 +1980,12 @@
                   label $ :label options
                   x $ :x options
                   y $ :y options
-                  gap $ option:unwrap-or (:gap options) 34
-                  icon-radius $ option:unwrap-or (:icon-radius options) 12
-                  icon-color $ option:unwrap-or (:icon-color options) ([] 205 72 52)
-                  text-color $ option:unwrap-or (:text-color options) ([] 0 0 96)
-                  text-size $ option:unwrap-or (:text-size options) 14
-                  baseline $ option:unwrap-or (:baseline options) :middle
+                  gap $ .unwrap-or (:gap options) 34
+                  icon-radius $ .unwrap-or (:icon-radius options) 12
+                  icon-color $ .unwrap-or (:icon-color options) ([] 205 72 52)
+                  text-color $ .unwrap-or (:text-color options) ([] 0 0 96)
+                  text-size $ .unwrap-or (:text-size options) 14
+                  baseline $ .unwrap-or (:baseline options) :middle
                 {} (:type :group)
                   :children $ []
                     {} (:type :circle)
@@ -2027,29 +2025,29 @@
                   value $ :value options
                   x $ :x options
                   y $ :y options
-                  tab-index $ option:unwrap-or (:tab-index options) 0
-                  fill-color $ option:unwrap-or (:fill-color options) ([] 215 70 45)
-                  line-color $ option:unwrap-or (:line-color options) ([] 215 88 76)
-                  line-width $ option:unwrap-or (:line-width options) 3
-                  text-color $ option:unwrap-or (:text-color options) ([] 0 0 98)
-                  text-size $ option:unwrap-or (:text-size options) 18
-                  enabled? $ option:unwrap-or (:enabled? options) true
+                  tab-index $ .unwrap-or (:tab-index options) 0
+                  fill-color $ .unwrap-or (:fill-color options) ([] 215 70 45)
+                  line-color $ .unwrap-or (:line-color options) ([] 215 88 76)
+                  line-width $ .unwrap-or (:line-width options) 3
+                  text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
+                  text-size $ .unwrap-or (:text-size options) 18
+                  enabled? $ .unwrap-or (:enabled? options) true
                   target $ &merge
                     if
-                      option:some? $ :action options
+                      .some? $ :action options
                       {} $ :action
-                        option:unwrap $ :action options
+                        .unwrap $ :action options
                       {}
                     &merge
                       if
-                        option:some? $ :path options
+                        .some? $ :path options
                         {} $ :path
-                          option:unwrap $ :path options
+                          .unwrap $ :path options
                         {}
                       if
-                        option:some? $ :data options
+                        .some? $ :data options
                         {} $ :data
-                          option:unwrap $ :data options
+                          .unwrap $ :data options
                         {}
                   base $ {} (:type :focus-area) (:focus-id id) (:tab-index tab-index) (:text-input? true)
                     :position $ [] x y
@@ -2094,11 +2092,11 @@
                   role $ :role options
                   x $ :x options
                   y $ :y options
-                  fill-color $ option:unwrap-or (:fill-color options) ([] 215 70 50)
-                  text-color $ option:unwrap-or (:text-color options) ([] 0 0 98)
-                  text-size $ option:unwrap-or (:text-size options) 14
-                  enabled? $ option:unwrap-or (:enabled? options) true
-                  children $ option:unwrap-or (:children options) ([])
+                  fill-color $ .unwrap-or (:fill-color options) ([] 215 70 50)
+                  text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
+                  text-size $ .unwrap-or (:text-size options) 14
+                  enabled? $ .unwrap-or (:enabled? options) true
+                  children $ .unwrap-or (:children options) ([])
                   label-child $ {} (:type :text) (:text label)
                     :position $ [] x y
                     :color text-color
@@ -2106,33 +2104,33 @@
                     :baseline :middle
                     :align :center
                   stroke $ if
-                    option:some? $ :line-color options
+                    .some? $ :line-color options
                     {}
-                      :line-color $ option:unwrap (:line-color options)
-                      :line-width $ option:unwrap-or (:line-width options) 1
+                      :line-color $ .unwrap (:line-color options)
+                      :line-width $ .unwrap-or (:line-width options) 1
                     {}
                   target $ &merge
                     if
-                      option:some? $ :action options
+                      .some? $ :action options
                       {} $ :action
-                        option:unwrap $ :action options
+                        .unwrap $ :action options
                       {}
                     &merge
                       if
-                        option:some? $ :path options
+                        .some? $ :path options
                         {} $ :path
-                          option:unwrap $ :path options
+                          .unwrap $ :path options
                         {}
                       if
-                        option:some? $ :data options
+                        .some? $ :data options
                         {} $ :data
-                          option:unwrap $ :data options
+                          .unwrap $ :data options
                         {}
                   base $ {} (:type :touch-area)
                     :position $ [] x y
                     :dx $ :dx options
                     :dy $ :dy options
-                    :cursor $ option:unwrap-or (:cursor options) :default
+                    :cursor $ .unwrap-or (:cursor options) :default
                     :fill-color fill-color
                     :accessibility $ {} (:id id) (:role role) (:label label) (:enabled? enabled?)
                     :children $ &list:concat ([] label-child) children
