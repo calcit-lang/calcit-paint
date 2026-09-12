@@ -1030,6 +1030,20 @@ fn validate_scene_structured(args: Vec<Edn>) -> Result<Edn, String> {
 
 calcit_native_ffi::export_edn_buffer_method_v1!(validate_scene_structured_calcit_ffi_v1, validate_scene_structured);
 
+fn check_resources(args: Vec<Edn>) -> Result<Edn, String> {
+  let [scene] = args.as_slice() else {
+    return Err(format!("check-resources expected one scene value, got: {args:?}"));
+  };
+  Ok(Edn::List(EdnListView(
+    renderer::check_resources(scene)
+      .into_iter()
+      .map(renderer::SceneDiagnostic::into_edn)
+      .collect(),
+  )))
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(check_resources_calcit_ffi_v1, check_resources);
+
 fn set_window_title(args: Vec<Edn>) -> Result<Edn, String> {
   let [Edn::Str(title)] = args.as_slice() else {
     return Err(format!("set-window-title expected one title string, got: {args:?}"));

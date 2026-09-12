@@ -436,6 +436,7 @@ platform-default font is drawn with `:alphabetic` baseline.
 | Field / 字段 | Values / 取值 | Default / 默认值 |
 | --- | --- | --- |
 | `:font-family` | Font-family string / 字体族字符串 | System default / 系统默认字体 |
+| `:font-file` | Font file path, resolved through the resource root / 字体文件路径，经 resource root 解析 | None / 无 |
 | `:weight` | Integer from `100` to `900` / `100` 至 `900` 的整数 | `400` |
 | `:style` | `:normal`, `:italic` | `:normal` |
 | `:baseline` | `:alphabetic`, `:top`, `:middle`, `:bottom` | `:alphabetic` |
@@ -465,7 +466,11 @@ installed fallback matches; alignment and `measure-text!` accounting include
 those fallback runs. Characters with no matching installed fallback keep the
 primary face and may still show a tofu box. Optional `:lang` supplies a BCP47
 tag that is passed to Skia's fallback lookup, so shared Han characters resolve to
-the requested script variant.
+the requested script variant. Optional `:font-file` loads a typeface directly
+from a file (resolved through the resource root) and uses it as the primary face;
+a missing or undecodable file logs a diagnostic and falls back to the
+family/default resolution. `:font-file` applies to single-line `:text` and
+`measure-text!`; `:paragraph` keeps family-based layout.
 
 `position` 是所选对齐方式和基线的锚点。`:top`、`:middle`、`:bottom` 会稳定对应的
 视觉位置；`:alphabetic` 则保持 Skia 传统的文字原点。若请求的字体族未安装，不会报错：
@@ -473,7 +478,9 @@ Skia 会回退到平台默认字体，并尽可能保留请求的字重和样式
 （例如拉丁字体中的中日韩或阿拉伯字符），在有已安装 fallback 匹配时会改用该字体渲染，而不是
 显示方框；对齐与 `measure-text!` 会把 fallback run 一并计入。若系统中没有匹配的 fallback，
 字符仍使用主字体，可能显示方框。可选 `:lang` 提供 BCP47 标签并传入 Skia 的 fallback 查询，
-从而让共享汉字解析到请求的文字变体。
+从而让共享汉字解析到请求的文字变体。可选 `:font-file` 会直接从文件加载 typeface（经
+resource root 解析）作为主字体；文件缺失或无法解码时会记录诊断并回退到字体族/默认解析。
+`:font-file` 适用于单行 `:text` 与 `measure-text!`；`:paragraph` 仍使用字体族布局。
 
 Weights must be integral values in the inclusive `100..900` range; unknown
 styles or baselines are rejected with field-specific errors. For compatibility,
@@ -663,6 +670,21 @@ string restores the default working-directory behavior.
 ```cirru.no-check
 set-resource-root! /path/to/project
 ```
+
+`check-resources!` performs filesystem existence checks for `:image :file-path`
+and single-line `:text :font-file`, after resource-root resolution. It returns
+the same structured `PaintSceneDiagnostic` records as
+`validate-scene-structured`, with code `:missing-resource`, the root-relative
+`:path`, and the offending `:field`. Unlike `validate-scene-structured`, this
+call reads the filesystem, so it belongs in explicit validation or tooling
+rather than every frame.
+
+`check-resources!` 会在 resource-root 解析后，对 `:image :file-path` 与单行
+`:text :font-file` 做文件存在性检查，返回与 `validate-scene-structured` 相同的结构化
+`PaintSceneDiagnostic`：code 为 `:missing-resource`，包含根相对 `:path` 与出错的 `:field`。
+与 `validate-scene-structured` 不同，它会访问文件系统，因此应放在显式校验或工具流程中，
+而不是每帧调用。
+
 
 
 - Cached group, using `cached-group` (alias: `static-group`)

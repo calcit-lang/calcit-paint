@@ -74,6 +74,7 @@ lazy_static! {
   static ref DASH_EFFECT_CACHE: RwLock<HashMap<String, PathEffect>> = RwLock::new(HashMap::new());
   static ref SUBTREE_CACHE: RwLock<SubtreeCache> = RwLock::new(SubtreeCache::default());
   static ref RESOURCE_ROOT: RwLock<Option<PathBuf>> = RwLock::new(None);
+  static ref FONT_FILE_CACHE: RwLock<HashMap<String, Typeface>> = RwLock::new(HashMap::new());
 }
 
 #[cfg(test)]
@@ -91,6 +92,7 @@ const SUBTREE_CACHE_LIMIT_BYTES: usize = 32 * 1024 * 1024;
 const SUBTREE_CACHE_MAX_ENTRIES: usize = 32;
 const IMAGE_CACHE_LIMIT_BYTES: usize = 64 * 1024 * 1024;
 const IMAGE_CACHE_MAX_ENTRIES: usize = 64;
+const FONT_FILE_CACHE_MAX_ENTRIES: usize = 16;
 
 /// Set the base directory used to resolve relative resource paths. Passing
 /// `None` restores process-working-directory behavior.
@@ -136,6 +138,17 @@ impl SceneDiagnostic {
       expected,
       actual,
       message,
+    }
+  }
+
+  fn resource(path: &str, field: &str, file_path: &str, resolved: &str, code: &'static str) -> Self {
+    Self {
+      path: path.to_owned(),
+      code,
+      field: Some(field.to_owned()),
+      expected: "existing resource file".to_owned(),
+      actual: resolved.to_owned(),
+      message: format!("{field} resource not found: {file_path} -> {resolved}"),
     }
   }
 
@@ -399,6 +412,11 @@ fn create_text_font(style: &TextStyle, size: f32) -> Result<Font, String> {
     return Err(format!("text size must be a finite positive number, got {size}"));
   }
   let font_style = text_font_style(style);
+  if let Some(font_file) = style.font_file.as_deref() {
+    if let Some(typeface) = load_font_typeface(font_file) {
+      return Ok(Font::new(typeface, size));
+    }
+  }
   let font_mgr = FontMgr::new();
   // A requested family can be absent on another desktop. In that case retain
   // the requested weight/slant while asking Skia for the platform default.
@@ -407,6 +425,37 @@ fn create_text_font(style: &TextStyle, size: f32) -> Result<Font, String> {
     .or_else(|| font_mgr.legacy_make_typeface(None, font_style))
     .ok_or_else(|| "Skia could not resolve a default typeface".to_owned())?;
   Ok(Font::new(typeface, size))
+}
+
+/// Load and cache a typeface from a font file resolved through the resource
+/// root. Missing or undecodable files log a diagnostic and fall back to the
+/// family/default resolution path.
+fn load_font_typeface(font_file: &str) -> Option<Typeface> {
+  let resolved = resolve_resource_path(font_file);
+  let key = resolved.to_string_lossy().into_owned();
+  if let Some(cached) = FONT_FILE_CACHE.read().ok().and_then(|cache| cache.get(&key).cloned()) {
+    return Some(cached);
+  }
+  let Ok(data) = fs::read(&resolved) else {
+    eprintln!("[Paint Error] failed to load font {font_file} ({key})");
+    return None;
+  };
+  let font_mgr = FontMgr::new();
+  match font_mgr.new_from_data(&data, 0) {
+    Some(typeface) => {
+      if let Ok(mut cache) = FONT_FILE_CACHE.write() {
+        if cache.len() >= FONT_FILE_CACHE_MAX_ENTRIES {
+          cache.clear();
+        }
+        cache.insert(key, typeface.clone());
+      }
+      Some(typeface)
+    }
+    None => {
+      eprintln!("[Paint Error] failed to decode font {font_file} ({key})");
+      None
+    }
+  }
 }
 
 /// BCP47 fallback hints. Skia treats the last non-null entry as the most
@@ -435,7 +484,14 @@ fn resolve_text_runs(text: &str, style: &TextStyle, size: f32) -> Result<(Vec<(S
   let primary_face = primary.typeface();
   let font_mgr = FontMgr::new();
   let font_style = text_font_style(style);
-  let family = style.family.as_deref().unwrap_or("");
+  // When a font file is loaded directly, use its own family name as the
+  // fallback hint so missing glyphs still resolve through Skia.
+  let fallback_family = if style.font_file.is_some() {
+    primary_face.family_name()
+  } else {
+    style.family.clone().unwrap_or_default()
+  };
+  let family = fallback_family.as_str();
   let languages = text_fallback_languages(style);
 
   let mut fallback_faces: Vec<Typeface> = Vec::new();
@@ -1688,6 +1744,55 @@ pub(crate) fn validate_scene_structured(tree: &Edn) -> Vec<SceneDiagnostic> {
   }
 }
 
+/// Check that `:image :file-path` and single-line `:text :font-file` resources
+/// exist after resource-root resolution. Unlike `validate-scene-structured`,
+/// this performs filesystem existence checks and returns stable machine-readable
+/// diagnostics with code `:missing-resource`.
+pub fn check_resources(tree: &Edn) -> Vec<SceneDiagnostic> {
+  let mut diagnostics = vec![];
+  collect_resource_diagnostics(tree, "$", &mut diagnostics);
+  diagnostics
+}
+
+fn collect_resource_diagnostics(value: &Edn, path: &str, diagnostics: &mut Vec<SceneDiagnostic>) {
+  let Edn::Map(m) = value else {
+    return;
+  };
+  if let Some(Edn::Tag(kind)) = m.get(&tag("type")) {
+    match kind.ref_str() {
+      "image" => {
+        if let Some(Edn::Str(file_path)) = m.get(&tag("file-path")) {
+          check_file_resource(file_path, path, "file-path", diagnostics);
+        }
+      }
+      "text" => {
+        if let Some(Edn::Str(font_file)) = m.get(&tag("font-file")) {
+          check_file_resource(font_file, path, "font-file", diagnostics);
+        }
+      }
+      _ => {}
+    }
+  }
+  if let Some(Edn::List(children)) = m.get(&tag("children")) {
+    for (index, child) in children.0.iter().enumerate() {
+      collect_resource_diagnostics(child, &format!("{path}.children[{index}]"), diagnostics);
+    }
+  }
+}
+
+fn check_file_resource(file_path: &str, shape_path: &str, field: &str, diagnostics: &mut Vec<SceneDiagnostic>) {
+  let resolved = resolve_resource_path(file_path);
+  if !resolved.is_file() {
+    diagnostics.push(SceneDiagnostic::resource(
+      shape_path,
+      field,
+      file_path,
+      &resolved.to_string_lossy(),
+      "missing-resource",
+    ));
+  }
+}
+
 fn extract_shape_at(tree: &Edn, path: &str) -> Result<Shape, SceneDiagnostics> {
   let result: Result<Shape, SceneDiagnostics> = (|| match tree {
     Edn::Map(m) => match m.get(&tag("type")) {
@@ -2156,6 +2261,7 @@ mod tests {
   fn text_style() -> TextStyle {
     TextStyle {
       family: None,
+      font_file: None,
       language: None,
       weight: 400,
       slant: TextSlant::Normal,
@@ -3374,6 +3480,7 @@ mod tests {
   fn text_font_falls_back_and_honors_supported_weights() {
     let missing_family = TextStyle {
       family: Some("Calcit Paint Missing Family".into()),
+      font_file: None,
       language: None,
       weight: 700,
       slant: TextSlant::Italic,
@@ -3420,6 +3527,109 @@ mod tests {
     let (cluster_runs, _) = resolve_text_runs("a\u{0301}", &style, 20.0).unwrap();
     assert_eq!(cluster_runs.len(), 1);
     assert_eq!(cluster_runs[0].0, "a\u{0301}");
+  }
+
+  #[test]
+  fn reports_missing_image_and_font_resources() {
+    let _guard = RESOURCE_ROOT_TEST_LOCK.lock().unwrap();
+    set_resource_root(Some("/tmp/calcit-paint-missing-resources"));
+    let scene = map([
+      ("type", Edn::tag("group")),
+      (
+        "children",
+        list([
+          map([
+            ("type", Edn::tag("image")),
+            ("file-path", Edn::Str("images/missing.png".into())),
+            ("x", Edn::Number(0.0)),
+            ("y", Edn::Number(0.0)),
+            ("w", Edn::Number(10.0)),
+            ("h", Edn::Number(10.0)),
+          ]),
+          map([
+            ("type", Edn::tag("text")),
+            ("text", Edn::Str("hi".into())),
+            ("font-file", Edn::Str("fonts/missing.ttf".into())),
+            ("position", list([Edn::Number(0.0), Edn::Number(0.0)])),
+            ("size", Edn::Number(12.0)),
+            ("color", list([Edn::Number(0.0), Edn::Number(0.0), Edn::Number(0.0)])),
+            ("align", Edn::tag("left")),
+          ]),
+        ]),
+      ),
+    ]);
+    let diagnostics = check_resources(&scene);
+    assert_eq!(diagnostics.len(), 2);
+    assert!(diagnostics
+      .iter()
+      .any(|d| d.code == "missing-resource" && d.path == "$.children[0]" && d.field.as_deref() == Some("file-path")));
+    assert!(diagnostics
+      .iter()
+      .any(|d| d.code == "missing-resource" && d.path == "$.children[1]" && d.field.as_deref() == Some("font-file")));
+    set_resource_root(None);
+  }
+
+  #[test]
+  fn loads_bundled_font_files_and_falls_back_when_missing() {
+    let _guard = RESOURCE_ROOT_TEST_LOCK.lock().unwrap();
+    set_resource_root(Some(env!("CARGO_MANIFEST_DIR")));
+    let bundled = TextStyle {
+      font_file: Some("resources/SourceCodePro-Medium.ttf".into()),
+      ..text_style()
+    };
+    let font = create_text_font(&bundled, 18.0).expect("bundled font should load");
+    assert!(font.typeface().family_name().to_lowercase().contains("source"));
+    let missing = TextStyle {
+      font_file: Some("resources/does-not-exist.ttf".into()),
+      ..text_style()
+    };
+    assert!(create_text_font(&missing, 18.0).is_ok());
+    set_resource_root(None);
+  }
+
+  #[test]
+  fn treats_directories_as_missing_resources() {
+    let _guard = RESOURCE_ROOT_TEST_LOCK.lock().unwrap();
+    let dir = std::env::temp_dir().join(format!("calcit-paint-resource-dir-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    set_resource_root(Some(dir.to_str().unwrap()));
+    let scene = map([
+      ("type", Edn::tag("image")),
+      ("file-path", Edn::Str(".".into())),
+      ("x", Edn::Number(0.0)),
+      ("y", Edn::Number(0.0)),
+      ("w", Edn::Number(10.0)),
+      ("h", Edn::Number(10.0)),
+    ]);
+    let diagnostics = check_resources(&scene);
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(diagnostics[0].code, "missing-resource");
+    assert_eq!(diagnostics[0].field.as_deref(), Some("file-path"));
+    set_resource_root(None);
+    let _ = fs::remove_dir_all(&dir);
+  }
+
+  #[test]
+  fn bounds_the_font_file_cache() {
+    let _guard = RESOURCE_ROOT_TEST_LOCK.lock().unwrap();
+    let dir = std::env::temp_dir().join(format!("calcit-paint-font-cache-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let source = fs::read(concat!(
+      env!("CARGO_MANIFEST_DIR"),
+      "/resources/SourceCodePro-Medium.ttf"
+    ))
+    .unwrap();
+    set_resource_root(Some(dir.to_str().unwrap()));
+    for index in 0..(FONT_FILE_CACHE_MAX_ENTRIES + 1) {
+      let name = format!("font-{index}.ttf");
+      fs::write(dir.join(&name), &source).unwrap();
+      assert!(load_font_typeface(&name).is_some());
+    }
+    assert!(FONT_FILE_CACHE.read().unwrap().len() <= FONT_FILE_CACHE_MAX_ENTRIES);
+    set_resource_root(None);
+    let _ = fs::remove_dir_all(&dir);
   }
 
   #[test]
