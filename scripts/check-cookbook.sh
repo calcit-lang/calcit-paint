@@ -8,7 +8,7 @@ font_png="$(mktemp "${TMPDIR:-/tmp}/calcit-paint-font.XXXXXX")"
 trap 'rm -f "$cookbook_png" "$demo_png" "$asset_png" "$font_png"' EXIT
 
 calcit ./calcit.cirru eval --dep ./ 'ns cookbook.smoke $ :require
-  calcit-paint.core :refer $ validate-scene render-to-png! set-resource-root!
+  calcit-paint.core :refer $ validate-scene render-to-png! set-resource-root! check-resources!
   calcit-paint.ui :refer $ demo-scene
 
 let
@@ -30,6 +30,7 @@ let
     asset $ {} (:type :image) (:file-path |resources/calcit.png) (:x 0) (:y 0) (:w 12) (:h 8) (:fit :contain) (:sampling :linear)
     font-text $ {} (:type :text) (:text "|Source Code Pro") (:position ([] 1 6)) (:color ([] 0 0 10)) (:size 6) (:align :left) (:font-file |resources/SourceCodePro-Medium.ttf)
     ui-demo $ demo-scene
+    missing-resource $ {} (:type :image) (:file-path |resources/does-not-exist.png) (:x 0) (:y 0) (:w 4) (:h 4)
   do
     assert= no-diagnostics $ validate-scene basic
     assert= no-diagnostics $ validate-scene nested
@@ -38,6 +39,10 @@ let
     assert= no-diagnostics $ validate-scene font-text
     assert= no-diagnostics $ validate-scene ui-demo
     set-resource-root! |./
+    assert= no-diagnostics $ check-resources! basic
+    assert= no-diagnostics $ check-resources! asset
+    assert= no-diagnostics $ check-resources! font-text
+    assert= 1 $ count $ check-resources! missing-resource
     render-to-png! $ {} (:path |'"$cookbook_png"') (:width 12) (:height 8) (:scene basic)
     render-to-png! $ {} (:path |'"$demo_png"') (:width 400) (:height 400) (:scene ui-demo)
     render-to-png! $ {} (:path |'"$asset_png"') (:width 24) (:height 16) (:scene asset)
