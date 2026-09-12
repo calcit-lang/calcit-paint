@@ -140,6 +140,17 @@ impl SceneDiagnostic {
     }
   }
 
+  fn resource(path: &str, field: &str, file_path: &str, resolved: &str, code: &'static str) -> Self {
+    Self {
+      path: path.to_owned(),
+      code,
+      field: Some(field.to_owned()),
+      expected: "existing resource file".to_owned(),
+      actual: resolved.to_owned(),
+      message: format!("{field} resource not found: {file_path} -> {resolved}"),
+    }
+  }
+
   pub(crate) fn into_edn(self) -> Edn {
     let mut fields = EdnMapView::default();
     fields.insert(tag("path"), Edn::Str(self.path.into()));
@@ -1726,6 +1737,55 @@ pub(crate) fn validate_scene_structured(tree: &Edn) -> Vec<SceneDiagnostic> {
   match extract_shape_at(tree, "$") {
     Ok(_) => vec![],
     Err(diagnostics) => diagnostics.0,
+  }
+}
+
+/// Check that `:image :file-path` and single-line `:text :font-file` resources
+/// exist after resource-root resolution. Unlike `validate-scene-structured`,
+/// this performs filesystem existence checks and returns stable machine-readable
+/// diagnostics with code `:missing-resource`.
+pub fn check_resources(tree: &Edn) -> Vec<SceneDiagnostic> {
+  let mut diagnostics = vec![];
+  collect_resource_diagnostics(tree, "$", &mut diagnostics);
+  diagnostics
+}
+
+fn collect_resource_diagnostics(value: &Edn, path: &str, diagnostics: &mut Vec<SceneDiagnostic>) {
+  let Edn::Map(m) = value else {
+    return;
+  };
+  if let Some(Edn::Tag(kind)) = m.get(&tag("type")) {
+    match kind.ref_str() {
+      "image" => {
+        if let Some(Edn::Str(file_path)) = m.get(&tag("file-path")) {
+          check_file_resource(file_path, path, "file-path", diagnostics);
+        }
+      }
+      "text" => {
+        if let Some(Edn::Str(font_file)) = m.get(&tag("font-file")) {
+          check_file_resource(font_file, path, "font-file", diagnostics);
+        }
+      }
+      _ => {}
+    }
+  }
+  if let Some(Edn::List(children)) = m.get(&tag("children")) {
+    for (index, child) in children.0.iter().enumerate() {
+      collect_resource_diagnostics(child, &format!("{path}.children[{index}]"), diagnostics);
+    }
+  }
+}
+
+fn check_file_resource(file_path: &str, shape_path: &str, field: &str, diagnostics: &mut Vec<SceneDiagnostic>) {
+  let resolved = resolve_resource_path(file_path);
+  if !resolved.exists() {
+    diagnostics.push(SceneDiagnostic::resource(
+      shape_path,
+      field,
+      file_path,
+      &resolved.to_string_lossy(),
+      "missing-resource",
+    ));
   }
 }
 
@@ -3463,6 +3523,46 @@ mod tests {
     let (cluster_runs, _) = resolve_text_runs("a\u{0301}", &style, 20.0).unwrap();
     assert_eq!(cluster_runs.len(), 1);
     assert_eq!(cluster_runs[0].0, "a\u{0301}");
+  }
+
+  #[test]
+  fn reports_missing_image_and_font_resources() {
+    let _guard = RESOURCE_ROOT_TEST_LOCK.lock().unwrap();
+    set_resource_root(Some("/tmp/calcit-paint-missing-resources"));
+    let scene = map([
+      ("type", Edn::tag("group")),
+      (
+        "children",
+        list([
+          map([
+            ("type", Edn::tag("image")),
+            ("file-path", Edn::Str("images/missing.png".into())),
+            ("x", Edn::Number(0.0)),
+            ("y", Edn::Number(0.0)),
+            ("w", Edn::Number(10.0)),
+            ("h", Edn::Number(10.0)),
+          ]),
+          map([
+            ("type", Edn::tag("text")),
+            ("text", Edn::Str("hi".into())),
+            ("font-file", Edn::Str("fonts/missing.ttf".into())),
+            ("position", list([Edn::Number(0.0), Edn::Number(0.0)])),
+            ("size", Edn::Number(12.0)),
+            ("color", list([Edn::Number(0.0), Edn::Number(0.0), Edn::Number(0.0)])),
+            ("align", Edn::tag("left")),
+          ]),
+        ]),
+      ),
+    ]);
+    let diagnostics = check_resources(&scene);
+    assert_eq!(diagnostics.len(), 2);
+    assert!(diagnostics
+      .iter()
+      .any(|d| d.code == "missing-resource" && d.path == "$.children[0]" && d.field.as_deref() == Some("file-path")));
+    assert!(diagnostics
+      .iter()
+      .any(|d| d.code == "missing-resource" && d.path == "$.children[1]" && d.field.as_deref() == Some("font-file")));
+    set_resource_root(None);
   }
 
   #[test]

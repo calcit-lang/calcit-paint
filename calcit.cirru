@@ -180,6 +180,21 @@
           :schema $ :: 'Fn
             {} (:return 'Unit)
               :args $ []
+        'check-resources! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn check-resources! (scene)
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |check_resources scene
+          :examples $ []
+            quote $ let
+                scene $ {} (:type :group)
+                  :children $ []
+                    {} (:type :image) (:file-path |resources/does-not-exist.png) (:x 0) (:y 0) (:w 8) (:h 8)
+              check-resources! scene
+          :schema $ :: 'Fn
+            {}
+              :args $ [] 'T
+              :generics $ [] 'T
+              :return $ :: 'List 'calcit-paint.core/PaintSceneDiagnostic
         'close-window! $ %{} 'CodeEntry (:doc "|Queue an orderly close request for the active Paint window.")
           :code $ quote
             defn close-window! ()
