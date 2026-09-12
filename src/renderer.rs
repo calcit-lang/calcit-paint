@@ -5,6 +5,7 @@ use crate::{
 };
 use std::collections::HashMap;
 use std::fs;
+use std::path::{Path, PathBuf};
 #[cfg(test)]
 use std::sync::Mutex;
 use std::sync::{
@@ -72,11 +73,13 @@ lazy_static! {
   static ref SHADER_CACHE: RwLock<HashMap<String, Shader>> = RwLock::new(HashMap::new());
   static ref DASH_EFFECT_CACHE: RwLock<HashMap<String, PathEffect>> = RwLock::new(HashMap::new());
   static ref SUBTREE_CACHE: RwLock<SubtreeCache> = RwLock::new(SubtreeCache::default());
+  static ref RESOURCE_ROOT: RwLock<Option<PathBuf>> = RwLock::new(None);
 }
 
 #[cfg(test)]
 lazy_static! {
   static ref SUBTREE_CACHE_TEST_LOCK: Mutex<()> = Mutex::new(());
+  static ref RESOURCE_ROOT_TEST_LOCK: Mutex<()> = Mutex::new(());
 }
 
 static SUBTREE_CACHE_TICK: AtomicU64 = AtomicU64::new(1);
@@ -88,6 +91,29 @@ const SUBTREE_CACHE_LIMIT_BYTES: usize = 32 * 1024 * 1024;
 const SUBTREE_CACHE_MAX_ENTRIES: usize = 32;
 const IMAGE_CACHE_LIMIT_BYTES: usize = 64 * 1024 * 1024;
 const IMAGE_CACHE_MAX_ENTRIES: usize = 64;
+
+/// Set the base directory used to resolve relative resource paths. Passing
+/// `None` restores process-working-directory behavior.
+pub fn set_resource_root(root: Option<&str>) {
+  let next = root.filter(|path| !path.is_empty()).map(PathBuf::from);
+  if let Ok(mut current) = RESOURCE_ROOT.write() {
+    *current = next;
+  }
+}
+
+/// Resolve an image/resource path against the configured resource root.
+/// Absolute paths are used unchanged; relative paths are joined to the root
+/// when one is set, otherwise they stay relative to the process cwd.
+pub fn resolve_resource_path(path: &str) -> PathBuf {
+  let candidate = Path::new(path);
+  if candidate.is_absolute() {
+    return candidate.to_path_buf();
+  }
+  match RESOURCE_ROOT.read().ok().and_then(|root| root.clone()) {
+    Some(root) => root.join(candidate),
+    None => candidate.to_path_buf(),
+  }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct SceneDiagnostic {
@@ -628,14 +654,16 @@ fn decoded_image_bytes(image: &Image) -> usize {
 }
 
 fn load_image(file_path: &str) -> Result<Option<Image>, String> {
-  let metadata = match fs::metadata(file_path) {
+  let resolved = resolve_resource_path(file_path);
+  let cache_key = resolved.to_string_lossy().into_owned();
+  let metadata = match fs::metadata(&resolved) {
     Ok(metadata) => metadata,
     Err(error) => {
       IMAGE_CACHE
         .write()
         .map_err(|_| "image cache lock is poisoned".to_owned())?
-        .remove(file_path);
-      eprintln!("[Paint Error] failed to load {file_path}: {error}");
+        .remove(cache_key.as_str());
+      eprintln!("[Paint Error] failed to load {file_path} ({cache_key}): {error}");
       return Ok(None);
     }
   };
@@ -645,20 +673,21 @@ fn load_image(file_path: &str) -> Result<Option<Image>, String> {
   if let Some(image) = IMAGE_CACHE
     .write()
     .map_err(|_| "image cache lock is poisoned".to_owned())?
-    .fresh_image(file_path, modified, len, tick)
+    .fresh_image(cache_key.as_str(), modified, len, tick)
   {
     return Ok(Some(image));
   }
 
-  let file_data = fs::read(file_path).map_err(|error| format!("[Paint Error] failed to load {file_path}: {error}"))?;
+  let file_data =
+    fs::read(&resolved).map_err(|error| format!("[Paint Error] failed to load {file_path} ({cache_key}): {error}"))?;
   let image = Image::from_encoded(Data::new_copy(&file_data))
-    .ok_or_else(|| format!("[Paint Error] failed to decode image: {file_path}"))?;
+    .ok_or_else(|| format!("[Paint Error] failed to decode image: {file_path} ({cache_key})"))?;
   let bytes = decoded_image_bytes(&image);
   IMAGE_CACHE
     .write()
     .map_err(|_| "image cache lock is poisoned".to_owned())?
     .insert_with_limits(
-      file_path.to_owned(),
+      cache_key,
       CachedImage {
         modified,
         len,
@@ -3391,6 +3420,21 @@ mod tests {
     let (cluster_runs, _) = resolve_text_runs("a\u{0301}", &style, 20.0).unwrap();
     assert_eq!(cluster_runs.len(), 1);
     assert_eq!(cluster_runs[0].0, "a\u{0301}");
+  }
+
+  #[test]
+  fn resolves_relative_resource_paths_against_the_configured_root() {
+    let _guard = RESOURCE_ROOT_TEST_LOCK.lock().unwrap();
+    set_resource_root(None);
+    assert_eq!(resolve_resource_path("images/cat.png"), PathBuf::from("images/cat.png"));
+    set_resource_root(Some("/tmp/paint-resources"));
+    assert_eq!(
+      resolve_resource_path("images/cat.png"),
+      PathBuf::from("/tmp/paint-resources/images/cat.png")
+    );
+    assert_eq!(resolve_resource_path("/abs/cat.png"), PathBuf::from("/abs/cat.png"));
+    set_resource_root(None);
+    assert_eq!(resolve_resource_path("images/cat.png"), PathBuf::from("images/cat.png"));
   }
 
   #[test]

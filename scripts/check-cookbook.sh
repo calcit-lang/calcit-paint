@@ -3,10 +3,11 @@ set -euo pipefail
 
 cookbook_png="$(mktemp "${TMPDIR:-/tmp}/calcit-paint-cookbook.XXXXXX")"
 demo_png="$(mktemp "${TMPDIR:-/tmp}/calcit-paint-ui-demo.XXXXXX")"
-trap 'rm -f "$cookbook_png" "$demo_png"' EXIT
+asset_png="$(mktemp "${TMPDIR:-/tmp}/calcit-paint-asset.XXXXXX")"
+trap 'rm -f "$cookbook_png" "$demo_png" "$asset_png"' EXIT
 
 calcit ./calcit.cirru eval --dep ./ 'ns cookbook.smoke $ :require
-  calcit-paint.core :refer $ validate-scene render-to-png!
+  calcit-paint.core :refer $ validate-scene render-to-png! set-resource-root!
   calcit-paint.ui :refer $ demo-scene
 
 let
@@ -33,11 +34,14 @@ let
     assert= no-diagnostics $ validate-scene focusable
     assert= no-diagnostics $ validate-scene asset
     assert= no-diagnostics $ validate-scene ui-demo
+    set-resource-root! |./
     render-to-png! $ {} (:path |'"$cookbook_png"') (:width 12) (:height 8) (:scene basic)
     render-to-png! $ {} (:path |'"$demo_png"') (:width 400) (:height 400) (:scene ui-demo)
+    render-to-png! $ {} (:path |'"$asset_png"') (:width 24) (:height 16) (:scene asset)
     , &unit'
 
 test "$(od -An -tx1 -N8 "$demo_png" | tr -d ' \n')" = "89504e470d0a1a0a"
+test "$(od -An -tx1 -N8 "$asset_png" | tr -d ' \n')" = "89504e470d0a1a0a"
 
 python3 - "$cookbook_png" <<'PY'
 import struct

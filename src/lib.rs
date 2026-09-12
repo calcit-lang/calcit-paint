@@ -935,6 +935,22 @@ fn focused(args: Vec<Edn>) -> Result<Edn, String> {
 
 calcit_native_ffi::export_edn_buffer_method_v1!(focused_calcit_ffi_v1, focused);
 
+fn set_resource_root(args: Vec<Edn>) -> Result<Edn, String> {
+  let [arg] = args.as_slice() else {
+    return Err(format!(
+      "set-resource-root expected one string or nil argument, got: {args:?}"
+    ));
+  };
+  match arg {
+    Edn::Nil => renderer::set_resource_root(None),
+    Edn::Str(path) => renderer::set_resource_root(Some(path)),
+    value => return Err(format!("set-resource-root expected a string or nil, got: {value}")),
+  }
+  Ok(Edn::Nil)
+}
+
+calcit_native_ffi::export_edn_buffer_method_v1!(set_resource_root_calcit_ffi_v1, set_resource_root);
+
 fn read_clipboard_text(args: Vec<Edn>) -> Result<Edn, String> {
   if !args.is_empty() {
     return Err(format!("read-clipboard-text expected no arguments, got: {args:?}"));
