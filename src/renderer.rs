@@ -1782,7 +1782,7 @@ fn collect_resource_diagnostics(value: &Edn, path: &str, diagnostics: &mut Vec<S
 
 fn check_file_resource(file_path: &str, shape_path: &str, field: &str, diagnostics: &mut Vec<SceneDiagnostic>) {
   let resolved = resolve_resource_path(file_path);
-  if !resolved.exists() {
+  if !resolved.is_file() {
     diagnostics.push(SceneDiagnostic::resource(
       shape_path,
       field,
@@ -3585,6 +3585,29 @@ mod tests {
     };
     assert!(create_text_font(&missing, 18.0).is_ok());
     set_resource_root(None);
+  }
+
+  #[test]
+  fn treats_directories_as_missing_resources() {
+    let _guard = RESOURCE_ROOT_TEST_LOCK.lock().unwrap();
+    let dir = std::env::temp_dir().join(format!("calcit-paint-resource-dir-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    set_resource_root(Some(dir.to_str().unwrap()));
+    let scene = map([
+      ("type", Edn::tag("image")),
+      ("file-path", Edn::Str(".".into())),
+      ("x", Edn::Number(0.0)),
+      ("y", Edn::Number(0.0)),
+      ("w", Edn::Number(10.0)),
+      ("h", Edn::Number(10.0)),
+    ]);
+    let diagnostics = check_resources(&scene);
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(diagnostics[0].code, "missing-resource");
+    assert_eq!(diagnostics[0].field.as_deref(), Some("file-path"));
+    set_resource_root(None);
+    let _ = fs::remove_dir_all(&dir);
   }
 
   #[test]
