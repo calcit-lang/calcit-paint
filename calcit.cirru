@@ -1,477 +1,554 @@
 
-{} (:about "|Machine-generated snapshot. Do not edit directly — changes will be overwritten. Use `calcit query` to inspect and `calcit edit`/`calcit tree` to modify. Run `calcit docs agents --contract` before mutations; use `--full` for first orientation or changed contract digest. Manual edits must follow format and schema conventions, then run `calcit edit format`.") (:package |calcit-paint)
-  :entries $ {}
-    :default $ {} (:description |) (:init-fn 'calcit-paint.creative-art/main!) (:mode :native) (:reload-fn 'calcit-paint.creative-art/reload!)
+{}
+  :about "|Machine-generated snapshot. Do not edit directly — changes will be overwritten. Use `calcit query` to inspect and `calcit edit`/`calcit tree` to modify. Run `calcit docs agents --contract` before mutations; use `--full` for first orientation or changed contract digest. Manual edits must follow format and schema conventions, then run `calcit edit format`."
+  :package |calcit-paint
+  :entries $ {} $ :default
+    {} (:description |)
+      :init-fn 'calcit-paint.creative-art/main!
+      :mode :native
+      :reload-fn 'calcit-paint.creative-art/reload!
       :feature-policy $ {}
       :modules $ []
       :type-slots $ {}
   :files $ {}
     'calcit-paint.core $ %{} 'FileEntry
       :defs $ {}
-        'PaintAccessibilityActionEvent $ %{} 'CodeEntry (:doc "|Typed accessibility request. Operation is :focus, :activate, :set-value, :set-text-selection, or :replace-selected-text; :set-value uses value, selection operations use Unicode scalar selection-start/selection-end, and replacement adds text. / 强类型无障碍请求。operation 为 :focus、:activate、:set-value、:set-text-selection 或 :replace-selected-text；:set-value 使用 value，selection 操作使用 Unicode scalar 的 selection-start/selection-end，替换额外携带 text。")
-          :code $ quote
-            defstruct PaintAccessibilityActionEvent (:id 'String) (:operation 'Tag) (:target 'calcit-paint.core/PaintTarget)
-              :value $ :: 'Option 'String
-              :selection-start $ :: 'Option 'Number
-              :selection-end $ :: 'Option 'Number
-              :text $ :: 'Option 'String
+        'PaintAccessibilityActionEvent $ %{} 'CodeEntry
+          :doc "|Typed accessibility request. Operation is :focus, :activate, :set-value, :set-text-selection, or :replace-selected-text; :set-value uses value, selection operations use Unicode scalar selection-start/selection-end, and replacement adds text. / 强类型无障碍请求。operation 为 :focus、:activate、:set-value、:set-text-selection 或 :replace-selected-text；:set-value 使用 value，selection 操作使用 Unicode scalar 的 selection-start/selection-end，替换额外携带 text。"
+          :code $ quote $ defstruct PaintAccessibilityActionEvent (:id 'String) (:operation 'Tag)
+            :target 'calcit-paint.core/PaintTarget
+            :value $ :: 'Option 'String
+            :selection-start $ :: 'Option 'Number
+            :selection-end $ :: 'Option 'Number
+            :text $ :: 'Option 'String
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintEvent $ %{} 'CodeEntry (:doc "|Nominal exhaustive event protocol for typed Paint callbacks, including system theme observations. / 用于强类型 Paint callback 的 nominal 穷尽事件协议，包含系统主题观测。")
-          :code $ quote
-            defenum PaintEvent (:ready) (:frame 'calcit-paint.core/PaintFrameEvent) (:mouse-down 'calcit-paint.core/PaintPointerEvent) (:mouse-up 'calcit-paint.core/PaintPointerEvent) (:mouse-move 'calcit-paint.core/PaintPointerEvent) (:mouse-leave 'calcit-paint.core/PaintPointerEvent) (:mouse-wheel 'calcit-paint.core/PaintPointerEvent) (:pointer-enter 'calcit-paint.core/PaintPointerEvent) (:pointer-leave 'calcit-paint.core/PaintPointerEvent) (:pointer-cancel 'calcit-paint.core/PaintPointerEvent) (:key-down 'calcit-paint.core/PaintKeyboardEvent) (:key-up 'calcit-paint.core/PaintKeyboardEvent) (:focus-in 'calcit-paint.core/PaintFocusEvent) (:focus-out 'calcit-paint.core/PaintFocusEvent) (:ime-enabled 'calcit-paint.core/PaintTextInputEvent) (:ime-disabled 'calcit-paint.core/PaintTextInputEvent) (:composition-start 'calcit-paint.core/PaintTextInputEvent) (:composition-update 'calcit-paint.core/PaintTextInputEvent) (:composition-end 'calcit-paint.core/PaintTextInputEvent) (:text-input 'calcit-paint.core/PaintTextInputEvent) (:file-hover 'calcit-paint.core/PaintFileEvent) (:file-drop 'calcit-paint.core/PaintFileEvent) (:file-hover-cancel 'calcit-paint.core/PaintFileHoverCancelEvent) (:file-dialog-result 'calcit-paint.core/PaintFileDialogEvent) (:accessibility-action 'calcit-paint.core/PaintAccessibilityActionEvent) (:window-focus) (:window-blur) (:resize 'calcit-paint.core/PaintWindowMetricsEvent) (:scale-factor 'calcit-paint.core/PaintWindowMetricsEvent) (:window-theme 'calcit-paint.core/PaintWindowThemeEvent) (:window-title-applied 'calcit-paint.core/PaintWindowTitleEvent) (:window-size-request 'calcit-paint.core/PaintWindowSizeEvent) (:window-close 'calcit-paint.core/PaintWindowCloseEvent)
+        'PaintEvent $ %{} 'CodeEntry
+          :doc "|Nominal exhaustive event protocol for typed Paint callbacks, including system theme observations. / 用于强类型 Paint callback 的 nominal 穷尽事件协议，包含系统主题观测。"
+          :code $ quote $ defenum PaintEvent (:ready)
+            :frame 'calcit-paint.core/PaintFrameEvent
+            :mouse-down 'calcit-paint.core/PaintPointerEvent
+            :mouse-up 'calcit-paint.core/PaintPointerEvent
+            :mouse-move 'calcit-paint.core/PaintPointerEvent
+            :mouse-leave 'calcit-paint.core/PaintPointerEvent
+            :mouse-wheel 'calcit-paint.core/PaintPointerEvent
+            :pointer-enter 'calcit-paint.core/PaintPointerEvent
+            :pointer-leave 'calcit-paint.core/PaintPointerEvent
+            :pointer-cancel 'calcit-paint.core/PaintPointerEvent
+            :key-down 'calcit-paint.core/PaintKeyboardEvent
+            :key-up 'calcit-paint.core/PaintKeyboardEvent
+            :focus-in 'calcit-paint.core/PaintFocusEvent
+            :focus-out 'calcit-paint.core/PaintFocusEvent
+            :ime-enabled 'calcit-paint.core/PaintTextInputEvent
+            :ime-disabled 'calcit-paint.core/PaintTextInputEvent
+            :composition-start 'calcit-paint.core/PaintTextInputEvent
+            :composition-update 'calcit-paint.core/PaintTextInputEvent
+            :composition-end 'calcit-paint.core/PaintTextInputEvent
+            :text-input 'calcit-paint.core/PaintTextInputEvent
+            :file-hover 'calcit-paint.core/PaintFileEvent
+            :file-drop 'calcit-paint.core/PaintFileEvent
+            :file-hover-cancel 'calcit-paint.core/PaintFileHoverCancelEvent
+            :file-dialog-result 'calcit-paint.core/PaintFileDialogEvent
+            :accessibility-action 'calcit-paint.core/PaintAccessibilityActionEvent
+            :window-focus
+            :window-blur
+            :resize 'calcit-paint.core/PaintWindowMetricsEvent
+            :scale-factor 'calcit-paint.core/PaintWindowMetricsEvent
+            :window-theme 'calcit-paint.core/PaintWindowThemeEvent
+            :window-title-applied 'calcit-paint.core/PaintWindowTitleEvent
+            :window-size-request 'calcit-paint.core/PaintWindowSizeEvent
+            :window-close 'calcit-paint.core/PaintWindowCloseEvent
           :examples $ []
           :schema $ :: 'EnumDef
-        'PaintEventFfi $ %{} 'CodeEntry (:doc "|Internal generic envelope received from the native typed-event transport.")
-          :code $ quote
-            defenum PaintEventFfi ([] 'Raw) (:ready) (:frame 'Raw) (:mouse-down 'Raw) (:mouse-up 'Raw) (:mouse-move 'Raw) (:mouse-leave 'Raw) (:mouse-wheel 'Raw) (:pointer-enter 'Raw) (:pointer-leave 'Raw) (:pointer-cancel 'Raw) (:key-down 'Raw) (:key-up 'Raw) (:focus-in 'Raw) (:focus-out 'Raw) (:ime-enabled 'Raw) (:ime-disabled 'Raw) (:composition-start 'Raw) (:composition-update 'Raw) (:composition-end 'Raw) (:text-input 'Raw) (:file-hover 'Raw) (:file-drop 'Raw) (:file-hover-cancel 'Raw) (:file-dialog-result 'Raw) (:accessibility-action 'Raw) (:window-focus) (:window-blur) (:resize 'Raw) (:scale-factor 'Raw) (:window-theme 'Raw) (:window-title-applied 'Raw) (:window-size-request 'Raw) (:window-close 'Raw)
+        'PaintEventFfi $ %{} 'CodeEntry
+          :doc "|Internal generic envelope received from the native typed-event transport."
+          :code $ quote $ defenum PaintEventFfi ([] 'Raw) (:ready) (:frame 'Raw) (:mouse-down 'Raw) (:mouse-up 'Raw) (:mouse-move 'Raw) (:mouse-leave 'Raw) (:mouse-wheel 'Raw) (:pointer-enter 'Raw) (:pointer-leave 'Raw) (:pointer-cancel 'Raw) (:key-down 'Raw) (:key-up 'Raw) (:focus-in 'Raw) (:focus-out 'Raw) (:ime-enabled 'Raw) (:ime-disabled 'Raw)
+            :composition-start 'Raw
+            :composition-update 'Raw
+            :composition-end 'Raw
+            :text-input 'Raw
+            :file-hover 'Raw
+            :file-drop 'Raw
+            :file-hover-cancel 'Raw
+            :file-dialog-result 'Raw
+            :accessibility-action 'Raw
+            :window-focus
+            :window-blur
+            :resize 'Raw
+            :scale-factor 'Raw
+            :window-theme 'Raw
+            :window-title-applied 'Raw
+            :window-size-request 'Raw
+            :window-close 'Raw
           :examples $ []
           :schema $ :: 'EnumDef
-        'PaintFileDialogEvent $ %{} 'CodeEntry (:doc "|Typed terminal native-dialog result. Status is :selected, :cancelled, or :failed. / 强类型原生对话框终态结果。status 为 :selected、:cancelled 或 :failed。")
-          :code $ quote
-            defstruct PaintFileDialogEvent (:request-id 'String) (:operation 'Tag) (:status 'Tag)
-              :path $ :: 'Option 'FsPath
-              :error $ :: 'Option 'String
+        'PaintFileDialogEvent $ %{} 'CodeEntry
+          :doc "|Typed terminal native-dialog result. Status is :selected, :cancelled, or :failed. / 强类型原生对话框终态结果。status 为 :selected、:cancelled 或 :failed。"
+          :code $ quote $ defstruct PaintFileDialogEvent (:request-id 'String) (:operation 'Tag) (:status 'Tag)
+            :path $ :: 'Option 'FsPath
+            :error $ :: 'Option 'String
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintFileDialogEventWire $ %{} 'CodeEntry (:doc "|Internal UTF-8 native dialog result decoded before constructing a nominal FsPath. / 内部 UTF-8 原生对话框结果，在构造 nominal FsPath 前解码。")
-          :code $ quote
-            defstruct PaintFileDialogEventWire (:request-id 'String) (:operation 'Tag) (:status 'Tag)
-              :path $ :: 'Option 'String
-              :error $ :: 'Option 'String
+        'PaintFileDialogEventWire $ %{} 'CodeEntry
+          :doc "|Internal UTF-8 native dialog result decoded before constructing a nominal FsPath. / 内部 UTF-8 原生对话框结果，在构造 nominal FsPath 前解码。"
+          :code $ quote $ defstruct PaintFileDialogEventWire (:request-id 'String) (:operation 'Tag) (:status 'Tag)
+            :path $ :: 'Option 'String
+            :error $ :: 'Option 'String
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintFileDialogFilter $ %{} 'CodeEntry (:doc "|One native file dialog filter with a human label and extensions without leading dots. / 原生文件对话框过滤器，含人类可读标签与不带前导点的扩展名。")
-          :code $ quote
-            defstruct PaintFileDialogFilter (:name 'String)
-              :extensions $ :: 'List 'String
+        'PaintFileDialogFilter $ %{} 'CodeEntry
+          :doc "|One native file dialog filter with a human label and extensions without leading dots. / 原生文件对话框过滤器，含人类可读标签与不带前导点的扩展名。"
+          :code $ quote $ defstruct PaintFileDialogFilter (:name 'String)
+            :extensions $ :: 'List 'String
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintFileDialogOptions $ %{} 'CodeEntry (:doc "|Strict native dialog request options; request-id is echoed by the terminal result event. / 严格原生对话框请求配置；request-id 会在终态结果事件中原样返回。")
-          :code $ quote
-            defstruct PaintFileDialogOptions (:request-id 'String)
-              :title $ :: 'Option 'String
-              :directory $ :: 'Option 'FsPath
-              :file-name $ :: 'Option 'String
-              :filters $ :: 'List 'calcit-paint.core/PaintFileDialogFilter
+        'PaintFileDialogOptions $ %{} 'CodeEntry
+          :doc "|Strict native dialog request options; request-id is echoed by the terminal result event. / 严格原生对话框请求配置；request-id 会在终态结果事件中原样返回。"
+          :code $ quote $ defstruct PaintFileDialogOptions (:request-id 'String)
+            :title $ :: 'Option 'String
+            :directory $ :: 'Option 'FsPath
+            :file-name $ :: 'Option 'String
+            :filters $ :: 'List 'calcit-paint.core/PaintFileDialogFilter
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintFileEvent $ %{} 'CodeEntry (:doc "|Typed file hover/drop payload with a nominal Calcit filesystem path.")
-          :code $ quote
-            defstruct PaintFileEvent (:path 'FsPath) (:x 'Number) (:y 'Number) (:modifiers 'calcit-paint.core/PaintModifiers)
+        'PaintFileEvent $ %{} 'CodeEntry
+          :doc "|Typed file hover/drop payload with a nominal Calcit filesystem path."
+          :code $ quote $ defstruct PaintFileEvent (:path 'FsPath) (:x 'Number) (:y 'Number)
+            :modifiers 'calcit-paint.core/PaintModifiers
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintFileEventWire $ %{} 'CodeEntry (:doc "|Internal UTF-8 wire payload decoded before constructing a nominal FsPath.")
-          :code $ quote
-            defstruct PaintFileEventWire (:path 'String) (:x 'Number) (:y 'Number) (:modifiers 'calcit-paint.core/PaintModifiers)
+        'PaintFileEventWire $ %{} 'CodeEntry
+          :doc "|Internal UTF-8 wire payload decoded before constructing a nominal FsPath."
+          :code $ quote $ defstruct PaintFileEventWire (:path 'String) (:x 'Number) (:y 'Number)
+            :modifiers 'calcit-paint.core/PaintModifiers
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintFileHoverCancelEvent $ %{} 'CodeEntry (:doc "|Typed file-hover cancellation payload without a fabricated path.")
-          :code $ quote
-            defstruct PaintFileHoverCancelEvent (:x 'Number) (:y 'Number) (:modifiers 'calcit-paint.core/PaintModifiers)
+        'PaintFileHoverCancelEvent $ %{} 'CodeEntry
+          :doc "|Typed file-hover cancellation payload without a fabricated path."
+          :code $ quote $ defstruct PaintFileHoverCancelEvent (:x 'Number) (:y 'Number)
+            :modifiers 'calcit-paint.core/PaintModifiers
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintFocusEvent $ %{} 'CodeEntry (:doc "|Typed focus transition payload.")
-          :code $ quote
-            defstruct PaintFocusEvent (:focus-id 'String)
-              :related-focus-id $ :: 'Option 'String
-              :reason 'Tag
-              :target 'calcit-paint.core/PaintTarget
+        'PaintFocusEvent $ %{} 'CodeEntry
+          :doc "|Typed focus transition payload."
+          :code $ quote $ defstruct PaintFocusEvent (:focus-id 'String)
+            :related-focus-id $ :: 'Option 'String
+            :reason 'Tag
+            :target 'calcit-paint.core/PaintTarget
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintFrameEvent $ %{} 'CodeEntry (:doc "|Typed on-demand animation frame payload.")
-          :code $ quote
-            defstruct PaintFrameEvent (:frame 'Number) (:timestamp-ms 'Number) (:delta-ms 'Number) (:width 'Number) (:height 'Number) (:scale-factor 'Number)
+        'PaintFrameEvent $ %{} 'CodeEntry
+          :doc "|Typed on-demand animation frame payload."
+          :code $ quote $ defstruct PaintFrameEvent (:frame 'Number) (:timestamp-ms 'Number) (:delta-ms 'Number) (:width 'Number) (:height 'Number) (:scale-factor 'Number)
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintKeyboardEvent $ %{} 'CodeEntry (:doc "|Typed logical and physical keyboard payload.")
-          :code $ quote
-            defstruct PaintKeyboardEvent (:key-code 'Number) (:physical-key 'String) (:name 'String) (:modifiers 'calcit-paint.core/PaintModifiers)
-              :focus-id $ :: 'Option 'String
-              :shortcut? $ :: 'Option 'Bool
-              :target 'calcit-paint.core/PaintTarget
+        'PaintKeyboardEvent $ %{} 'CodeEntry
+          :doc "|Typed logical and physical keyboard payload."
+          :code $ quote $ defstruct PaintKeyboardEvent (:key-code 'Number) (:physical-key 'String) (:name 'String)
+            :modifiers 'calcit-paint.core/PaintModifiers
+            :focus-id $ :: 'Option 'String
+            :shortcut? $ :: 'Option 'Bool
+            :target 'calcit-paint.core/PaintTarget
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintModifiers $ %{} 'CodeEntry (:doc "|Closed keyboard and pointer modifier state.")
-          :code $ quote
-            defstruct PaintModifiers (:shift? 'Bool) (:control? 'Bool) (:alt? 'Bool) (:super? 'Bool)
+        'PaintModifiers $ %{} 'CodeEntry
+          :doc "|Closed keyboard and pointer modifier state."
+          :code $ quote $ defstruct PaintModifiers (:shift? 'Bool) (:control? 'Bool) (:alt? 'Bool) (:super? 'Bool)
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintPointerEvent $ %{} 'CodeEntry (:doc "|Typed pointer, mouse, hover, cancellation, and wheel payload.")
-          :code $ quote
-            defstruct PaintPointerEvent (:x 'Number) (:y 'Number) (:clicks 'Number) (:modifiers 'calcit-paint.core/PaintModifiers) (:target 'calcit-paint.core/PaintTarget)
-              :dx $ :: 'Option 'Number
-              :dy $ :: 'Option 'Number
-              :button $ :: 'Option 'Tag
-              :button-id $ :: 'Option 'Number
-              :cursor $ :: 'Option 'Tag
-              :captured? $ :: 'Option 'Bool
-              :cancelled? $ :: 'Option 'Bool
-              :reason $ :: 'Option 'Tag
-              :unit $ :: 'Option 'Tag
+        'PaintPointerEvent $ %{} 'CodeEntry
+          :doc "|Typed pointer, mouse, hover, cancellation, and wheel payload."
+          :code $ quote $ defstruct PaintPointerEvent (:x 'Number) (:y 'Number) (:clicks 'Number)
+            :modifiers 'calcit-paint.core/PaintModifiers
+            :target 'calcit-paint.core/PaintTarget
+            :dx $ :: 'Option 'Number
+            :dy $ :: 'Option 'Number
+            :button $ :: 'Option 'Tag
+            :button-id $ :: 'Option 'Number
+            :cursor $ :: 'Option 'Tag
+            :captured? $ :: 'Option 'Bool
+            :cancelled? $ :: 'Option 'Bool
+            :reason $ :: 'Option 'Tag
+            :unit $ :: 'Option 'Tag
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintSceneDiagnostic $ %{} 'CodeEntry (:doc "|Stable scene validation record; path and code are automation contracts while message may improve. / 稳定场景校验记录；path 与 code 是自动化契约，message 可持续改进。")
-          :code $ quote
-            defstruct PaintSceneDiagnostic (:path 'String) (:code 'Tag)
-              :field $ :: 'Option 'String
-              :expected 'String
-              :actual 'String
-              :message 'String
+        'PaintSceneDiagnostic $ %{} 'CodeEntry
+          :doc "|Stable scene validation record; path and code are automation contracts while message may improve. / 稳定场景校验记录；path 与 code 是自动化契约，message 可持续改进。"
+          :code $ quote $ defstruct PaintSceneDiagnostic (:path 'String) (:code 'Tag)
+            :field $ :: 'Option 'String
+            :expected 'String
+            :actual 'String
+            :message 'String
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintTarget $ %{} 'CodeEntry (:doc "|Application-defined target values kept at one explicit open boundary.")
-          :code $ quote
-            defstruct PaintTarget
-              :action $ :: 'Option 'Dynamic
-              :path $ :: 'Option 'Dynamic
-              :data $ :: 'Option 'Dynamic
+        'PaintTarget $ %{} 'CodeEntry
+          :doc "|Application-defined target values kept at one explicit open boundary."
+          :code $ quote $ defstruct PaintTarget
+            :action $ :: 'Option 'Dynamic
+            :path $ :: 'Option 'Dynamic
+            :data $ :: 'Option 'Dynamic
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintTextInputEvent $ %{} 'CodeEntry (:doc "|Typed IME composition and committed text payload.")
-          :code $ quote
-            defstruct PaintTextInputEvent (:focus-id 'String) (:text 'String)
-              :cursor-start $ :: 'Option 'Number
-              :cursor-end $ :: 'Option 'Number
-              :cancelled? $ :: 'Option 'Bool
-              :target 'calcit-paint.core/PaintTarget
+        'PaintTextInputEvent $ %{} 'CodeEntry
+          :doc "|Typed IME composition and committed text payload."
+          :code $ quote $ defstruct PaintTextInputEvent (:focus-id 'String) (:text 'String)
+            :cursor-start $ :: 'Option 'Number
+            :cursor-end $ :: 'Option 'Number
+            :cancelled? $ :: 'Option 'Bool
+            :target 'calcit-paint.core/PaintTarget
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintWindowCloseEvent $ %{} 'CodeEntry (:doc "|Typed exactly-once window close payload.")
-          :code $ quote
-            defstruct PaintWindowCloseEvent $ :reason 'Tag
+        'PaintWindowCloseEvent $ %{} 'CodeEntry
+          :doc "|Typed exactly-once window close payload."
+          :code $ quote $ defstruct PaintWindowCloseEvent (:reason 'Tag)
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintWindowMetricsEvent $ %{} 'CodeEntry (:doc "|Typed logical window metrics and scale payload.")
-          :code $ quote
-            defstruct PaintWindowMetricsEvent (:width 'Number) (:height 'Number) (:scale-factor 'Number)
+        'PaintWindowMetricsEvent $ %{} 'CodeEntry
+          :doc "|Typed logical window metrics and scale payload."
+          :code $ quote $ defstruct PaintWindowMetricsEvent (:width 'Number) (:height 'Number) (:scale-factor 'Number)
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintWindowSizeEvent $ %{} 'CodeEntry (:doc "|Typed logical-size request acknowledgement.")
-          :code $ quote
-            defstruct PaintWindowSizeEvent (:status 'Tag) (:requested-width 'Number) (:requested-height 'Number)
-              :actual-width $ :: 'Option 'Number
-              :actual-height $ :: 'Option 'Number
-              :matched? $ :: 'Option 'Bool
-              :scale-factor 'Number
+        'PaintWindowSizeEvent $ %{} 'CodeEntry
+          :doc "|Typed logical-size request acknowledgement."
+          :code $ quote $ defstruct PaintWindowSizeEvent (:status 'Tag) (:requested-width 'Number)
+            :requested-height 'Number
+            :actual-width $ :: 'Option 'Number
+            :actual-height $ :: 'Option 'Number
+            :matched? $ :: 'Option 'Bool
+            :scale-factor 'Number
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintWindowThemeEvent $ %{} 'CodeEntry (:doc "|Typed system theme payload: :light, :dark, or :unknown, plus whether it is the initial observation. / 强类型系统主题 payload：:light、:dark 或 :unknown，并标明是否为初始观测。")
-          :code $ quote
-            defstruct PaintWindowThemeEvent (:theme 'Tag) (:initial? 'Bool)
+        'PaintWindowThemeEvent $ %{} 'CodeEntry
+          :doc "|Typed system theme payload: :light, :dark, or :unknown, plus whether it is the initial observation. / 强类型系统主题 payload：:light、:dark 或 :unknown，并标明是否为初始观测。"
+          :code $ quote $ defstruct PaintWindowThemeEvent (:theme 'Tag) (:initial? 'Bool)
           :examples $ []
           :schema $ :: 'StructDef
-        'PaintWindowTitleEvent $ %{} 'CodeEntry (:doc "|Typed applied window-title acknowledgement.")
-          :code $ quote
-            defstruct PaintWindowTitleEvent $ :title 'String
+        'PaintWindowTitleEvent $ %{} 'CodeEntry
+          :doc "|Typed applied window-title acknowledgement."
+          :code $ quote $ defstruct PaintWindowTitleEvent (:title 'String)
           :examples $ []
           :schema $ :: 'StructDef
-        'WindowOptions $ %{} 'CodeEntry (:doc "|Strict startup configuration for the single Paint window.")
-          :code $ quote
-            defstruct WindowOptions (:title 'String) (:width 'Number) (:height 'Number) (:min-width 'Number) (:min-height 'Number) (:resizable? 'Bool)
+        'WindowOptions $ %{} 'CodeEntry
+          :doc "|Strict startup configuration for the single Paint window."
+          :code $ quote $ defstruct WindowOptions (:title 'String) (:width 'Number) (:height 'Number) (:min-width 'Number) (:min-height 'Number) (:resizable? 'Bool)
           :examples $ []
           :schema $ :: 'StructDef
         'blur! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn blur! ()
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |clear_focus
-              , &unit
+          :code $ quote $ defn blur! ()
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |clear_focus
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
         'check-resources! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn check-resources! (scene)
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |check_resources scene
-          :examples $ []
-            quote $ let
+          :code $ quote $ defn check-resources! (scene)
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |check_resources scene
+          :examples $ [] $ quote
+            let
                 scene $ {} (:type :group)
-                  :children $ []
-                    {} (:type :image) (:file-path |resources/does-not-exist.png) (:x 0) (:y 0) (:w 8) (:h 8)
+                  :children $ [] $ {} (:type :image)
+                    :file-path |resources/does-not-exist.png
+                    :x 0
+                    :y 0
+                    :w 8
+                    :h 8
               check-resources! scene
-          :schema $ :: 'Fn
-            {}
-              :args $ [] 'T
-              :generics $ [] 'T
-              :return $ :: 'List 'calcit-paint.core/PaintSceneDiagnostic
-        'close-window! $ %{} 'CodeEntry (:doc "|Queue an orderly close request for the active Paint window.")
-          :code $ quote
-            defn close-window! ()
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |close_window
-              , &unit
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'T
+            :generics $ [] 'T
+            :return $ :: 'List 'calcit-paint.core/PaintSceneDiagnostic
+        'close-window! $ %{} 'CodeEntry
+          :doc "|Queue an orderly close request for the active Paint window."
+          :code $ quote $ defn close-window! ()
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |close_window
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
         'focus! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn focus! (id)
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |request_focus id
-              , &unit
+          :code $ quote $ defn focus! (id)
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |request_focus id
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'String
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'String
         'focused? $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn focused? (id)
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |focused id
+          :code $ quote $ defn focused? (id)
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |focused id
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Bool)
-              :args $ [] 'String
+          :schema $ :: 'Fn $ {} (:return 'Bool)
+            :args $ [] 'String
         'launch-canvas! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn launch-canvas! (cb)
-              &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas $ fn (event) (cb event) :handled
-              , &unit
+          :code $ quote $ defn launch-canvas! (cb)
+            &blocking-dylib-edn-fn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |launch_canvas $ fn (event) (cb event) :handled
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
-                :: 'Fn $ {} (:return 'R)
-                  :args $ [] 'Dynamic
-              :generics $ [] 'R
-        'launch-canvas-typed! $ %{} 'CodeEntry (:doc "|Launch the configured single Paint window with a nominal PaintEvent callback.")
-          :code $ quote
-            defn launch-canvas-typed! (options cb)
-              &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas_typed options $ fn (event)
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] $ :: 'Fn
+              {} (:return 'R)
+                :args $ [] 'Dynamic
+            :generics $ [] 'R
+        'launch-canvas-typed! $ %{} 'CodeEntry
+          :doc "|Launch the configured single Paint window with a nominal PaintEvent callback."
+          :code $ quote $ defn launch-canvas-typed! (options cb)
+            &blocking-dylib-edn-fn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |launch_canvas_typed options $ fn (event)
                 cb $ paint-event-from-ffi event
                 , :handled
-              , &unit
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'calcit-paint.core/WindowOptions
-                :: 'Fn $ {} (:return 'R)
-                  :args $ [] 'calcit-paint.core/PaintEvent
-              :generics $ [] 'R
-        'launch-canvas-with-options! $ %{} 'CodeEntry (:doc "|Launch the blocking single-window event loop with nominal startup options.")
-          :code $ quote
-            defn launch-canvas-with-options! (options cb)
-              &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas_with_options options $ fn (event) (cb event) :handled
-              , &unit
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'calcit-paint.core/WindowOptions $ :: 'Fn
+              {} (:return 'R)
+                :args $ [] 'calcit-paint.core/PaintEvent
+            :generics $ [] 'R
+        'launch-canvas-with-options! $ %{} 'CodeEntry
+          :doc "|Launch the blocking single-window event loop with nominal startup options."
+          :code $ quote $ defn launch-canvas-with-options! (options cb)
+            &blocking-dylib-edn-fn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |launch_canvas_with_options options $ fn (event) (cb event) :handled
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'calcit-paint.core/WindowOptions
-                :: 'Fn $ {} (:return 'R)
-                  :args $ [] 'Dynamic
-              :generics $ [] 'R
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'calcit-paint.core/WindowOptions $ :: 'Fn
+              {} (:return 'R)
+                :args $ [] 'Dynamic
+            :generics $ [] 'R
         'measure-paragraph! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn measure-paragraph! (data)
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_paragraph data
+          :code $ quote $ defn measure-paragraph! (data)
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |measure_paragraph data
           :examples $ []
-          :schema $ :: 'Fn
-            {}
-              :args $ [] (:: 'Map 'Tag 'Dynamic)
-              :return $ :: 'Map 'Tag 'Number
+          :schema $ :: 'Fn $ {}
+            :args $ [] $ :: 'Map 'Tag 'Dynamic
+            :return $ :: 'Map 'Tag 'Number
         'measure-text! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn measure-text! (data)
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_text data
+          :code $ quote $ defn measure-text! (data)
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |measure_text data
           :examples $ []
-          :schema $ :: 'Fn
-            {}
-              :args $ [] (:: 'Map 'Tag 'Dynamic)
-              :return $ :: 'Map 'Tag 'Number
-        'open-file-dialog! $ %{} 'CodeEntry (:doc "|Queue one native open-file dialog; its result is delivered later as :file-dialog-result. / 请求一个原生打开文件对话框；结果稍后以 :file-dialog-result 送达。")
-          :code $ quote
-            defn open-file-dialog! (options)
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |open_file_dialog options
-              , &unit
+          :schema $ :: 'Fn $ {}
+            :args $ [] $ :: 'Map 'Tag 'Dynamic
+            :return $ :: 'Map 'Tag 'Number
+        'open-file-dialog! $ %{} 'CodeEntry
+          :doc "|Queue one native open-file dialog; its result is delivered later as :file-dialog-result. / 请求一个原生打开文件对话框；结果稍后以 :file-dialog-result 送达。"
+          :code $ quote $ defn open-file-dialog! (options)
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |open_file_dialog options
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'calcit-paint.core/PaintFileDialogOptions
-        'paint-event-from-ffi $ %{} 'CodeEntry (:doc "|Strictly decode one native typed-event envelope into the public nominal protocol, validating system theme tags and accessibility selection payloads. / 严格将原生强类型事件 envelope 解码为公开 nominal 协议，并校验系统主题 tag 与无障碍 selection payload。")
-          :code $ quote
-            defn paint-event-from-ffi (event)
-              match event
-                (:ready) (PaintEvent :ready)
-                (:frame payload)
-                  PaintEvent :frame $ decode-map-as payload PaintFrameEvent
-                (:mouse-down payload)
-                  PaintEvent :mouse-down $ decode-map-as payload PaintPointerEvent
-                (:mouse-up payload)
-                  PaintEvent :mouse-up $ decode-map-as payload PaintPointerEvent
-                (:mouse-move payload)
-                  PaintEvent :mouse-move $ decode-map-as payload PaintPointerEvent
-                (:mouse-leave payload)
-                  PaintEvent :mouse-leave $ decode-map-as payload PaintPointerEvent
-                (:mouse-wheel payload)
-                  PaintEvent :mouse-wheel $ decode-map-as payload PaintPointerEvent
-                (:pointer-enter payload)
-                  PaintEvent :pointer-enter $ decode-map-as payload PaintPointerEvent
-                (:pointer-leave payload)
-                  PaintEvent :pointer-leave $ decode-map-as payload PaintPointerEvent
-                (:pointer-cancel payload)
-                  PaintEvent :pointer-cancel $ decode-map-as payload PaintPointerEvent
-                (:key-down payload)
-                  PaintEvent :key-down $ decode-map-as payload PaintKeyboardEvent
-                (:key-up payload)
-                  PaintEvent :key-up $ decode-map-as payload PaintKeyboardEvent
-                (:focus-in payload)
-                  PaintEvent :focus-in $ decode-map-as payload PaintFocusEvent
-                (:focus-out payload)
-                  PaintEvent :focus-out $ decode-map-as payload PaintFocusEvent
-                (:ime-enabled payload)
-                  PaintEvent :ime-enabled $ decode-map-as payload PaintTextInputEvent
-                (:ime-disabled payload)
-                  PaintEvent :ime-disabled $ decode-map-as payload PaintTextInputEvent
-                (:composition-start payload)
-                  PaintEvent :composition-start $ decode-map-as payload PaintTextInputEvent
-                (:composition-update payload)
-                  PaintEvent :composition-update $ decode-map-as payload PaintTextInputEvent
-                (:composition-end payload)
-                  PaintEvent :composition-end $ decode-map-as payload PaintTextInputEvent
-                (:text-input payload)
-                  PaintEvent :text-input $ decode-map-as payload PaintTextInputEvent
-                (:file-hover payload)
-                  let
-                      wire $ decode-map-as payload PaintFileEventWire
-                    PaintEvent :file-hover $ PaintFileEvent :path
-                      fs:path $ :path wire
-                      , :x (:x wire) :y (:y wire) :modifiers (:modifiers wire)
-                (:file-drop payload)
-                  let
-                      wire $ decode-map-as payload PaintFileEventWire
-                    PaintEvent :file-drop $ PaintFileEvent :path
-                      fs:path $ :path wire
-                      , :x (:x wire) :y (:y wire) :modifiers (:modifiers wire)
-                (:file-hover-cancel payload)
-                  PaintEvent :file-hover-cancel $ decode-map-as payload PaintFileHoverCancelEvent
-                (:file-dialog-result payload)
-                  let
-                      wire $ decode-map-as payload PaintFileDialogEventWire
-                      path $ :path wire
-                      error $ :error wire
-                      path-for-event $ match path
-                        (:none) %none
-                        (:some value)
-                          %some $ fs:path value
-                      result $ PaintFileDialogEvent :request-id (:request-id wire) :operation (:operation wire) :status (:status wire) :path path-for-event :error error
-                    do
-                      case-default (:operation result)
-                        raise $ str "|unsupported typed file dialog operation: " (:operation result)
-                        :open &unit
-                        :save &unit
-                      case-default (:status result)
-                        raise $ str "|unsupported typed file dialog status: " (:status result)
-                        :selected $ PaintEvent :file-dialog-result result
-                        :cancelled $ PaintEvent :file-dialog-result result
-                        :failed $ PaintEvent :file-dialog-result result
-                (:accessibility-action payload)
-                  let
-                      action $ decode-map-as payload PaintAccessibilityActionEvent
-                    case-default (:operation action)
-                      raise $ str "|unsupported typed accessibility operation: " (:operation action)
-                      :focus $ PaintEvent :accessibility-action action
-                      :activate $ PaintEvent :accessibility-action action
-                      :set-value $ let
-                          value $ :value action
-                        match value
-                          (:some _) (PaintEvent :accessibility-action action)
-                          (:none) (raise |typed-set-value-accessibility-action-requires-value)
-                      :set-text-selection $ if
-                        and
-                          .some? $ :selection-start action
-                          .some? $ :selection-end action
-                        PaintEvent :accessibility-action action
-                        raise |typed-set-text-selection-accessibility-action-requires-selection
-                      :replace-selected-text $ if
-                        and
-                          .some? $ :selection-start action
-                          .some? $ :selection-end action
-                          .some? $ :text action
-                        PaintEvent :accessibility-action action
-                        raise |typed-replace-selected-text-accessibility-action-requires-selection-and-text
-                (:window-focus) (PaintEvent :window-focus)
-                (:window-blur) (PaintEvent :window-blur)
-                (:resize payload)
-                  PaintEvent :resize $ decode-map-as payload PaintWindowMetricsEvent
-                (:scale-factor payload)
-                  PaintEvent :scale-factor $ decode-map-as payload PaintWindowMetricsEvent
-                (:window-theme payload)
-                  let
-                      theme-event $ decode-map-as payload PaintWindowThemeEvent
-                    case-default (:theme theme-event)
-                      raise $ str "|unsupported typed system theme: " (:theme theme-event)
-                      :light $ PaintEvent :window-theme theme-event
-                      :dark $ PaintEvent :window-theme theme-event
-                      :unknown $ PaintEvent :window-theme theme-event
-                (:window-title-applied payload)
-                  PaintEvent :window-title-applied $ decode-map-as payload PaintWindowTitleEvent
-                (:window-size-request payload)
-                  PaintEvent :window-size-request $ decode-map-as payload PaintWindowSizeEvent
-                (:window-close payload)
-                  PaintEvent :window-close $ decode-map-as payload PaintWindowCloseEvent
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'calcit-paint.core/PaintFileDialogOptions
+        'paint-event-from-ffi $ %{} 'CodeEntry
+          :doc "|Strictly decode one native typed-event envelope into the public nominal protocol, validating system theme tags and accessibility selection payloads. / 严格将原生强类型事件 envelope 解码为公开 nominal 协议，并校验系统主题 tag 与无障碍 selection payload。"
+          :code $ quote $ defn paint-event-from-ffi (event)
+            match event
+              (:ready) (PaintEvent :ready)
+              (:frame payload)
+                PaintEvent :frame $ decode-map-as payload PaintFrameEvent
+              (:mouse-down payload)
+                PaintEvent :mouse-down $ decode-map-as payload PaintPointerEvent
+              (:mouse-up payload)
+                PaintEvent :mouse-up $ decode-map-as payload PaintPointerEvent
+              (:mouse-move payload)
+                PaintEvent :mouse-move $ decode-map-as payload PaintPointerEvent
+              (:mouse-leave payload)
+                PaintEvent :mouse-leave $ decode-map-as payload PaintPointerEvent
+              (:mouse-wheel payload)
+                PaintEvent :mouse-wheel $ decode-map-as payload PaintPointerEvent
+              (:pointer-enter payload)
+                PaintEvent :pointer-enter $ decode-map-as payload PaintPointerEvent
+              (:pointer-leave payload)
+                PaintEvent :pointer-leave $ decode-map-as payload PaintPointerEvent
+              (:pointer-cancel payload)
+                PaintEvent :pointer-cancel $ decode-map-as payload PaintPointerEvent
+              (:key-down payload)
+                PaintEvent :key-down $ decode-map-as payload PaintKeyboardEvent
+              (:key-up payload)
+                PaintEvent :key-up $ decode-map-as payload PaintKeyboardEvent
+              (:focus-in payload)
+                PaintEvent :focus-in $ decode-map-as payload PaintFocusEvent
+              (:focus-out payload)
+                PaintEvent :focus-out $ decode-map-as payload PaintFocusEvent
+              (:ime-enabled payload)
+                PaintEvent :ime-enabled $ decode-map-as payload PaintTextInputEvent
+              (:ime-disabled payload)
+                PaintEvent :ime-disabled $ decode-map-as payload PaintTextInputEvent
+              (:composition-start payload)
+                PaintEvent :composition-start $ decode-map-as payload PaintTextInputEvent
+              (:composition-update payload)
+                PaintEvent :composition-update $ decode-map-as payload PaintTextInputEvent
+              (:composition-end payload)
+                PaintEvent :composition-end $ decode-map-as payload PaintTextInputEvent
+              (:text-input payload)
+                PaintEvent :text-input $ decode-map-as payload PaintTextInputEvent
+              (:file-hover payload)
+                let
+                    wire $ decode-map-as payload PaintFileEventWire
+                  PaintEvent :file-hover $ PaintFileEvent :path
+                    fs:path $ :path wire
+                    , :x (:x wire) :y (:y wire) :modifiers $ :modifiers wire
+              (:file-drop payload)
+                let
+                    wire $ decode-map-as payload PaintFileEventWire
+                  PaintEvent :file-drop $ PaintFileEvent :path
+                    fs:path $ :path wire
+                    , :x (:x wire) :y (:y wire) :modifiers $ :modifiers wire
+              (:file-hover-cancel payload)
+                PaintEvent :file-hover-cancel $ decode-map-as payload PaintFileHoverCancelEvent
+              (:file-dialog-result payload)
+                let
+                    wire $ decode-map-as payload PaintFileDialogEventWire
+                    path $ :path wire
+                    error $ :error wire
+                    path-for-event $ match path
+                      (:none) %none
+                      (:some value)
+                        %some $ fs:path value
+                    result $ PaintFileDialogEvent :request-id (:request-id wire) :operation (:operation wire) :status (:status wire) :path path-for-event :error error
+                  do
+                    case-default (:operation result)
+                      raise $ str "|unsupported typed file dialog operation: " $ :operation result
+                      :open &unit
+                      :save &unit
+                    case-default (:status result)
+                      raise $ str "|unsupported typed file dialog status: " $ :status result
+                      :selected $ PaintEvent :file-dialog-result result
+                      :cancelled $ PaintEvent :file-dialog-result result
+                      :failed $ PaintEvent :file-dialog-result result
+              (:accessibility-action payload)
+                let
+                    action $ decode-map-as payload PaintAccessibilityActionEvent
+                  case-default (:operation action)
+                    raise $ str "|unsupported typed accessibility operation: " $ :operation action
+                    :focus $ PaintEvent :accessibility-action action
+                    :activate $ PaintEvent :accessibility-action action
+                    :set-value $ let
+                        value $ :value action
+                      match value
+                        (:some _)
+                          PaintEvent :accessibility-action action
+                        (:none)
+                          raise |typed-set-value-accessibility-action-requires-value
+                    :set-text-selection $ if
+                      and
+                        .some? $ :selection-start action
+                        .some? $ :selection-end action
+                      PaintEvent :accessibility-action action
+                      raise |typed-set-text-selection-accessibility-action-requires-selection
+                    :replace-selected-text $ if
+                      and
+                        .some? $ :selection-start action
+                        .some? $ :selection-end action
+                        .some? $ :text action
+                      PaintEvent :accessibility-action action
+                      raise |typed-replace-selected-text-accessibility-action-requires-selection-and-text
+              (:window-focus) (PaintEvent :window-focus)
+              (:window-blur) (PaintEvent :window-blur)
+              (:resize payload)
+                PaintEvent :resize $ decode-map-as payload PaintWindowMetricsEvent
+              (:scale-factor payload)
+                PaintEvent :scale-factor $ decode-map-as payload PaintWindowMetricsEvent
+              (:window-theme payload)
+                let
+                    theme-event $ decode-map-as payload PaintWindowThemeEvent
+                  case-default (:theme theme-event)
+                    raise $ str "|unsupported typed system theme: " $ :theme theme-event
+                    :light $ PaintEvent :window-theme theme-event
+                    :dark $ PaintEvent :window-theme theme-event
+                    :unknown $ PaintEvent :window-theme theme-event
+              (:window-title-applied payload)
+                PaintEvent :window-title-applied $ decode-map-as payload PaintWindowTitleEvent
+              (:window-size-request payload)
+                PaintEvent :window-size-request $ decode-map-as payload PaintWindowSizeEvent
+              (:window-close payload)
+                PaintEvent :window-close $ decode-map-as payload PaintWindowCloseEvent
           :examples $ []
             quote $ let
-                event $ paint-event-from-ffi
-                  PaintEventFfi :frame $ {} (:frame 7) (:timestamp-ms 32) (:delta-ms 16) (:width 800) (:height 600) (:scale-factor 2)
+                event $ paint-event-from-ffi $ PaintEventFfi :frame
+                  {} (:frame 7) (:timestamp-ms 32) (:delta-ms 16) (:width 800) (:height 600) (:scale-factor 2)
               assert-type event 'calcit-paint.core/PaintEvent
               match event
                 (:frame payload)
                   assert= 7 $ :frame payload
                 _ $ raise |expected-frame-event
-            quote $ paint-event-from-ffi
-              PaintEventFfi :file-hover $ {} (:path |assets/demo.png) (:x 24) (:y 36)
+            quote $ paint-event-from-ffi $ PaintEventFfi :file-hover
+              {} (:path |assets/demo.png) (:x 24) (:y 36)
                 :modifiers $ {} (:shift? false) (:control? false) (:alt? false) (:super? false)
-          :schema $ :: 'Fn
-            {} (:return 'calcit-paint.core/PaintEvent)
-              :args $ []
-                :: 'calcit-paint.core/PaintEventFfi $ :: 'Map 'Tag 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :return 'calcit-paint.core/PaintEvent
+            :args $ [] $ :: 'calcit-paint.core/PaintEventFfi (:: 'Map 'Tag 'Dynamic)
           :tests $ []
-            %{} 'TestEntry (:name |decodes-frame-payload)
-              :code $ quote
-                let
-                    event $ paint-event-from-ffi
-                      PaintEventFfi :frame $ {} (:frame 7) (:timestamp-ms 32) (:delta-ms 16) (:width 800) (:height 600) (:scale-factor 2)
-                  assert-type event 'calcit-paint.core/PaintEvent
-                  match event
-                    (:frame payload)
-                      assert= 7 $ :frame payload
-                    _ $ raise |expected-frame-event
+            %{} 'TestEntry
+              :name |decodes-frame-payload
+              :code $ quote $ let
+                  event $ paint-event-from-ffi $ PaintEventFfi :frame
+                    {} (:frame 7) (:timestamp-ms 32) (:delta-ms 16) (:width 800) (:height 600) (:scale-factor 2)
+                assert-type event 'calcit-paint.core/PaintEvent
+                match event
+                  (:frame payload)
+                    assert= 7 $ :frame payload
+                  _ $ raise |expected-frame-event
               :tags $ #{} :unit
-            %{} 'TestEntry (:name |decodes-pointer-target)
-              :code $ quote
-                let
-                    event $ paint-event-from-ffi
-                      PaintEventFfi :mouse-down $ {} (:x 12) (:y 8) (:clicks 1)
-                        :modifiers $ {} (:shift? false) (:control? false) (:alt? false) (:super? false)
-                        :target $ {} (:action :select)
-                        :button :primary
-                  assert-type event 'calcit-paint.core/PaintEvent
-                  match event
-                    (:mouse-down payload)
-                      do
-                        assert= 12 $ :x payload
-                        assert= :select $ .unwrap-or
-                          :action $ :target payload
-                          , :missing
-                    _ $ raise |expected-mouse-down-event
-            %{} 'TestEntry (:name |decodes-file-drop-as-fs-path)
-              :code $ quote
-                let
-                    event $ paint-event-from-ffi
-                      PaintEventFfi :file-drop $ {} (:path |/tmp/paint-demo.png) (:x 12) (:y 8)
-                        :modifiers $ {} (:shift? false) (:control? false) (:alt? false) (:super? false)
-                  assert-type event 'calcit-paint.core/PaintEvent
-                  match event
-                    (:file-drop payload)
-                      do
-                        assert= (fs:path |/tmp/paint-demo.png) (:path payload)
-                        assert= 12 $ :x payload
-                    _ $ raise |expected-file-drop-event
+            %{} 'TestEntry
+              :name |decodes-pointer-target
+              :code $ quote $ let
+                  event $ paint-event-from-ffi $ PaintEventFfi :mouse-down
+                    {} (:x 12) (:y 8) (:clicks 1)
+                      :modifiers $ {} (:shift? false) (:control? false) (:alt? false) (:super? false)
+                      :target $ {} $ :action :select
+                      :button :primary
+                assert-type event 'calcit-paint.core/PaintEvent
+                match event
+                  (:mouse-down payload)
+                    do
+                      assert= 12 $ :x payload
+                      assert= :select $ .unwrap-or
+                        :action $ :target payload
+                        , :missing
+                  _ $ raise |expected-mouse-down-event
+            %{} 'TestEntry
+              :name |decodes-file-drop-as-fs-path
+              :code $ quote $ let
+                  event $ paint-event-from-ffi $ PaintEventFfi :file-drop
+                    {}
+                      :path |/tmp/paint-demo.png
+                      :x 12
+                      :y 8
+                      :modifiers $ {} (:shift? false) (:control? false) (:alt? false) (:super? false)
+                assert-type event 'calcit-paint.core/PaintEvent
+                match event
+                  (:file-drop payload)
+                    do
+                      assert=
+                        fs:path |/tmp/paint-demo.png
+                        :path payload
+                      assert= 12 $ :x payload
+                  _ $ raise |expected-file-drop-event
               :tags $ #{} :unit
-            %{} 'TestEntry (:name |decodes-window-theme-payload)
-              :code $ quote
-                do $ let
-                    event $ paint-event-from-ffi
-                      PaintEventFfi :window-theme $ {} (:theme :dark) (:initial? false)
+            %{} 'TestEntry
+              :name |decodes-window-theme-payload
+              :code $ quote $ do
+                let
+                    event $ paint-event-from-ffi $ PaintEventFfi :window-theme
+                      {} (:theme :dark) (:initial? false)
                   assert-type event 'calcit-paint.core/PaintEvent
                   match event
                     (:window-theme payload)
@@ -479,175 +556,189 @@
                         assert= :dark $ :theme payload
                         assert= false $ :initial? payload
                     _ $ raise |expected-window-theme-event
-            %{} 'TestEntry (:name |decodes-file-dialog-result)
-              :code $ quote
-                let
-                    event $ paint-event-from-ffi
-                      PaintEventFfi :file-dialog-result $ {} (:request-id |open-image) (:operation :open) (:status :selected) (:path |/tmp/image.png)
-                        :error $ %none
-                  assert-type event 'calcit-paint.core/PaintEvent
-                  match event
-                    (:file-dialog-result payload)
-                      do
-                        assert= :selected $ :status payload
-                        assert= (fs:path |/tmp/image.png)
-                          .unwrap $ :path payload
-                    _ $ raise |expected-file-dialog-result
-            %{} 'TestEntry (:name |decodes-accessibility-action)
-              :code $ quote
-                let
-                    event $ paint-event-from-ffi
-                      PaintEventFfi :accessibility-action $ {} (:id |field-a) (:operation :focus)
-                        :target $ {} (:action :focus-demo)
-                  assert-type event 'calcit-paint.core/PaintEvent
-                  match event
-                    (:accessibility-action payload)
-                      do
-                        assert= |field-a $ :id payload
-                        assert= :focus $ :operation payload
-                        assert= :focus-demo $ .unwrap-or
-                          :action $ :target payload
-                          , :missing
-                    _ $ raise |expected-accessibility-action
-            %{} 'TestEntry (:name |decodes-accessibility-set-value)
-              :code $ quote
-                let
-                    event $ paint-event-from-ffi
-                      PaintEventFfi :accessibility-action $ {} (:id |field-a) (:operation :set-value) (:value |Updated)
-                        :target $ {} (:action :focus-demo)
-                  assert-type event 'calcit-paint.core/PaintEvent
-                  match event
-                    (:accessibility-action payload)
-                      do
-                        assert= :set-value $ :operation payload
-                        assert= |Updated $ .unwrap (:value payload)
-                    _ $ raise |expected-accessibility-set-value
-            %{} 'TestEntry (:name |decodes-set-text-selection)
-              :code $ quote
-                let
-                    event $ paint-event-from-ffi
-                      PaintEventFfi :accessibility-action $ {} (:id |ed) (:operation :set-text-selection) (:selection-start 1) (:selection-end 3)
-                        :target $ {}
-                  match event
-                    (:accessibility-action payload)
-                      do
-                        assert= :set-text-selection $ :operation payload
-                        assert= (%some 1) (:selection-start payload)
-                        assert= (%some 3) (:selection-end payload)
-                        , &unit
-                    _ $ raise |expected-accessibility-action
-            %{} 'TestEntry (:name |decodes-replace-selected-text)
-              :code $ quote
-                let
-                    event $ paint-event-from-ffi
-                      PaintEventFfi :accessibility-action $ {} (:id |ed) (:operation :replace-selected-text) (:selection-start 1) (:selection-end 3) (:text |XY)
-                        :target $ {}
-                  match event
-                    (:accessibility-action payload)
-                      do
-                        assert= :replace-selected-text $ :operation payload
-                        assert= (%some 1) (:selection-start payload)
-                        assert= (%some 3) (:selection-end payload)
-                        assert= (%some |XY) (:text payload)
-                        , &unit
-                    _ $ raise |expected-accessibility-action
+            %{} 'TestEntry
+              :name |decodes-file-dialog-result
+              :code $ quote $ let
+                  event $ paint-event-from-ffi $ PaintEventFfi :file-dialog-result
+                    {} (:request-id |open-image) (:operation :open) (:status :selected) (:path |/tmp/image.png)
+                      :error $ %none
+                assert-type event 'calcit-paint.core/PaintEvent
+                match event
+                  (:file-dialog-result payload)
+                    do
+                      assert= :selected $ :status payload
+                      assert= (fs:path |/tmp/image.png)
+                        .unwrap $ :path payload
+                  _ $ raise |expected-file-dialog-result
+            %{} 'TestEntry
+              :name |decodes-accessibility-action
+              :code $ quote $ let
+                  event $ paint-event-from-ffi $ PaintEventFfi :accessibility-action
+                    {} (:id |field-a) (:operation :focus)
+                      :target $ {} $ :action :focus-demo
+                assert-type event 'calcit-paint.core/PaintEvent
+                match event
+                  (:accessibility-action payload)
+                    do
+                      assert= |field-a $ :id payload
+                      assert= :focus $ :operation payload
+                      assert= :focus-demo $ .unwrap-or
+                        :action $ :target payload
+                        , :missing
+                  _ $ raise |expected-accessibility-action
+            %{} 'TestEntry
+              :name |decodes-accessibility-set-value
+              :code $ quote $ let
+                  event $ paint-event-from-ffi $ PaintEventFfi :accessibility-action
+                    {} (:id |field-a) (:operation :set-value) (:value |Updated)
+                      :target $ {} $ :action :focus-demo
+                assert-type event 'calcit-paint.core/PaintEvent
+                match event
+                  (:accessibility-action payload)
+                    do
+                      assert= :set-value $ :operation payload
+                      assert= |Updated $ .unwrap $ :value payload
+                  _ $ raise |expected-accessibility-set-value
+            %{} 'TestEntry
+              :name |decodes-set-text-selection
+              :code $ quote $ let
+                  event $ paint-event-from-ffi $ PaintEventFfi :accessibility-action
+                    {} (:id |ed)
+                      :operation :set-text-selection
+                      :selection-start 1
+                      :selection-end 3
+                      :target $ {}
+                match event
+                  (:accessibility-action payload)
+                    do
+                      assert= :set-text-selection $ :operation payload
+                      assert= (%some 1) (:selection-start payload)
+                      assert= (%some 3) (:selection-end payload)
+                      , &unit
+                  _ $ raise |expected-accessibility-action
+            %{} 'TestEntry
+              :name |decodes-replace-selected-text
+              :code $ quote $ let
+                  event $ paint-event-from-ffi $ PaintEventFfi :accessibility-action
+                    {} (:id |ed)
+                      :operation :replace-selected-text
+                      :selection-start 1
+                      :selection-end 3
+                      :text |XY
+                      :target $ {}
+                match event
+                  (:accessibility-action payload)
+                    do
+                      assert= :replace-selected-text $ :operation payload
+                      assert= (%some 1) (:selection-start payload)
+                      assert= (%some 3) (:selection-end payload)
+                      assert= (%some |XY) (:text payload)
+                      , &unit
+                  _ $ raise |expected-accessibility-action
         'push-drawing-data! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn push-drawing-data! (op data)
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |push_drawing_data op data
-              , &unit
+          :code $ quote $ defn push-drawing-data! (op data)
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |push_drawing_data op data
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'String 'T
-              :generics $ [] 'T
-        'read-clipboard-text! $ %{} 'CodeEntry (:doc "|Read UTF-8 text from the serialized system clipboard. / 从串行系统剪贴板读取 UTF-8 文本。")
-          :code $ quote
-            defn read-clipboard-text! () $ &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |read_clipboard_text
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'String 'T
+            :generics $ [] 'T
+        'read-clipboard-text! $ %{} 'CodeEntry
+          :doc "|Read UTF-8 text from the serialized system clipboard. / 从串行系统剪贴板读取 UTF-8 文本。"
+          :code $ quote $ defn read-clipboard-text! ()
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |read_clipboard_text
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'String)
-              :args $ []
+          :schema $ :: 'Fn $ {} (:return 'String)
+            :args $ []
         'render-to-png! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn render-to-png! (options)
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |render_to_png options
-              , &unit
+          :code $ quote $ defn render-to-png! (options)
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |render_to_png options
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'T
-              :generics $ [] 'T
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'T
+            :generics $ [] 'T
         'request-frame! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn request-frame! ()
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |request_frame
-              , &unit
+          :code $ quote $ defn request-frame! ()
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |request_frame
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
-        'request-window-size! $ %{} 'CodeEntry (:doc "|Queue a positive finite logical-size request for the active Paint window.")
-          :code $ quote
-            defn request-window-size! (width height)
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |request_window_size width height
-              , &unit
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
+        'request-window-size! $ %{} 'CodeEntry
+          :doc "|Queue a positive finite logical-size request for the active Paint window."
+          :code $ quote $ defn request-window-size! (width height)
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |request_window_size width height
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'Number 'Number
-        'save-file-dialog! $ %{} 'CodeEntry (:doc "|Queue one native save-file dialog; its result is delivered later as :file-dialog-result. / 请求一个原生保存文件对话框；结果稍后以 :file-dialog-result 送达。")
-          :code $ quote
-            defn save-file-dialog! (options)
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |save_file_dialog options
-              , &unit
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'Number 'Number
+        'save-file-dialog! $ %{} 'CodeEntry
+          :doc "|Queue one native save-file dialog; its result is delivered later as :file-dialog-result. / 请求一个原生保存文件对话框；结果稍后以 :file-dialog-result 送达。"
+          :code $ quote $ defn save-file-dialog! (options)
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |save_file_dialog options
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'calcit-paint.core/PaintFileDialogOptions
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'calcit-paint.core/PaintFileDialogOptions
         'set-resource-root! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn set-resource-root! (path)
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |set_resource_root path
-              , &unit
+          :code $ quote $ defn set-resource-root! (path)
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |set_resource_root path
+            , &unit
+          :examples $ [] $ quote
+            set-resource-root! |resources
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'String
+        'set-window-title! $ %{} 'CodeEntry
+          :doc "|Queue a title update for serialized application on the active event loop."
+          :code $ quote $ defn set-window-title! (title)
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |set_window_title title
+            , &unit
           :examples $ []
-            quote $ set-resource-root! |resources
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'String
-        'set-window-title! $ %{} 'CodeEntry (:doc "|Queue a title update for serialized application on the active event loop.")
-          :code $ quote
-            defn set-window-title! (title)
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |set_window_title title
-              , &unit
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'String
-        'validate-scene $ %{} 'CodeEntry (:doc "|Return compatible path-prefixed diagnostic messages for a scene. Prefer validate-scene-structured for automation. / 返回场景的兼容 path 前缀诊断消息；自动化优先使用 validate-scene-structured。")
-          :code $ quote
-            defn validate-scene (scene)
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |validate_scene scene
-          :examples $ []
-            quote $ validate-scene
-              {} (:type :rectangle)
-                :position $ [] 20 20
-                :width 120
-                :height 48
-                :fill-color $ [] 210 72 48
-          :schema $ :: 'Fn
-            {}
-              :args $ [] 'T
-              :generics $ [] 'T
-              :return $ :: 'List 'String
-        'validate-scene-structured $ %{} 'CodeEntry (:doc "|Return typed machine-readable diagnostics for a scene while leaving it unchanged. / 返回场景的强类型机器可读诊断，不修改输入场景。")
-          :code $ quote
-            defn validate-scene-structured (scene)
-              decode-map-as
-                &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |validate_scene_structured scene
-                :: 'List 'PaintSceneDiagnostic
-          :examples $ []
-            quote $ let
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'String
+        'validate-scene $ %{} 'CodeEntry
+          :doc "|Return compatible path-prefixed diagnostic messages for a scene. Prefer validate-scene-structured for automation. / 返回场景的兼容 path 前缀诊断消息；自动化优先使用 validate-scene-structured。"
+          :code $ quote $ defn validate-scene (scene)
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |validate_scene scene
+          :examples $ [] $ quote
+            validate-scene $ {} (:type :rectangle)
+              :position $ [] 20 20
+              :width 120
+              :height 48
+              :fill-color $ [] 210 72 48
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'T
+            :generics $ [] 'T
+            :return $ :: 'List 'String
+        'validate-scene-structured $ %{} 'CodeEntry
+          :doc "|Return typed machine-readable diagnostics for a scene while leaving it unchanged. / 返回场景的强类型机器可读诊断，不修改输入场景。"
+          :code $ quote $ defn validate-scene-structured (scene)
+            decode-map-as
+              &call-dylib-edn
+                get-dylib-path |/dylibs/libcalcit_paint
+                , |validate_scene_structured scene
+              :: 'List 'PaintSceneDiagnostic
+          :examples $ [] $ quote
+            let
                 invalid-scene $ {} (:type :group)
                   :children $ [] true
                     {} (:type :opacity) (:alpha 1.5)
@@ -657,14 +748,15 @@
                       :fill $ {} (:type :solid)
                         :color $ [] 0 0 0
                       :fill-color $ [] 0 0 0
-                    {} (:type :cached-group) (:cache-key |invalid-interaction) (:width 20) (:height 20)
-                      :children $ []
-                        {} (:type :touch-area) (:dx 5) (:dy 5)
+                    {} (:type :cached-group)
+                      :cache-key |invalid-interaction
+                      :width 20
+                      :height 20
+                      :children $ [] $ {} (:type :touch-area) (:dx 5) (:dy 5)
                 diagnostics $ validate-scene-structured invalid-scene
                 repaired-scene $ {} (:type :group)
-                  :children $ []
-                    {} (:type :rectangle) (:width 20) (:height 20)
-                      :fill-color $ [] 0 0 0
+                  :children $ [] $ {} (:type :rectangle) (:width 20) (:height 20)
+                    :fill-color $ [] 0 0 0
                 no-diagnostics $ []
               do
                 assert= 5 $ count diagnostics
@@ -691,1149 +783,1222 @@
                   assert= (%some |children) (:field cache)
                 assert= no-diagnostics $ validate-scene-structured repaired-scene
                 , &unit
-          :schema $ :: 'Fn
-            {}
-              :args $ [] 'T
-              :generics $ [] 'T
-              :return $ :: 'List 'calcit-paint.core/PaintSceneDiagnostic
-        'write-clipboard-text! $ %{} 'CodeEntry (:doc "|Write UTF-8 text to the serialized system clipboard. / 向串行系统剪贴板写入 UTF-8 文本。")
-          :code $ quote
-            defn write-clipboard-text! (text)
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |write_clipboard_text text
-              , &unit
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'T
+            :generics $ [] 'T
+            :return $ :: 'List 'calcit-paint.core/PaintSceneDiagnostic
+        'write-clipboard-text! $ %{} 'CodeEntry
+          :doc "|Write UTF-8 text to the serialized system clipboard. / 向串行系统剪贴板写入 UTF-8 文本。"
+          :code $ quote $ defn write-clipboard-text! (text)
+            &call-dylib-edn
+              get-dylib-path |/dylibs/libcalcit_paint
+              , |write_clipboard_text text
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'String
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'String
       :ns $ %{} 'NsEntry (:doc |)
-        :code $ quote
-          ns calcit-paint.core $ :require
+        :code $ quote $ ns calcit-paint.core
+          :require
             calcit-paint.$meta :refer $ calcit-dirname
             calcit-paint.util :refer $ get-dylib-path
     'calcit-paint.creative-art $ %{} 'FileEntry
       :defs $ {}
-        '*export-status $ %{} 'CodeEntry (:doc "|Visible export status for the runnable studio. / 可运行 studio 中显示的导出状态。")
-          :code $ quote (defatom *export-status "|Press P to export / 按 P 导出")
+        '*export-status $ %{} 'CodeEntry
+          :doc "|Visible export status for the runnable studio. / 可运行 studio 中显示的导出状态。"
+          :code $ quote $ defatom *export-status "|Press P to export / 按 P 导出"
           :examples $ []
           :schema $ :: 'Ref 'String
-        '*playing? $ %{} 'CodeEntry (:doc "|Whether the one-shot frame chain is active. / one-shot frame 链是否活跃。")
-          :code $ quote (defatom *playing? false)
+        '*playing? $ %{} 'CodeEntry
+          :doc "|Whether the one-shot frame chain is active. / one-shot frame 链是否活跃。"
+          :code $ quote $ defatom *playing? false
           :examples $ []
           :schema $ :: 'Ref 'Bool
-        '*seed $ %{} 'CodeEntry (:doc "|Current deterministic artwork seed. / 当前确定性作品 seed。")
-          :code $ quote (defatom *seed 17)
+        '*seed $ %{} 'CodeEntry
+          :doc "|Current deterministic artwork seed. / 当前确定性作品 seed。"
+          :code $ quote $ defatom *seed 17
           :examples $ []
           :schema $ :: 'Ref 'Number
-        '*time-ms $ %{} 'CodeEntry (:doc "|Current animation time from the Paint frame clock. / 来自 Paint frame clock 的当前动画时间。")
-          :code $ quote (defatom *time-ms 0)
+        '*time-ms $ %{} 'CodeEntry
+          :doc "|Current animation time from the Paint frame clock. / 来自 Paint frame clock 的当前动画时间。"
+          :code $ quote $ defatom *time-ms 0
           :examples $ []
           :schema $ :: 'Ref 'Number
-        'build-art-scene $ %{} 'CodeEntry (:doc "|Build the open scene-map boundary shared by the window and offscreen export. / 构建窗口与离屏导出共享的开放 scene-map 边界。")
-          :code $ quote
-            defn build-art-scene (seed time-ms export-status controls?)
-              let
-                  phase $ / time-ms 1200
-                  pulse $ + 1
-                    * 0.08 $ sin phase
-                  primary-hue $ * 360 (seeded-unit seed 1)
-                  secondary-hue $ * 360 (seeded-unit seed 2)
-                {} (:type :group)
-                  :children $ []
-                    {} (:type :drop-shadow) (:dx 0) (:dy 18) (:sigma-x 18) (:sigma-y 18)
-                      :color $ [] 235 60 4 0.8
+        'build-art-scene $ %{} 'CodeEntry
+          :doc "|Build the open scene-map boundary shared by the window and offscreen export. / 构建窗口与离屏导出共享的开放 scene-map 边界。"
+          :code $ quote $ defn build-art-scene (seed time-ms export-status controls?)
+            let
+                phase $ / time-ms 1200
+                pulse $ + 1 $ * 0.08 (sin phase)
+                primary-hue $ * 360 $ seeded-unit seed 1
+                secondary-hue $ * 360 $ seeded-unit seed 2
+              {} (:type :group)
+                :children $ []
+                  {} (:type :drop-shadow) (:dx 0) (:dy 18) (:sigma-x 18) (:sigma-y 18)
+                    :color $ [] 235 60 4 0.8
+                    :children $ [] $ {}
+                      :type :clip-rounded-rect
+                      :position $ [] 40 40
+                      :width 880
+                      :height 600
+                      :radius 34
                       :children $ []
-                        {} (:type :clip-rounded-rect)
+                        {} (:type :rounded-rect)
                           :position $ [] 40 40
                           :width 880
                           :height 600
                           :radius 34
-                          :children $ []
-                            {} (:type :rounded-rect)
-                              :position $ [] 40 40
-                              :width 880
-                              :height 600
-                              :radius 34
-                              :fill $ {} (:type :linear-gradient)
-                                :from $ [] 40 40
-                                :to $ [] 920 640
-                                :stops $ []
-                                  [] 0 $ [] 232 58 10
-                                  [] 0.48 $ [] primary-hue 72 18
-                                  [] 1 $ [] secondary-hue 78 28
-                            {} (:type :opacity) (:alpha 0.78)
-                              :children $ []
-                                {} (:type :blend) (:mode :screen)
-                                  :children $ -> (range 48)
-                                    map $ fn (i)
-                                      let
-                                          x $ + 70
-                                            * 820 $ seeded-unit seed
-                                              + 10 $ * i 3
-                                          y $ + 65
-                                            * 540 $ seeded-unit seed
-                                              + 11 $ * i 3
-                                          radius $ + 1.5
-                                            * 5 $ seeded-unit seed
-                                              + 12 $ * i 3
-                                          hue $ * 360
-                                            seeded-unit seed $ + 90 i
-                                        {} (:type :circle)
-                                          :position $ [] x y
-                                          :radius radius
-                                          :fill-color $ [] hue 88 76
-                            {} (:type :blur) (:sigma-x 18) (:sigma-y 18)
-                              :children $ []
-                                {} (:type :circle)
-                                  :position $ [] 480 330
-                                  :radius $ * 145 pulse
-                                  :fill-color $ [] primary-hue 84 46 0.44
-                            {} (:type :drop-shadow) (:dx 0) (:dy 12) (:sigma-x 10) (:sigma-y 10)
-                              :color $ [] secondary-hue 70 8 0.7
-                              :children $ []
-                                {} (:type :translate) (:x 480) (:y 330)
-                                  :children $ []
-                                    {} (:type :rotate)
-                                      :radius $ * 0.12 phase
-                                      :children $ -> (range 16)
-                                        map $ fn (i)
-                                          let
-                                              angle $ + (* i 0.392699)
-                                                * 0.08 $ sin (+ phase i)
-                                              hue $ * 360
-                                                seeded-unit seed $ + 140 i
-                                            {} (:type :rotate) (:radius angle)
-                                              :children $ []
-                                                {} (:type :ellipse)
-                                                  :position $ [] 0 -145
-                                                  :radius-x 25
-                                                  :radius-y 118
-                                                  :fill $ {} (:type :linear-gradient)
-                                                    :from $ [] 0 -265
-                                                    :to $ [] 0 -27
-                                                    :stops $ []
-                                                      [] 0 $ [] hue 92 70 0.9
-                                                      [] 1 $ [] secondary-hue 78 36 0.56
-                            {} (:type :polyline)
-                              :position $ [] 480 330
-                              :skip-first? true
-                              :width 3
-                              :join :round
-                              :cap :round
-                              :color $ [] secondary-hue 94 78 0.9
-                              :stops $ -> (range 160)
+                          :fill $ {} (:type :linear-gradient)
+                            :from $ [] 40 40
+                            :to $ [] 920 640
+                            :stops $ []
+                              [] 0 $ [] 232 58 10
+                              [] 0.48 $ [] primary-hue 72 18
+                              [] 1 $ [] secondary-hue 78 28
+                        {} (:type :opacity) (:alpha 0.78)
+                          :children $ [] $ {} (:type :blend) (:mode :screen)
+                            :children $ -> (range 48)
+                              map $ fn (i)
+                                let
+                                    x $ + 70 $ * 820
+                                      seeded-unit seed $ + 10 $ * i 3
+                                    y $ + 65 $ * 540
+                                      seeded-unit seed $ + 11 $ * i 3
+                                    radius $ + 1.5 $ * 5
+                                      seeded-unit seed $ + 12 $ * i 3
+                                    hue $ * 360 $ seeded-unit seed (+ 90 i)
+                                  {} (:type :circle)
+                                    :position $ [] x y
+                                    :radius radius
+                                    :fill-color $ [] hue 88 76
+                        {} (:type :blur) (:sigma-x 18) (:sigma-y 18)
+                          :children $ [] $ {} (:type :circle)
+                            :position $ [] 480 330
+                            :radius $ * 145 pulse
+                            :fill-color $ [] primary-hue 84 46 0.44
+                        {} (:type :drop-shadow) (:dx 0) (:dy 12) (:sigma-x 10) (:sigma-y 10)
+                          :color $ [] secondary-hue 70 8 0.7
+                          :children $ [] $ {} (:type :translate) (:x 480) (:y 330)
+                            :children $ [] $ {} (:type :rotate)
+                              :radius $ * 0.12 phase
+                              :children $ -> (range 16)
                                 map $ fn (i)
                                   let
-                                      angle $ * i 0.08
-                                      radius $ + 224
-                                        * 22 $ sin
-                                          + phase $ * i 0.31
-                                    []
-                                      * radius $ cos angle
-                                      * radius $ sin angle
-                            {} (:type :color-filter)
-                              :matrix $ [] 1 0 0 0 0 0 0.86 0.14 0 0 0.12 0 0.88 0 0 0 0 0 1 0
-                              :children $ []
-                                {} (:type :circle)
-                                  :position $ [] 480 330
-                                  :radius 88
-                                  :fill $ {} (:type :radial-gradient)
-                                    :center $ [] 458 306
-                                    :radius 112
-                                    :stops $ []
-                                      [] 0 $ [] 48 96 82
-                                      [] 0.58 $ [] primary-hue 90 58
-                                      [] 1 $ [] secondary-hue 88 24
-                            {} (:type :touch-area)
-                              :position $ [] 480 330
-                              :dx 440
-                              :dy 300
-                              :action :regenerate
-                              :cursor :crosshair
-                              :accessibility $ {} (:id |creative-canvas) (:role :button) (:label "|Regenerate artwork / 重新生成作品") (:enabled? true)
-                    if controls?
-                      {} (:type :group)
-                        :children $ []
-                          {} (:type :text)
-                            :text $ str "|CALCIT CREATIVE ART · seed " seed
-                            :position $ [] 480 668
-                            :color $ [] 42 88 84
-                            :size 18
-                            :weight 700
-                            :align :center
-                          {} (:type :text) (:text "|Click/R regenerate · Space animate · P export · Q quit")
-                            :position $ [] 480 692
-                            :color $ [] 205 44 72
-                            :size 13
-                            :align :center
-                          {} (:type :text) (:text export-status)
-                            :position $ [] 480 712
-                            :color $ [] 48 70 70
-                            :size 11
-                            :align :center
-                      {} (:type :group)
-                        :children $ []
-          :examples $ []
-            quote $ let
+                                      angle $ + (* i 0.392699)
+                                        * 0.08 $ sin $ + phase i
+                                      hue $ * 360 $ seeded-unit seed (+ 140 i)
+                                    {} (:type :rotate) (:radius angle)
+                                      :children $ [] $ {} (:type :ellipse)
+                                        :position $ [] 0 -145
+                                        :radius-x 25
+                                        :radius-y 118
+                                        :fill $ {} (:type :linear-gradient)
+                                          :from $ [] 0 -265
+                                          :to $ [] 0 -27
+                                          :stops $ []
+                                            [] 0 $ [] hue 92 70 0.9
+                                            [] 1 $ [] secondary-hue 78 36 0.56
+                        {} (:type :polyline)
+                          :position $ [] 480 330
+                          :skip-first? true
+                          :width 3
+                          :join :round
+                          :cap :round
+                          :color $ [] secondary-hue 94 78 0.9
+                          :stops $ -> (range 160)
+                            map $ fn (i)
+                              let
+                                  angle $ * i 0.08
+                                  radius $ + 224 $ * 22
+                                    sin $ + phase $ * i 0.31
+                                []
+                                  * radius $ cos angle
+                                  * radius $ sin angle
+                        {} (:type :color-filter)
+                          :matrix $ [] 1 0 0 0 0 0 0.86 0.14 0 0 0.12 0 0.88 0 0 0 0 0 1 0
+                          :children $ [] $ {} (:type :circle)
+                            :position $ [] 480 330
+                            :radius 88
+                            :fill $ {} (:type :radial-gradient)
+                              :center $ [] 458 306
+                              :radius 112
+                              :stops $ []
+                                [] 0 $ [] 48 96 82
+                                [] 0.58 $ [] primary-hue 90 58
+                                [] 1 $ [] secondary-hue 88 24
+                        {} (:type :touch-area)
+                          :position $ [] 480 330
+                          :dx 440
+                          :dy 300
+                          :action :regenerate
+                          :cursor :crosshair
+                          :accessibility $ {} (:id |creative-canvas) (:role :button)
+                            :label "|Regenerate artwork / 重新生成作品"
+                            :enabled? true
+                  if controls?
+                    {} (:type :group)
+                      :children $ []
+                        {} (:type :text)
+                          :text $ str "|CALCIT CREATIVE ART · seed " seed
+                          :position $ [] 480 668
+                          :color $ [] 42 88 84
+                          :size 18
+                          :weight 700
+                          :align :center
+                        {} (:type :text)
+                          :text "|Click/R regenerate · Space animate · P export · Q quit"
+                          :position $ [] 480 692
+                          :color $ [] 205 44 72
+                          :size 13
+                          :align :center
+                        {} (:type :text) (:text export-status)
+                          :position $ [] 480 712
+                          :color $ [] 48 70 70
+                          :size 11
+                          :align :center
+                    {} (:type :group)
+                      :children $ []
+          :examples $ [] $ quote
+            let
                 scene $ build-art-scene 17 0 |preview false
-              assert= ([]) (validate-scene-structured scene)
-          :schema $ :: 'Fn
-            {}
-              :args $ [] 'Number 'Number 'String 'Bool
-              :return $ :: 'Map 'Tag 'Dynamic
-          :tests $ []
-            %{} 'TestEntry (:name |returns-group-scene)
-              :code $ quote
-                let
-                    scene $ build-art-scene 17 0 |testing false
-                  assert= ([]) (validate-scene-structured scene)
+              assert= ([])
+                validate-scene-structured scene
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'Number 'Number 'String 'Bool
+            :return $ :: 'Map 'Tag 'Dynamic
+          :tests $ [] $ %{} 'TestEntry
+            :name |returns-group-scene
+            :code $ quote $ let
+                scene $ build-art-scene 17 0 |testing false
+              assert= ([])
+                validate-scene-structured scene
+              , &unit
+        'export-art-frame! $ %{} 'CodeEntry
+          :doc "|Export one explicit seed/time frame through the public offscreen API. / 通过公开离屏 API 导出显式 seed/time frame。"
+          :code $ quote $ defn export-art-frame! (path seed time-ms)
+            render-to-png! $ {} (:path path) (:width 960) (:height 720)
+              :background $ [] 232 36 8
+              :scene $ build-art-scene seed time-ms |exported false
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'String 'Number 'Number
+        'export-current! $ %{} 'CodeEntry
+          :doc "|Export the current artwork to creative-art.png. / 将当前作品导出到 creative-art.png。"
+          :code $ quote $ defn export-current! ()
+            export-art-frame! |creative-art.png @*seed @*time-ms
+            reset! *export-status "|Exported creative-art.png / 已导出 creative-art.png"
+            render-art!
+            println "|Exported creative-art.png / 已导出 creative-art.png"
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
+        'handle-event! $ %{} 'CodeEntry
+          :doc "|Drive creative controls from the closed nominal PaintEvent protocol. / 通过封闭 nominal PaintEvent 协议驱动创作控制。"
+          :code $ quote $ defn handle-event! (event)
+            match event
+              (:ready) (render-art!)
+              (:frame payload)
+                if @*playing?
+                  do
+                    reset! *time-ms $ :timestamp-ms payload
+                    render-art!
+                    request-frame!
                   , &unit
-        'export-art-frame! $ %{} 'CodeEntry (:doc "|Export one explicit seed/time frame through the public offscreen API. / 通过公开离屏 API 导出显式 seed/time frame。")
-          :code $ quote
-            defn export-art-frame! (path seed time-ms)
-              render-to-png! $ {} (:path path) (:width 960) (:height 720)
-                :background $ [] 232 36 8
-                :scene $ build-art-scene seed time-ms |exported false
+              (:mouse-down _) (regenerate!)
+              (:key-down payload)
+                case-default (:name payload) (do &unit)
+                  |Space $ toggle-animation!
+                  |R $ regenerate!
+                  |P $ export-current!
+                  |Q $ close-window!
+              (:accessibility-action payload)
+                if
+                  = (:operation payload) :activate
+                  regenerate!
+                  do &unit
+              (:window-close payload)
+                println $ str "|Creative Art window closed / 创意绘制窗口已关闭: " $ :reason payload
+              _ $ do &unit
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'calcit-paint.core/PaintEvent
+        'main! $ %{} 'CodeEntry
+          :doc "|Validate, then launch the runnable Creative Art Preview. / 完成校验后启动可运行的 Creative Art Preview。"
+          :code $ quote $ defn main! ()
+            println "|Calcit Creative Art · Click/R regenerate · Space animate · P export · Q quit"
+            validate-art-scene!
+            launch-canvas-typed!
+              WindowOptions :title "|Calcit Paint · Creative Art Preview" :width 960 :height 720 :min-width 960 :min-height 720 :resizable? false
+              fn (event) (handle-event! event)
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
+        'regenerate! $ %{} 'CodeEntry
+          :doc "|Advance the deterministic seed and redraw. / 递增确定性 seed 并重绘。"
+          :code $ quote $ defn regenerate! ()
+            reset! *seed $ + 1 @*seed
+            reset! *time-ms 0
+            reset! *export-status "|Regenerated / 已重新生成"
+            render-art!
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
+        'reload! $ %{} 'CodeEntry
+          :doc "|Redraw the artwork after a Calcit reload. / Calcit reload 后重绘作品。"
+          :code $ quote $ defn reload! () (render-art!)
+            println "|Creative Art reloaded / 创意绘制已重载"
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
+        'render-art! $ %{} 'CodeEntry
+          :doc "|Render the current creative state into the active Paint window. / 将当前创作状态绘制到活跃 Paint 窗口。"
+          :code $ quote $ defn render-art! ()
+            push-drawing-data! |reset-canvas! $ [] 232 36 8
+            push-drawing-data! |render-canvas! $ build-art-scene @*seed @*time-ms @*export-status true
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
+        'seeded-unit $ %{} 'CodeEntry
+          :doc "|Return a deterministic number in [0, 1] for one seed/index pair. / 为一组 seed/index 返回 [0, 1] 内的确定性数字。"
+          :code $ quote $ defn seeded-unit (seed index)
+            * 0.5 $ + 1 $ sin
+              + (* seed 12.9898) (* index 78.233)
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Number)
+            :args $ [] 'Number 'Number
+          :tests $ [] $ %{} 'TestEntry
+            :name |deterministic-unit-range
+            :code $ quote $ let
+                a $ seeded-unit 17 4
+                b $ seeded-unit 17 4
+              assert= a b
+              assert= true $ and (>= a 0) (<= a 1)
               , &unit
+        'toggle-animation! $ %{} 'CodeEntry
+          :doc "|Pause or resume explicit one-shot frame chaining. / 暂停或继续显式 one-shot frame 链。"
+          :code $ quote $ defn toggle-animation! ()
+            reset! *playing? $ not @*playing?
+            reset! *export-status $ if @*playing? "|Animation playing / 动画播放中" "|Animation paused / 动画已暂停"
+            render-art!
+            if @*playing? (request-frame!) (do &unit)
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'String 'Number 'Number
-        'export-current! $ %{} 'CodeEntry (:doc "|Export the current artwork to creative-art.png. / 将当前作品导出到 creative-art.png。")
-          :code $ quote
-            defn export-current! () (export-art-frame! |creative-art.png @*seed @*time-ms) (reset! *export-status "|Exported creative-art.png / 已导出 creative-art.png") (render-art!) (println "|Exported creative-art.png / 已导出 creative-art.png") &unit
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
+        'validate-art-scene! $ %{} 'CodeEntry
+          :doc "|Validate the generated preview through the structured public boundary before launch. / 启动前通过公开结构化边界校验生成的预览。"
+          :code $ quote $ defn validate-art-scene! ()
+            let
+                diagnostics $ validate-scene-structured $ build-art-scene @*seed @*time-ms @*export-status true
+              if (empty? diagnostics) (do &unit)
+                raise $ str |unexpected-creative-art-diagnostics: diagnostics
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
-        'handle-event! $ %{} 'CodeEntry (:doc "|Drive creative controls from the closed nominal PaintEvent protocol. / 通过封闭 nominal PaintEvent 协议驱动创作控制。")
-          :code $ quote
-            defn handle-event! (event)
-              match event
-                (:ready) (render-art!)
-                (:frame payload)
-                  if @*playing?
-                    do
-                      reset! *time-ms $ :timestamp-ms payload
-                      render-art!
-                      request-frame!
-                    , &unit
-                (:mouse-down _) (regenerate!)
-                (:key-down payload)
-                  case-default (:name payload) (do &unit)
-                    |Space $ toggle-animation!
-                    |R $ regenerate!
-                    |P $ export-current!
-                    |Q $ close-window!
-                (:accessibility-action payload)
-                  if
-                    = (:operation payload) :activate
-                    regenerate!
-                    do &unit
-                (:window-close payload)
-                  println $ str "|Creative Art window closed / 创意绘制窗口已关闭: " (:reason payload)
-                _ $ do &unit
-              , &unit
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'calcit-paint.core/PaintEvent
-        'main! $ %{} 'CodeEntry (:doc "|Validate, then launch the runnable Creative Art Preview. / 完成校验后启动可运行的 Creative Art Preview。")
-          :code $ quote
-            defn main! () (println "|Calcit Creative Art · Click/R regenerate · Space animate · P export · Q quit") (validate-art-scene!)
-              launch-canvas-typed! (WindowOptions :title "|Calcit Paint · Creative Art Preview" :width 960 :height 720 :min-width 960 :min-height 720 :resizable? false)
-                fn (event) (handle-event! event)
-              , &unit
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
-        'regenerate! $ %{} 'CodeEntry (:doc "|Advance the deterministic seed and redraw. / 递增确定性 seed 并重绘。")
-          :code $ quote
-            defn regenerate! ()
-              reset! *seed $ + 1 @*seed
-              reset! *time-ms 0
-              reset! *export-status "|Regenerated / 已重新生成"
-              render-art!
-              , &unit
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
-        'reload! $ %{} 'CodeEntry (:doc "|Redraw the artwork after a Calcit reload. / Calcit reload 后重绘作品。")
-          :code $ quote
-            defn reload! () (render-art!) (println "|Creative Art reloaded / 创意绘制已重载") &unit
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
-        'render-art! $ %{} 'CodeEntry (:doc "|Render the current creative state into the active Paint window. / 将当前创作状态绘制到活跃 Paint 窗口。")
-          :code $ quote
-            defn render-art! ()
-              push-drawing-data! |reset-canvas! $ [] 232 36 8
-              push-drawing-data! |render-canvas! $ build-art-scene @*seed @*time-ms @*export-status true
-              , &unit
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
-        'seeded-unit $ %{} 'CodeEntry (:doc "|Return a deterministic number in [0, 1] for one seed/index pair. / 为一组 seed/index 返回 [0, 1] 内的确定性数字。")
-          :code $ quote
-            defn seeded-unit (seed index)
-              * 0.5 $ + 1
-                sin $ + (* seed 12.9898) (* index 78.233)
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Number)
-              :args $ [] 'Number 'Number
-          :tests $ []
-            %{} 'TestEntry (:name |deterministic-unit-range)
-              :code $ quote
-                let
-                    a $ seeded-unit 17 4
-                    b $ seeded-unit 17 4
-                  assert= a b
-                  assert= true $ and (>= a 0) (<= a 1)
-                  , &unit
-        'toggle-animation! $ %{} 'CodeEntry (:doc "|Pause or resume explicit one-shot frame chaining. / 暂停或继续显式 one-shot frame 链。")
-          :code $ quote
-            defn toggle-animation! ()
-              reset! *playing? $ not @*playing?
-              reset! *export-status $ if @*playing? "|Animation playing / 动画播放中" "|Animation paused / 动画已暂停"
-              render-art!
-              if @*playing? (request-frame!) (do &unit)
-              , &unit
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
-        'validate-art-scene! $ %{} 'CodeEntry (:doc "|Validate the generated preview through the structured public boundary before launch. / 启动前通过公开结构化边界校验生成的预览。")
-          :code $ quote
-            defn validate-art-scene! ()
-              let
-                  diagnostics $ validate-scene-structured (build-art-scene @*seed @*time-ms @*export-status true)
-                if (empty? diagnostics) (do &unit)
-                  raise $ str |unexpected-creative-art-diagnostics: diagnostics
-              , &unit
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
       :ns $ %{} 'NsEntry (:doc |)
-        :code $ quote
-          ns calcit-paint.creative-art $ :require
-            calcit-paint.core :refer $ WindowOptions PaintEvent launch-canvas-typed! push-drawing-data! render-to-png! request-frame! close-window! validate-scene-structured
+        :code $ quote $ ns calcit-paint.creative-art
+          :require $ calcit-paint.core :refer $ WindowOptions PaintEvent launch-canvas-typed! push-drawing-data! render-to-png! request-frame! close-window! validate-scene-structured
     'calcit-paint.main $ %{} 'FileEntry
       :defs $ {}
         '*accessibility-value $ %{} 'CodeEntry (:doc |)
-          :code $ quote (defatom *accessibility-value |Draft)
+          :code $ quote $ defatom *accessibility-value |Draft
           :examples $ []
           :schema $ :: 'Ref 'String
         '*animation-active? $ %{} 'CodeEntry (:doc |)
-          :code $ quote (defatom *animation-active? false)
+          :code $ quote $ defatom *animation-active? false
           :examples $ []
           :schema $ :: 'Ref 'Bool
         '*animation-time-ms $ %{} 'CodeEntry (:doc |)
-          :code $ quote (defatom *animation-time-ms 0)
+          :code $ quote $ defatom *animation-time-ms 0
           :examples $ []
           :schema $ :: 'Ref 'Number
         '*clipboard-status $ %{} 'CodeEntry (:doc |)
-          :code $ quote (defatom *clipboard-status |clipboard:idle)
+          :code $ quote $ defatom *clipboard-status |clipboard:idle
           :examples $ []
           :schema $ :: 'Ref 'String
         '*file-drop-status $ %{} 'CodeEntry (:doc |)
-          :code $ quote (defatom *file-drop-status |file-drop:idle)
+          :code $ quote $ defatom *file-drop-status |file-drop:idle
           :examples $ []
           :schema $ :: 'Ref 'String
         '*pointer-dirty? $ %{} 'CodeEntry (:doc |)
-          :code $ quote (defatom *pointer-dirty? false)
+          :code $ quote $ defatom *pointer-dirty? false
           :examples $ []
           :schema $ :: 'Ref 'Bool
         '*pointer-status $ %{} 'CodeEntry (:doc |)
-          :code $ quote (defatom *pointer-status |hover:idle)
+          :code $ quote $ defatom *pointer-status |hover:idle
           :examples $ []
           :schema $ :: 'Ref 'String
         '*selection-end $ %{} 'CodeEntry (:doc |)
-          :code $ quote (defatom *selection-end 0)
+          :code $ quote $ defatom *selection-end 0
           :examples $ []
           :schema $ :: 'Ref 'Number
         '*selection-start $ %{} 'CodeEntry (:doc |)
-          :code $ quote (defatom *selection-start 0)
+          :code $ quote $ defatom *selection-start 0
           :examples $ []
           :schema $ :: 'Ref 'Number
         '*system-theme $ %{} 'CodeEntry (:doc |)
-          :code $ quote (defatom *system-theme :unknown)
+          :code $ quote $ defatom *system-theme :unknown
           :examples $ []
           :schema $ :: 'Ref 'Tag
         'export-offscreen-demo! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn export-offscreen-demo! ()
-              render-to-png! $ {} (:path |offscreen-demo.png) (:width 360) (:height 180)
-                :background $ [] 225 25 12
-                :scene $ {} (:type :group)
+          :code $ quote $ defn export-offscreen-demo! ()
+            render-to-png! $ {}
+              :path |offscreen-demo.png
+              :width 360
+              :height 180
+              :background $ [] 225 25 12
+              :scene $ {} (:type :group)
+                :children $ [] $ {} (:type :cached-group) (:cache-key |offscreen-card) (:revision 1)
+                  :position $ [] 20 20
+                  :width 320
+                  :height 140
                   :children $ []
-                    {} (:type :cached-group) (:cache-key |offscreen-card) (:revision 1)
-                      :position $ [] 20 20
+                    {} (:type :rounded-rect)
+                      :position $ [] 0 0
                       :width 320
                       :height 140
+                      :radius 18
+                      :fill-color $ [] 205 70 42
+                    {} (:type :circle)
+                      :position $ [] 75 70
+                      :radius 42
+                      :fill-color $ [] 38 90 58
+                    {} (:type :text)
+                      :text "|Offscreen · 离屏快照"
+                      :position $ [] 140 70
+                      :color $ [] 0 0 98
+                      :size 22
+                      :baseline :middle
+                      :align :left
+            println "|Exported offscreen-demo.png / 已导出离屏快照"
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
+        'handle-file-dialog-event! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn handle-file-dialog-event! (payload)
+            hint-fn $ {}
+              :args $ [] 'calcit-paint.core/PaintFileDialogEvent
+              :return 'Unit
+            reset! *file-drop-status $ str-spaced :file-dialog (:operation payload) (:status payload) (:request-id payload) (:path payload) (:error payload)
+            reset! *pointer-dirty? true
+            request-frame!
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'calcit-paint.core/PaintFileDialogEvent
+        'handle-file-event! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn handle-file-event! (kind payload)
+            reset! *file-drop-status $ str-spaced kind
+              :value $ :path payload
+              , |@ (:x payload) (:y payload)
+            reset! *pointer-dirty? true
+            request-frame!
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'Tag 'calcit-paint.core/PaintFileEvent
+        'handle-file-hover-cancel! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn handle-file-hover-cancel! (payload)
+            reset! *file-drop-status $ str-spaced :file-hover-cancel |@ (:x payload) (:y payload)
+            reset! *pointer-dirty? true
+            request-frame!
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'calcit-paint.core/PaintFileHoverCancelEvent
+        'handle-paint-event! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn handle-paint-event! (event)
+            match event
+              (:ready) (request-frame!)
+              (:frame payload)
+                do
+                  reset! *animation-time-ms $ :timestamp-ms payload
+                  if @*animation-active?
+                    do (reset! *pointer-dirty? false) (render! false) (request-frame!)
+                    if @*pointer-dirty? $ do (reset! *pointer-dirty? false) (render! false)
+              (:mouse-down payload)
+                handle-target-event! :mouse-down (:target payload)
+                  .unwrap-or (:captured? payload) false
+              (:mouse-up payload)
+                handle-target-event! :mouse-up (:target payload)
+                  .unwrap-or (:captured? payload) false
+              (:mouse-move payload)
+                handle-target-event! :mouse-move (:target payload)
+                  .unwrap-or (:captured? payload) false
+              (:mouse-leave payload)
+                handle-target-event! :mouse-leave (:target payload)
+                  .unwrap-or (:captured? payload) false
+              (:mouse-wheel payload)
+                handle-target-event! :mouse-wheel (:target payload)
+                  .unwrap-or (:captured? payload) false
+              (:pointer-enter payload)
+                handle-target-event! :pointer-enter (:target payload)
+                  .unwrap-or (:captured? payload) false
+              (:pointer-leave payload)
+                handle-target-event! :pointer-leave (:target payload)
+                  .unwrap-or (:captured? payload) false
+              (:pointer-cancel payload)
+                handle-target-event! :pointer-cancel (:target payload)
+                  .unwrap-or (:captured? payload) false
+              (:key-down payload)
+                handle-target-event! :key-down (:target payload) false
+              (:key-up payload)
+                handle-target-event! :key-up (:target payload) false
+              (:focus-in payload)
+                handle-target-event! :focus-in (:target payload) false
+              (:focus-out payload)
+                handle-target-event! :focus-out (:target payload) false
+              (:ime-enabled payload)
+                handle-target-event! :ime-enabled (:target payload) false
+              (:ime-disabled payload)
+                handle-target-event! :ime-disabled (:target payload) false
+              (:composition-start payload)
+                handle-target-event! :composition-start (:target payload) false
+              (:composition-update payload)
+                handle-target-event! :composition-update (:target payload) false
+              (:composition-end payload)
+                handle-target-event! :composition-end (:target payload) false
+              (:text-input payload)
+                handle-target-event! :text-input (:target payload) false
+              (:file-hover payload)
+                handle-file-event! :file-hover payload
+              (:file-drop payload)
+                handle-file-event! :file-drop payload
+              (:file-hover-cancel payload)
+                handle-file-hover-cancel! payload
+              (:file-dialog-result payload)
+                handle-file-dialog-event! payload
+              (:accessibility-action payload)
+                do
+                  case-default (:operation payload) (do &unit)
+                    :set-value $ let
+                        value $ :value payload
+                      match value
+                        (:some next-value)
+                          do
+                            reset! *accessibility-value next-value
+                            reset! *selection-start $ count next-value
+                            reset! *selection-end $ count next-value
+                        (:none) &unit
+                    :set-text-selection $ do
+                      reset! *selection-start $ .unwrap-or (:selection-start payload) @*selection-start
+                      reset! *selection-end $ .unwrap-or (:selection-end payload) @*selection-end
+                    :replace-selected-text $ let
+                        start $ .unwrap-or (:selection-start payload) @*selection-start
+                        end $ .unwrap-or (:selection-end payload) @*selection-end
+                        replacement $ .unwrap-or (:text payload) |
+                        next-value $ str
+                          slice @*accessibility-value 0 start
+                          , replacement $ slice @*accessibility-value end
+                            count @*accessibility-value
+                      do
+                        reset! *accessibility-value next-value
+                        reset! *selection-start $ + start $ count replacement
+                        reset! *selection-end @*selection-start
+                  handle-target-event! (:operation payload) (:target payload) false
+                  println $ str "|accessibility " (:operation payload) "|: " $ :id payload
+                  render! false
+              (:window-focus) (println |window-focus)
+              (:window-blur) (println |window-blur)
+              (:resize payload) (println |resize: payload)
+              (:scale-factor payload) (println |scale-factor: payload)
+              (:window-theme payload)
+                do
+                  reset! *system-theme $ :theme payload
+                  reset! *pointer-dirty? true
+                  request-frame!
+              (:window-title-applied payload)
+                println |window-title-applied: payload
+              (:window-size-request payload)
+                println |window-size-request: payload
+              (:window-close payload) (println |window-close: payload)
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'calcit-paint.core/PaintEvent
+        'handle-target-event! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn handle-target-event! (kind target captured?)
+            case-default
+              .unwrap-or (:action target) :none
+              println |event: kind target
+              :focus-first $ focus! |field-a
+              :export-snapshot $ export-offscreen-demo!
+              :clipboard-copy $ do
+                write-clipboard-text! "|Calcit Paint clipboard / 剪贴板"
+                reset! *clipboard-status "|copied: Calcit Paint clipboard / 已复制"
+                reset! *pointer-dirty? true
+                request-frame!
+              :clipboard-paste $ let
+                  text $ read-clipboard-text!
+                reset! *clipboard-status $ str "|pasted: " text
+                reset! *pointer-dirty? true
+                request-frame!
+              :toggle-animation $ toggle-animation!
+              :window-title $ do
+                set-window-title! "|Calcit Paint · open dialog / 打开文件"
+                open-file-dialog! $ PaintFileDialogOptions :request-id |demo-open :title
+                  %some "|Open image / 打开图片"
+                  , :directory
+                    %some $ fs:path |.
+                    , :file-name (%none) :filters $ []
+                      PaintFileDialogFilter :name |Images :extensions $ [] |png |jpg |jpeg
+                reset! *file-drop-status "|file-dialog:open-pending (T)"
+                request-frame!
+              :window-size $ do
+                request-window-size! 980 700
+                save-file-dialog! $ PaintFileDialogOptions :request-id |demo-save :title
+                  %some "|Save image / 保存图片"
+                  , :directory
+                    %some $ fs:path |.
+                    , :file-name
+                      %some |calcit-paint-export.png
+                      , :filters $ []
+                        PaintFileDialogFilter :name |PNG :extensions $ [] |png
+                reset! *file-drop-status "|file-dialog:save-pending (S)"
+                request-frame!
+              :window-close $ close-window!
+              :input-demo $ do
+                reset! *pointer-status $ str-spaced kind
+                  .unwrap-or (:path target) ([])
+                  , |captured? captured?
+                reset! *pointer-dirty? true
+                request-frame!
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'Tag 'calcit-paint.core/PaintTarget 'Bool
+        'main! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn main! () (println |started)
+            println $ measure-text! $ {}
+              :text "|Text layout / 文本排版"
+              :size 24
+              :font-family |monospace
+              :weight 700
+              :style :italic
+              :baseline :middle
+            println $ measure-paragraph! $ {}
+              :text "|Paragraph measurement / 段落测量"
+              :max-width 260
+              :size 20
+              :line-height 28
+              :max-lines 2
+              :ellipsis "|…"
+            validate-scene-demo!
+            render! true
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
+        'reload! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn reload! () (render! false) (println "|reloads 19")
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
+        'render! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn render! (start-loop?)
+            push-drawing-data! |reset-canvas! $ if (= @*system-theme :dark) ([] 225 24 12)
+              if (= @*system-theme :light) ([] 200 50 30) ([] 210 32 18)
+            push-drawing-data! |render-canvas! $ {} (:type :group)
+              :children $ []
+                {} (:type :rectangle)
+                  :position $ [] 80 100
+                  :width 100
+                  :height 40
+                  :fill-color $ [] 200 80 80
+                {} (:type :circle)
+                  :position $ [] 120 300
+                  :radius 40
+                  :fill-color $ [] 0 80 70
+                {}
+                  :type :clip-rounded-rect
+                  :position $ [] 220 80
+                  :width 260
+                  :height 160
+                  :radius 24
+                  :children $ []
+                    {} (:type :rounded-rect)
+                      :position $ [] 220 80
+                      :width 260
+                      :height 160
+                      :radius 24
+                      :fill-color $ [] 220 32 22
+                      :line-color $ [] 220 70 62
+                      :line-width 3
+                    {} (:type :opacity) (:alpha 0.85)
                       :children $ []
                         {} (:type :rounded-rect)
-                          :position $ [] 0 0
-                          :width 320
-                          :height 140
-                          :radius 18
-                          :fill-color $ [] 205 70 42
-                        {} (:type :circle)
-                          :position $ [] 75 70
-                          :radius 42
-                          :fill-color $ [] 38 90 58
-                        {} (:type :text) (:text "|Offscreen · 离屏快照")
-                          :position $ [] 140 70
+                          :position $ [] 230 90
+                          :width 120
+                          :height 70
+                          :radius 16
+                          :fill-color $ [] 45 80 60
+                        {} (:type :ellipse)
+                          :position $ [] 400 125
+                          :radius-x 48
+                          :radius-y 30
+                          :line-color $ [] 200 80 80
+                          :line-width 4
+                        {} (:type :arc)
+                          :position $ [] 350 205
+                          :radius-x 70
+                          :radius-y 32
+                          :start-angle 190
+                          :sweep-angle 160
+                          :line-color $ [] 120 80 70
+                          :line-width 5
+                    {} (:type :translate) (:x 30) (:y 0)
+                      :children $ []
+                        {} (:type :touch-area) (:dx 65) (:dy 18)
+                          :position $ [] 415 210
+                          :action :input-demo
+                          :path $ [] :demo :clip
+                          :data :clipped-target
+                          :cursor :pointer
+                          :fill-color $ [] 285 74 54
+                          :line-color $ [] 285 92 82
+                          :line-width 2
+                          :accessibility $ {}
+                            :id |clipped-input-button
+                            :role :button
+                            :label "|Clipped input demo"
+                            :enabled? true
+                        {} (:type :text)
+                          :text "|Clipped hit area →"
+                          :position $ [] 415 210
                           :color $ [] 0 0 98
-                          :size 22
+                          :size 13
                           :baseline :middle
-                          :align :left
-              println "|Exported offscreen-demo.png / 已导出离屏快照"
-              , &unit
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
-        'handle-file-dialog-event! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn handle-file-dialog-event! (payload)
-              hint-fn $ {}
-                :args $ [] 'calcit-paint.core/PaintFileDialogEvent
-                :return 'Unit
-              reset! *file-drop-status $ str-spaced :file-dialog (:operation payload) (:status payload) (:request-id payload) (:path payload) (:error payload)
-              reset! *pointer-dirty? true
-              request-frame!
-              , &unit
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'calcit-paint.core/PaintFileDialogEvent
-        'handle-file-event! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn handle-file-event! (kind payload)
-              reset! *file-drop-status $ str-spaced kind
-                :value $ :path payload
-                , |@ (:x payload) (:y payload)
-              reset! *pointer-dirty? true
-              request-frame!
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'Tag 'calcit-paint.core/PaintFileEvent
-        'handle-file-hover-cancel! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn handle-file-hover-cancel! (payload)
-              reset! *file-drop-status $ str-spaced :file-hover-cancel |@ (:x payload) (:y payload)
-              reset! *pointer-dirty? true
-              request-frame!
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'calcit-paint.core/PaintFileHoverCancelEvent
-        'handle-paint-event! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn handle-paint-event! (event)
-              match event
-                (:ready) (request-frame!)
-                (:frame payload)
-                  do
-                    reset! *animation-time-ms $ :timestamp-ms payload
-                    if @*animation-active?
-                      do (reset! *pointer-dirty? false) (render! false) (request-frame!)
-                      if @*pointer-dirty? $ do (reset! *pointer-dirty? false) (render! false)
-                (:mouse-down payload)
-                  handle-target-event! :mouse-down (:target payload)
-                    .unwrap-or (:captured? payload) false
-                (:mouse-up payload)
-                  handle-target-event! :mouse-up (:target payload)
-                    .unwrap-or (:captured? payload) false
-                (:mouse-move payload)
-                  handle-target-event! :mouse-move (:target payload)
-                    .unwrap-or (:captured? payload) false
-                (:mouse-leave payload)
-                  handle-target-event! :mouse-leave (:target payload)
-                    .unwrap-or (:captured? payload) false
-                (:mouse-wheel payload)
-                  handle-target-event! :mouse-wheel (:target payload)
-                    .unwrap-or (:captured? payload) false
-                (:pointer-enter payload)
-                  handle-target-event! :pointer-enter (:target payload)
-                    .unwrap-or (:captured? payload) false
-                (:pointer-leave payload)
-                  handle-target-event! :pointer-leave (:target payload)
-                    .unwrap-or (:captured? payload) false
-                (:pointer-cancel payload)
-                  handle-target-event! :pointer-cancel (:target payload)
-                    .unwrap-or (:captured? payload) false
-                (:key-down payload)
-                  handle-target-event! :key-down (:target payload) false
-                (:key-up payload)
-                  handle-target-event! :key-up (:target payload) false
-                (:focus-in payload)
-                  handle-target-event! :focus-in (:target payload) false
-                (:focus-out payload)
-                  handle-target-event! :focus-out (:target payload) false
-                (:ime-enabled payload)
-                  handle-target-event! :ime-enabled (:target payload) false
-                (:ime-disabled payload)
-                  handle-target-event! :ime-disabled (:target payload) false
-                (:composition-start payload)
-                  handle-target-event! :composition-start (:target payload) false
-                (:composition-update payload)
-                  handle-target-event! :composition-update (:target payload) false
-                (:composition-end payload)
-                  handle-target-event! :composition-end (:target payload) false
-                (:text-input payload)
-                  handle-target-event! :text-input (:target payload) false
-                (:file-hover payload) (handle-file-event! :file-hover payload)
-                (:file-drop payload) (handle-file-event! :file-drop payload)
-                (:file-hover-cancel payload) (handle-file-hover-cancel! payload)
-                (:file-dialog-result payload) (handle-file-dialog-event! payload)
-                (:accessibility-action payload)
-                  do
-                    case-default (:operation payload) (do &unit)
-                      :set-value $ let
-                          value $ :value payload
-                        match value
-                          (:some next-value)
-                            do (reset! *accessibility-value next-value)
-                              reset! *selection-start $ count next-value
-                              reset! *selection-end $ count next-value
-                          (:none) &unit
-                      :set-text-selection $ do
-                        reset! *selection-start $ .unwrap-or (:selection-start payload) @*selection-start
-                        reset! *selection-end $ .unwrap-or (:selection-end payload) @*selection-end
-                      :replace-selected-text $ let
-                          start $ .unwrap-or (:selection-start payload) @*selection-start
-                          end $ .unwrap-or (:selection-end payload) @*selection-end
-                          replacement $ .unwrap-or (:text payload) |
-                          next-value $ str (slice @*accessibility-value 0 start) replacement
-                            slice @*accessibility-value end $ count @*accessibility-value
-                        do (reset! *accessibility-value next-value)
-                          reset! *selection-start $ + start (count replacement)
-                          reset! *selection-end @*selection-start
-                    handle-target-event! (:operation payload) (:target payload) false
-                    println $ str "|accessibility " (:operation payload) "|: " (:id payload)
-                    render! false
-                (:window-focus) (println |window-focus)
-                (:window-blur) (println |window-blur)
-                (:resize payload) (println |resize: payload)
-                (:scale-factor payload) (println |scale-factor: payload)
-                (:window-theme payload)
-                  do
-                    reset! *system-theme $ :theme payload
-                    reset! *pointer-dirty? true
-                    request-frame!
-                (:window-title-applied payload) (println |window-title-applied: payload)
-                (:window-size-request payload) (println |window-size-request: payload)
-                (:window-close payload) (println |window-close: payload)
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'calcit-paint.core/PaintEvent
-        'handle-target-event! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn handle-target-event! (kind target captured?)
-              case-default
-                .unwrap-or (:action target) :none
-                println |event: kind target
-                :focus-first $ focus! |field-a
-                :export-snapshot $ export-offscreen-demo!
-                :clipboard-copy $ do (write-clipboard-text! "|Calcit Paint clipboard / 剪贴板") (reset! *clipboard-status "|copied: Calcit Paint clipboard / 已复制") (reset! *pointer-dirty? true) (request-frame!)
-                :clipboard-paste $ let
-                    text $ read-clipboard-text!
-                  reset! *clipboard-status $ str "|pasted: " text
-                  reset! *pointer-dirty? true
-                  request-frame!
-                :toggle-animation $ toggle-animation!
-                :window-title $ do (set-window-title! "|Calcit Paint · open dialog / 打开文件")
-                  open-file-dialog! $ PaintFileDialogOptions :request-id |demo-open :title (%some "|Open image / 打开图片") :directory
-                    %some $ fs:path |.
-                    , :file-name (%none) :filters
-                      [] $ PaintFileDialogFilter :name |Images :extensions ([] |png |jpg |jpeg)
-                  reset! *file-drop-status "|file-dialog:open-pending (T)"
-                  request-frame!
-                :window-size $ do (request-window-size! 980 700)
-                  save-file-dialog! $ PaintFileDialogOptions :request-id |demo-save :title (%some "|Save image / 保存图片") :directory
-                    %some $ fs:path |.
-                    , :file-name (%some |calcit-paint-export.png) :filters
-                      [] $ PaintFileDialogFilter :name |PNG :extensions ([] |png)
-                  reset! *file-drop-status "|file-dialog:save-pending (S)"
-                  request-frame!
-                :window-close $ close-window!
-                :input-demo $ do
-                  reset! *pointer-status $ str-spaced kind
-                    .unwrap-or (:path target) ([])
-                    , |captured? captured?
-                  reset! *pointer-dirty? true
-                  request-frame!
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'Tag 'calcit-paint.core/PaintTarget 'Bool
-        'main! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn main! () (println |started)
-              println $ measure-text!
-                {} (:text "|Text layout / 文本排版") (:size 24) (:font-family |monospace) (:weight 700) (:style :italic) (:baseline :middle)
-              println $ measure-paragraph!
-                {} (:text "|Paragraph measurement / 段落测量") (:max-width 260) (:size 20) (:line-height 28) (:max-lines 2) (:ellipsis "|…")
-              validate-scene-demo!
-              render! true
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
-        'reload! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn reload! () (render! false) (println "|reloads 19")
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
-        'render! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn render! (start-loop?)
-              push-drawing-data! |reset-canvas! $ if (= @*system-theme :dark) ([] 225 24 12)
-                if (= @*system-theme :light) ([] 200 50 30) ([] 210 32 18)
-              push-drawing-data! |render-canvas! $ {} (:type :group)
-                :children $ []
-                  {} (:type :rectangle)
-                    :position $ [] 80 100
-                    :width 100
-                    :height 40
-                    :fill-color $ [] 200 80 80
-                  {} (:type :circle)
-                    :position $ [] 120 300
-                    :radius 40
-                    :fill-color $ [] 0 80 70
-                  {} (:type :clip-rounded-rect)
-                    :position $ [] 220 80
-                    :width 260
-                    :height 160
-                    :radius 24
-                    :children $ []
-                      {} (:type :rounded-rect)
-                        :position $ [] 220 80
-                        :width 260
-                        :height 160
-                        :radius 24
-                        :fill-color $ [] 220 32 22
-                        :line-color $ [] 220 70 62
-                        :line-width 3
-                      {} (:type :opacity) (:alpha 0.85)
-                        :children $ []
-                          {} (:type :rounded-rect)
-                            :position $ [] 230 90
-                            :width 120
-                            :height 70
-                            :radius 16
-                            :fill-color $ [] 45 80 60
-                          {} (:type :ellipse)
-                            :position $ [] 400 125
-                            :radius-x 48
-                            :radius-y 30
-                            :line-color $ [] 200 80 80
-                            :line-width 4
-                          {} (:type :arc)
-                            :position $ [] 350 205
-                            :radius-x 70
-                            :radius-y 32
-                            :start-angle 190
-                            :sweep-angle 160
-                            :line-color $ [] 120 80 70
-                            :line-width 5
-                      {} (:type :translate) (:x 30) (:y 0)
-                        :children $ []
-                          {} (:type :touch-area) (:dx 65) (:dy 18)
-                            :position $ [] 415 210
-                            :action :input-demo
-                            :path $ [] :demo :clip
-                            :data :clipped-target
-                            :cursor :pointer
-                            :fill-color $ [] 285 74 54
-                            :line-color $ [] 285 92 82
-                            :line-width 2
-                            :accessibility $ {} (:id |clipped-input-button) (:role :button) (:label "|Clipped input demo") (:enabled? true)
-                          {} (:type :text) (:text "|Clipped hit area →")
-                            :position $ [] 415 210
+                          :align :center
+                {} (:type :text)
+                  :text $ str "|Demo · system theme / 系统主题: " @*system-theme
+                  :position $ [] 200 40
+                  :color $ if (= @*system-theme :dark) ([] 48 90 72)
+                    if (= @*system-theme :light) ([] 0 80 100) ([] 42 80 84)
+                  :size 28
+                  :weight |500
+                  :align :center
+                {} (:type :group)
+                  :children $ []
+                    {} (:type :text)
+                      :text "|Bold italic · top"
+                      :position $ [] 530 110
+                      :color $ [] 42 90 92
+                      :size 24
+                      :font-family |monospace
+                      :weight 700
+                      :style :italic
+                      :baseline :top
+                      :align :left
+                    {} (:type :text)
+                      :text "|Regular · middle"
+                      :position $ [] 530 158
+                      :color $ [] 170 76 96
+                      :size 24
+                      :font-family |monospace
+                      :weight 400
+                      :baseline :middle
+                      :align :left
+                    {} (:type :text) (:text "|Light · bottom")
+                      :position $ [] 530 206
+                      :color $ [] 42 90 88
+                      :size 24
+                      :font-family |monospace
+                      :weight 300
+                      :baseline :bottom
+                      :align :left
+                {} (:type :polyline)
+                  :position $ [] 480 200
+                  :color $ [] 0 0 100 1
+                  :skip-first? true
+                  :width 2
+                  :stops $ -> (range 20)
+                    map $ fn (i)
+                      []
+                        * 80 $ cos $ * 1.9 i
+                        * 80 $ sin $ * 1.9 i
+                  :join :round
+                  :cap :round
+                {} (:type :touch-area) (:radius 10)
+                  :position $ [] 200 200
+                  :fill-color $ [] 40 80 80
+                {} (:type :key-listener) (:key |D) (:action :keyboard)
+                  :path $ [] :k
+                  :data :data
+                {} (:type :ops)
+                  :path $ []
+                    [] :move-to $ [] 200 300
+                    [] :line-to $ [] 240 340
+                    [] :bezier3-to ([] 400 260) ([] 200 400) ([] 300 400)
+                  :line-color $ [] 200 80 80
+                  :line-width 4
+                {} (:type :translate) (:x 200) (:y 200)
+                  :children $ [] $ {} (:type :scale) (:factor 2)
+                    :children $ [] $ {} (:type :rotate) (:radius 0.8)
+                      :children $ [] $ {} (:type :rectangle)
+                        :position $ [] 0 0
+                        :width 100
+                        :height 40
+                        :fill-color $ [] 200 80 80
+                {} (:type :scale) (:factor 2.5)
+                  :children $ [] $ {} (:type :touch-area) (:radius 10)
+                    :position $ [] 200 200
+                    :fill-color $ [] 40 80 80
+                {} (:type :group)
+                  :children $ []
+                    {} (:type :rounded-rect)
+                      :position $ [] 500 410
+                      :width 180
+                      :height 64
+                      :radius 14
+                      :fill $ {} (:type :linear-gradient)
+                        :from $ [] 500 410
+                        :to $ [] 680 474
+                        :stops $ []
+                          [] 0 $ [] 16 90 60
+                          [] 0.5 $ [] 330 85 62
+                          [] 1 $ [] 210 85 55
+                    {} (:type :circle)
+                      :position $ [] 790 442
+                      :radius 52
+                      :fill $ {} (:type :radial-gradient)
+                        :center $ [] 772 424
+                        :radius 70
+                        :stops $ []
+                          [] 0 $ [] 52 95 72
+                          [] 0.55 $ [] 18 90 58
+                          [] 1 $ [] 348 85 42
+                    {} (:type :rectangle)
+                      :position $ [] 500 510
+                      :width 180
+                      :height 58
+                      :stroke $ {}
+                        :paint $ {} (:type :solid)
+                          :color $ [] 192 90 68
+                        :width 5
+                        :cap :round
+                        :join :miter
+                        :miter-limit 6
+                        :dash $ [] 14 8
+                        :dash-offset 3
+                    {} (:type :rectangle)
+                      :position $ [] 750 510
+                      :width 140
+                      :height 70
+                      :fill-color $ [] 48 90 62
+                    {} (:type :blend) (:mode :multiply)
+                      :children $ [] $ {} (:type :circle)
+                        :position $ [] 830 545
+                        :radius 42
+                        :fill-color $ [] 215 90 60
+                    {} (:type :group)
+                      :children $ []
+                        {} (:type :text)
+                          :text "|Skia effects / Skia 效果"
+                          :position $ [] 595 325
+                          :color $ [] 195 72 92
+                          :size 15
+                          :align :center
+                        {} (:type :drop-shadow) (:dx 8) (:dy 7) (:sigma-x 3) (:sigma-y 3)
+                          :color $ [] 230 40 18 0.72
+                          :children $ [] $ {} (:type :rounded-rect) (:radius 14)
+                            :position $ [] 510 345
+                            :width 110
+                            :height 58
+                            :fill-color $ [] 200 72 52
+                        {} (:type :blur) (:sigma-x 3) (:sigma-y 3)
+                          :children $ [] $ {} (:type :circle) (:radius 30)
+                            :position $ [] 670 374
+                            :fill-color $ [] 45 88 60
+                        {} (:type :color-filter)
+                          :matrix $ [] 0.213 0.715 0.072 0 0 0.213 0.715 0.072 0 0 0.213 0.715 0.072 0 0 0 0 0 1 0
+                          :children $ [] $ {} (:type :circle) (:radius 30)
+                            :position $ [] 770 374
+                            :fill-color $ [] 315 88 62
+                {} (:type :group)
+                  :children $ []
+                    {} (:type :touch-area) (:dx 150) (:dy 42)
+                      :position $ [] 780 320
+                      :action :input-demo
+                      :path $ [] :demo :pointer :base
+                      :data :capture-base
+                      :cursor :grab
+                      :fill-color $ [] 185 70 50
+                      :line-color $ [] 185 90 85
+                      :line-width 2
+                    {} (:type :touch-area) (:dx 55) (:dy 28)
+                      :position $ [] 855 320
+                      :action :input-demo
+                      :path $ [] :demo :pointer :overlay
+                      :data :hover-overlay
+                      :cursor :crosshair
+                      :fill-color $ [] 42 82 58
+                      :line-color $ [] 42 94 84
+                      :line-width 2
+                    {} (:type :text)
+                      :text "|Hover + capture demo / 悬停与捕获"
+                      :position $ [] 760 306
+                      :color $ [] 0 0 100
+                      :size 17
+                      :align :center
+                    {} (:type :text)
+                      :text "|Drag outside a region; overlap uses crosshair"
+                      :position $ [] 760 332
+                      :color $ [] 0 0 94
+                      :size 12
+                      :align :center
+                    {} (:type :text) (:text @*pointer-status)
+                      :position $ [] 780 370
+                      :color $ [] 45 18 96
+                      :size 13
+                      :align :center
+                    {} (:type :key-listener) (:key |I) (:action :input-demo)
+                      :path $ [] :demo :keyboard
+                      :data :keyboard-demo
+                {} (:type :group)
+                  :children $ []
+                    {} (:type :paragraph)
+                      :text "|Calcit Paint paragraph\n中文段落 · explicit newline"
+                      :position $ [] 40 610
+                      :max-width 300
+                      :color $ [] 42 90 92
+                      :size 20
+                      :line-height 28
+                      :align :left
+                    {} (:type :paragraph)
+                      :text "|A constrained paragraph demonstrates Unicode-safe wrapping and ellipsis. 受限宽度段落展示安全换行与省略号。"
+                      :position $ [] 380 610
+                      :max-width 320
+                      :color $ [] 170 76 96
+                      :size 18
+                      :line-height 26
+                      :max-lines 2
+                      :ellipsis "|…"
+                      :align :center
+                    {} (:type :paragraph)
+                      :text "|مرحبا بالعالم · تخطيط النص من اليمين إلى اليسار"
+                      :position $ [] 740 610
+                      :max-width 320
+                      :color $ [] 200 82 90
+                      :size 20
+                      :line-height 30
+                      :max-lines 2
+                      :ellipsis "|…"
+                      :direction :rtl
+                      :align :right
+                {} (:type :group)
+                  :children $ []
+                    {} (:type :focus-area) (:focus-id |field-a) (:tab-index 0) (:text-input? true)
+                      :position $ [] 180 450
+                      :dx 140
+                      :dy 32
+                      :action :focus-demo
+                      :path $ [] :field-a
+                      :data :ime-field
+                      :fill-color $ [] 215 70 45
+                      :line-color $ [] 215 88 76
+                      :line-width 3
+                      :accessibility $ {} (:id |field-a) (:role :text-input)
+                        :label "|Focus A IME input"
+                        :value @*accessibility-value
+                        :selection-start @*selection-start
+                        :selection-end @*selection-end
+                        :enabled? true
+                        :focusable? true
+                    {} (:type :text)
+                      :text $ str "|Focus A · " @*accessibility-value " [" @*selection-start : @*selection-end ]
+                      :position $ [] 180 450
+                      :color $ [] 0 0 98
+                      :size 18
+                      :baseline :middle
+                      :align :center
+                    {} (:type :focus-area) (:focus-id |field-b) (:tab-index 1) (:text-input? true)
+                      :position $ [] 180 525
+                      :dx 140
+                      :dy 32
+                      :action :focus-demo
+                      :path $ [] :field-b
+                      :data :ime-field
+                      :fill-color $ [] 165 65 42
+                      :line-color $ [] 165 88 74
+                      :line-width 3
+                      :accessibility $ {} (:id |field-b) (:role :text-input)
+                        :label "|Focus B Tab input"
+                        :value |
+                        :enabled? true
+                        :focusable? true
+                    {} (:type :text)
+                      :text "|Focus B · Tab / Shift+Tab"
+                      :position $ [] 180 525
+                      :color $ [] 0 0 98
+                      :size 18
+                      :baseline :middle
+                      :align :center
+                    {} (:type :key-listener) (:key |K) (:action :focus-first)
+                      :modifiers $ {} $ :shift? true
+                      :data :shortcut-demo
+                    {} (:type :key-listener) (:key |P) (:action :export-snapshot)
+                      :modifiers $ {} $ :shift? true
+                      :data :offscreen-demo
+                    {} (:type :key-listener) (:key |Enter) (:focus-id |field-a) (:action :field-submit)
+                      :data :focus-scoped-key
+                    {} (:type :text)
+                      :text "|Click, Tab, IME; Shift+K focuses A; Shift+P exports PNG"
+                      :position $ [] 180 580
+                      :color $ [] 45 18 96
+                      :size 14
+                      :align :center
+                {} (:type :group)
+                  :children $ []
+                    {} (:type :rectangle)
+                      :position $ [] 310 12
+                      :width 100
+                      :height 58
+                      :fill-color $ [] 220 16 24
+                    {} (:type :image)
+                      :file-path |resources/calcit.png
+                      :x 310
+                      :y 12
+                      :w 100
+                      :h 58
+                    {} (:type :text) (:text |fill/nearest)
+                      :position $ [] 360 78
+                      :color $ [] 0 0 96
+                      :size 11
+                      :align :center
+                    {} (:type :rectangle)
+                      :position $ [] 425 12
+                      :width 100
+                      :height 58
+                      :fill-color $ [] 220 16 24
+                    {} (:type :image)
+                      :file-path |resources/calcit.png
+                      :x 425
+                      :y 12
+                      :w 100
+                      :h 58
+                      :fit :contain
+                      :sampling :linear
+                    {} (:type :text) (:text |contain/linear)
+                      :position $ [] 475 78
+                      :color $ [] 0 0 96
+                      :size 11
+                      :align :center
+                    {} (:type :rectangle)
+                      :position $ [] 540 12
+                      :width 100
+                      :height 58
+                      :fill-color $ [] 220 16 24
+                    {} (:type :image)
+                      :file-path |resources/calcit.png
+                      :x 540
+                      :y 12
+                      :w 100
+                      :h 58
+                      :crop $ {} (:x 80) (:y 80) (:w 320) (:h 320)
+                      :fit :cover
+                      :sampling :cubic
+                    {} (:type :text) (:text |cover/cubic)
+                      :position $ [] 590 78
+                      :color $ [] 0 0 96
+                      :size 11
+                      :align :center
+                {} (:type :group)
+                  :children $ []
+                    {} (:type :circle) (:radius 22)
+                      :position $ []
+                        + 900 $ * 55 $ sin
+                          / @*animation-time-ms 420
+                        , 270
+                      :fill-color $ [] 285 82 62
+                      :line-color $ [] 285 95 86
+                      :line-width 3
+                    {} (:type :text)
+                      :text $ if @*animation-active? "|A: pause animation / 暂停动画" "|A: start animation / 开始动画"
+                      :position $ [] 900 315
+                      :color $ [] 285 72 92
+                      :size 15
+                      :align :center
+                    {} (:type :key-listener) (:key |A)
+                      :action :toggle-animation
+                {} (:type :group)
+                  :children $ []
+                    {} (:type :text)
+                      :text "|T title · S resize · Q close / 标题 · 尺寸 · 关闭"
+                      :position $ [] 900 215
+                      :color $ [] 195 62 92
+                      :size 13
+                      :align :center
+                    {} (:type :text)
+                      :text @*file-drop-status
+                      :position $ [] 900 240
+                      :color $ [] 195 62 92
+                      :size 12
+                      :align :center
+                    {} (:type :group)
+                      :children $ []
+                        {} (:type :text)
+                          :text "|Shift+C copy · Shift+V paste / 复制 · 粘贴"
+                          :position $ [] 900 265
+                          :color $ [] 195 62 92
+                          :size 12
+                          :align :center
+                        {} (:type :text)
+                          :text @*clipboard-status
+                          :position $ [] 900 285
+                          :color $ [] 195 62 92
+                          :size 11
+                          :align :center
+                        {} (:type :key-listener) (:key |C) (:action :clipboard-copy)
+                          :modifiers $ {} $ :shift? true
+                        {} (:type :key-listener) (:key |V) (:action :clipboard-paste)
+                          :modifiers $ {} $ :shift? true
+                    {} (:type :key-listener) (:key |T) (:action :window-title)
+                    {} (:type :key-listener) (:key |S) (:action :window-size)
+                    {} (:type :key-listener) (:key |Q) (:action :window-close)
+                {} (:type :cached-group)
+                  :cache-key |window-static-badge
+                  :revision 1
+                  :position $ [] 900 80
+                  :width 170
+                  :height 110
+                  :children $ []
+                    {} (:type :rounded-rect)
+                      :position $ [] 0 0
+                      :width 170
+                      :height 110
+                      :radius 16
+                      :fill-color $ [] 225 55 28
+                      :line-color $ [] 195 82 68
+                      :line-width 3
+                    {} (:type :circle)
+                      :position $ [] 42 55
+                      :radius 25
+                      :fill-color $ [] 42 90 58
+                    {} (:type :text) (:text |cached)
+                      :position $ [] 80 48
+                      :color $ [] 0 0 96
+                      :size 18
+                      :align :left
+                    {} (:type :text) (:text "|Shift+P → PNG")
+                      :position $ [] 80 72
+                      :color $ [] 0 0 86
+                      :size 13
+                      :align :left
+                {} (:type :group)
+                  :children $ []
+                    {} (:type :touch-area) (:dx 155) (:dy 30)
+                      :position $ [] 850 455
+                      :action :container-outer
+                      :path $ [] :demo :interactive-container
+                      :data :outer
+                      :cursor :pointer
+                      :fill-color $ [] 198 70 48
+                      :line-color $ [] 198 90 78
+                      :line-width 2
+                      :accessibility $ {}
+                        :id |nested-touch-outer
+                        :role :button
+                        :label "|Nested touch container"
+                        :enabled? true
+                      :children $ []
+                        {} (:type :text)
+                          :text "|Touch container · child wins →"
+                          :position $ [] 770 455
+                          :color $ [] 0 0 98
+                          :size 14
+                          :baseline :middle
+                          :align :center
+                        {} (:type :touch-area) (:dx 45) (:dy 20)
+                          :position $ [] 965 455
+                          :action :container-inner
+                          :path $ [] :demo :interactive-container
+                          :data :inner
+                          :cursor :pointer
+                          :fill-color $ [] 285 78 54
+                          :line-color $ [] 285 92 80
+                          :line-width 2
+                          :accessibility $ {}
+                            :id |nested-touch-inner
+                            :role :button
+                            :label "|Nested child action"
+                            :enabled? true
+                          :children $ [] $ {} (:type :text) (:text |Inner)
+                            :position $ [] 965 455
                             :color $ [] 0 0 98
                             :size 13
                             :baseline :middle
                             :align :center
-                  {} (:type :text)
-                    :text $ str "|Demo · system theme / 系统主题: " @*system-theme
-                    :position $ [] 200 40
-                    :color $ if (= @*system-theme :dark) ([] 48 90 72)
-                      if (= @*system-theme :light) ([] 0 80 100) ([] 42 80 84)
-                    :size 28
-                    :weight |500
-                    :align :center
-                  {} (:type :group)
-                    :children $ []
-                      {} (:type :text) (:text "|Bold italic · top")
-                        :position $ [] 530 110
-                        :color $ [] 42 90 92
-                        :size 24
-                        :font-family |monospace
-                        :weight 700
-                        :style :italic
-                        :baseline :top
-                        :align :left
-                      {} (:type :text) (:text "|Regular · middle")
-                        :position $ [] 530 158
-                        :color $ [] 170 76 96
-                        :size 24
-                        :font-family |monospace
-                        :weight 400
-                        :baseline :middle
-                        :align :left
-                      {} (:type :text) (:text "|Light · bottom")
-                        :position $ [] 530 206
-                        :color $ [] 42 90 88
-                        :size 24
-                        :font-family |monospace
-                        :weight 300
-                        :baseline :bottom
-                        :align :left
-                  {} (:type :polyline)
-                    :position $ [] 480 200
-                    :color $ [] 0 0 100 1
-                    :skip-first? true
-                    :width 2
-                    :stops $ -> (range 20)
-                      map $ fn (i)
-                        []
-                          * 80 $ cos (* 1.9 i)
-                          * 80 $ sin (* 1.9 i)
-                    :join :round
-                    :cap :round
-                  {} (:type :touch-area) (:radius 10)
-                    :position $ [] 200 200
-                    :fill-color $ [] 40 80 80
-                  {} (:type :key-listener) (:key |D) (:action :keyboard)
-                    :path $ [] :k
-                    :data :data
-                  {} (:type :ops)
-                    :path $ []
-                      [] :move-to $ [] 200 300
-                      [] :line-to $ [] 240 340
-                      [] :bezier3-to ([] 400 260) ([] 200 400) ([] 300 400)
-                    :line-color $ [] 200 80 80
-                    :line-width 4
-                  {} (:type :translate) (:x 200) (:y 200)
-                    :children $ []
-                      {} (:type :scale) (:factor 2)
-                        :children $ []
-                          {} (:type :rotate) (:radius 0.8)
-                            :children $ []
-                              {} (:type :rectangle)
-                                :position $ [] 0 0
-                                :width 100
-                                :height 40
-                                :fill-color $ [] 200 80 80
-                  {} (:type :scale) (:factor 2.5)
-                    :children $ []
-                      {} (:type :touch-area) (:radius 10)
-                        :position $ [] 200 200
-                        :fill-color $ [] 40 80 80
-                  {} (:type :group)
-                    :children $ []
-                      {} (:type :rounded-rect)
-                        :position $ [] 500 410
-                        :width 180
-                        :height 64
-                        :radius 14
-                        :fill $ {} (:type :linear-gradient)
-                          :from $ [] 500 410
-                          :to $ [] 680 474
-                          :stops $ []
-                            [] 0 $ [] 16 90 60
-                            [] 0.5 $ [] 330 85 62
-                            [] 1 $ [] 210 85 55
-                      {} (:type :circle)
-                        :position $ [] 790 442
-                        :radius 52
-                        :fill $ {} (:type :radial-gradient)
-                          :center $ [] 772 424
-                          :radius 70
-                          :stops $ []
-                            [] 0 $ [] 52 95 72
-                            [] 0.55 $ [] 18 90 58
-                            [] 1 $ [] 348 85 42
-                      {} (:type :rectangle)
-                        :position $ [] 500 510
-                        :width 180
-                        :height 58
-                        :stroke $ {}
-                          :paint $ {} (:type :solid)
-                            :color $ [] 192 90 68
-                          :width 5
-                          :cap :round
-                          :join :miter
-                          :miter-limit 6
-                          :dash $ [] 14 8
-                          :dash-offset 3
-                      {} (:type :rectangle)
-                        :position $ [] 750 510
-                        :width 140
-                        :height 70
-                        :fill-color $ [] 48 90 62
-                      {} (:type :blend) (:mode :multiply)
-                        :children $ []
-                          {} (:type :circle)
-                            :position $ [] 830 545
-                            :radius 42
-                            :fill-color $ [] 215 90 60
-                      {} (:type :group)
-                        :children $ []
-                          {} (:type :text) (:text "|Skia effects / Skia 效果")
-                            :position $ [] 595 325
-                            :color $ [] 195 72 92
-                            :size 15
-                            :align :center
-                          {} (:type :drop-shadow) (:dx 8) (:dy 7) (:sigma-x 3) (:sigma-y 3)
-                            :color $ [] 230 40 18 0.72
-                            :children $ []
-                              {} (:type :rounded-rect) (:radius 14)
-                                :position $ [] 510 345
-                                :width 110
-                                :height 58
-                                :fill-color $ [] 200 72 52
-                          {} (:type :blur) (:sigma-x 3) (:sigma-y 3)
-                            :children $ []
-                              {} (:type :circle) (:radius 30)
-                                :position $ [] 670 374
-                                :fill-color $ [] 45 88 60
-                          {} (:type :color-filter)
-                            :matrix $ [] 0.213 0.715 0.072 0 0 0.213 0.715 0.072 0 0 0.213 0.715 0.072 0 0 0 0 0 1 0
-                            :children $ []
-                              {} (:type :circle) (:radius 30)
-                                :position $ [] 770 374
-                                :fill-color $ [] 315 88 62
-                  {} (:type :group)
-                    :children $ []
-                      {} (:type :touch-area) (:dx 150) (:dy 42)
-                        :position $ [] 780 320
-                        :action :input-demo
-                        :path $ [] :demo :pointer :base
-                        :data :capture-base
-                        :cursor :grab
-                        :fill-color $ [] 185 70 50
-                        :line-color $ [] 185 90 85
-                        :line-width 2
-                      {} (:type :touch-area) (:dx 55) (:dy 28)
-                        :position $ [] 855 320
-                        :action :input-demo
-                        :path $ [] :demo :pointer :overlay
-                        :data :hover-overlay
-                        :cursor :crosshair
-                        :fill-color $ [] 42 82 58
-                        :line-color $ [] 42 94 84
-                        :line-width 2
-                      {} (:type :text) (:text "|Hover + capture demo / 悬停与捕获")
-                        :position $ [] 760 306
-                        :color $ [] 0 0 100
-                        :size 17
-                        :align :center
-                      {} (:type :text) (:text "|Drag outside a region; overlap uses crosshair")
-                        :position $ [] 760 332
-                        :color $ [] 0 0 94
-                        :size 12
-                        :align :center
-                      {} (:type :text) (:text @*pointer-status)
-                        :position $ [] 780 370
-                        :color $ [] 45 18 96
-                        :size 13
-                        :align :center
-                      {} (:type :key-listener) (:key |I) (:action :input-demo)
-                        :path $ [] :demo :keyboard
-                        :data :keyboard-demo
-                  {} (:type :group)
-                    :children $ []
-                      {} (:type :paragraph) (:text "|Calcit Paint paragraph\n中文段落 · explicit newline")
-                        :position $ [] 40 610
-                        :max-width 300
-                        :color $ [] 42 90 92
-                        :size 20
-                        :line-height 28
-                        :align :left
-                      {} (:type :paragraph) (:text "|A constrained paragraph demonstrates Unicode-safe wrapping and ellipsis. 受限宽度段落展示安全换行与省略号。")
-                        :position $ [] 380 610
-                        :max-width 320
-                        :color $ [] 170 76 96
-                        :size 18
-                        :line-height 26
-                        :max-lines 2
-                        :ellipsis "|…"
-                        :align :center
-                      {} (:type :paragraph) (:text "|مرحبا بالعالم · تخطيط النص من اليمين إلى اليسار")
-                        :position $ [] 740 610
-                        :max-width 320
-                        :color $ [] 200 82 90
-                        :size 20
-                        :line-height 30
-                        :max-lines 2
-                        :ellipsis "|…"
-                        :direction :rtl
-                        :align :right
-                  {} (:type :group)
-                    :children $ []
-                      {} (:type :focus-area) (:focus-id |field-a) (:tab-index 0) (:text-input? true)
-                        :position $ [] 180 450
-                        :dx 140
-                        :dy 32
-                        :action :focus-demo
-                        :path $ [] :field-a
-                        :data :ime-field
-                        :fill-color $ [] 215 70 45
-                        :line-color $ [] 215 88 76
-                        :line-width 3
-                        :accessibility $ {} (:id |field-a) (:role :text-input) (:label "|Focus A IME input") (:value @*accessibility-value) (:selection-start @*selection-start) (:selection-end @*selection-end) (:enabled? true) (:focusable? true)
-                      {} (:type :text)
-                        :text $ str "|Focus A · " @*accessibility-value " [" @*selection-start : @*selection-end ]
-                        :position $ [] 180 450
-                        :color $ [] 0 0 98
-                        :size 18
-                        :baseline :middle
-                        :align :center
-                      {} (:type :focus-area) (:focus-id |field-b) (:tab-index 1) (:text-input? true)
-                        :position $ [] 180 525
-                        :dx 140
-                        :dy 32
-                        :action :focus-demo
-                        :path $ [] :field-b
-                        :data :ime-field
-                        :fill-color $ [] 165 65 42
-                        :line-color $ [] 165 88 74
-                        :line-width 3
-                        :accessibility $ {} (:id |field-b) (:role :text-input) (:label "|Focus B Tab input") (:value |) (:enabled? true) (:focusable? true)
-                      {} (:type :text) (:text "|Focus B · Tab / Shift+Tab")
-                        :position $ [] 180 525
-                        :color $ [] 0 0 98
-                        :size 18
-                        :baseline :middle
-                        :align :center
-                      {} (:type :key-listener) (:key |K) (:action :focus-first)
-                        :modifiers $ {} (:shift? true)
-                        :data :shortcut-demo
-                      {} (:type :key-listener) (:key |P) (:action :export-snapshot)
-                        :modifiers $ {} (:shift? true)
-                        :data :offscreen-demo
-                      {} (:type :key-listener) (:key |Enter) (:focus-id |field-a) (:action :field-submit) (:data :focus-scoped-key)
-                      {} (:type :text) (:text "|Click, Tab, IME; Shift+K focuses A; Shift+P exports PNG")
-                        :position $ [] 180 580
-                        :color $ [] 45 18 96
-                        :size 14
-                        :align :center
-                  {} (:type :group)
-                    :children $ []
-                      {} (:type :rectangle)
-                        :position $ [] 310 12
-                        :width 100
-                        :height 58
-                        :fill-color $ [] 220 16 24
-                      {} (:type :image) (:file-path |resources/calcit.png) (:x 310) (:y 12) (:w 100) (:h 58)
-                      {} (:type :text) (:text |fill/nearest)
-                        :position $ [] 360 78
-                        :color $ [] 0 0 96
-                        :size 11
-                        :align :center
-                      {} (:type :rectangle)
-                        :position $ [] 425 12
-                        :width 100
-                        :height 58
-                        :fill-color $ [] 220 16 24
-                      {} (:type :image) (:file-path |resources/calcit.png) (:x 425) (:y 12) (:w 100) (:h 58) (:fit :contain) (:sampling :linear)
-                      {} (:type :text) (:text |contain/linear)
-                        :position $ [] 475 78
-                        :color $ [] 0 0 96
-                        :size 11
-                        :align :center
-                      {} (:type :rectangle)
-                        :position $ [] 540 12
-                        :width 100
-                        :height 58
-                        :fill-color $ [] 220 16 24
-                      {} (:type :image) (:file-path |resources/calcit.png) (:x 540) (:y 12) (:w 100) (:h 58)
-                        :crop $ {} (:x 80) (:y 80) (:w 320) (:h 320)
-                        :fit :cover
-                        :sampling :cubic
-                      {} (:type :text) (:text |cover/cubic)
-                        :position $ [] 590 78
-                        :color $ [] 0 0 96
-                        :size 11
-                        :align :center
-                  {} (:type :group)
-                    :children $ []
-                      {} (:type :circle) (:radius 22)
-                        :position $ []
-                          + 900 $ * 55
-                            sin $ / @*animation-time-ms 420
-                          , 270
-                        :fill-color $ [] 285 82 62
-                        :line-color $ [] 285 95 86
-                        :line-width 3
-                      {} (:type :text)
-                        :text $ if @*animation-active? "|A: pause animation / 暂停动画" "|A: start animation / 开始动画"
-                        :position $ [] 900 315
-                        :color $ [] 285 72 92
-                        :size 15
-                        :align :center
-                      {} (:type :key-listener) (:key |A) (:action :toggle-animation)
-                  {} (:type :group)
-                    :children $ []
-                      {} (:type :text) (:text "|T title · S resize · Q close / 标题 · 尺寸 · 关闭")
-                        :position $ [] 900 215
-                        :color $ [] 195 62 92
-                        :size 13
-                        :align :center
-                      {} (:type :text) (:text @*file-drop-status)
-                        :position $ [] 900 240
-                        :color $ [] 195 62 92
-                        :size 12
-                        :align :center
-                      {} (:type :group)
-                        :children $ []
-                          {} (:type :text) (:text "|Shift+C copy · Shift+V paste / 复制 · 粘贴")
-                            :position $ [] 900 265
-                            :color $ [] 195 62 92
-                            :size 12
-                            :align :center
-                          {} (:type :text) (:text @*clipboard-status)
-                            :position $ [] 900 285
-                            :color $ [] 195 62 92
-                            :size 11
-                            :align :center
-                          {} (:type :key-listener) (:key |C) (:action :clipboard-copy)
-                            :modifiers $ {} (:shift? true)
-                          {} (:type :key-listener) (:key |V) (:action :clipboard-paste)
-                            :modifiers $ {} (:shift? true)
-                      {} (:type :key-listener) (:key |T) (:action :window-title)
-                      {} (:type :key-listener) (:key |S) (:action :window-size)
-                      {} (:type :key-listener) (:key |Q) (:action :window-close)
-                  {} (:type :cached-group) (:cache-key |window-static-badge) (:revision 1)
-                    :position $ [] 900 80
-                    :width 170
-                    :height 110
-                    :children $ []
-                      {} (:type :rounded-rect)
-                        :position $ [] 0 0
-                        :width 170
-                        :height 110
-                        :radius 16
-                        :fill-color $ [] 225 55 28
-                        :line-color $ [] 195 82 68
-                        :line-width 3
-                      {} (:type :circle)
-                        :position $ [] 42 55
-                        :radius 25
-                        :fill-color $ [] 42 90 58
-                      {} (:type :text) (:text |cached)
-                        :position $ [] 80 48
-                        :color $ [] 0 0 96
-                        :size 18
-                        :align :left
-                      {} (:type :text) (:text "|Shift+P → PNG")
-                        :position $ [] 80 72
-                        :color $ [] 0 0 86
-                        :size 13
-                        :align :left
-                  {} (:type :group)
-                    :children $ []
-                      {} (:type :touch-area) (:dx 155) (:dy 30)
-                        :position $ [] 850 455
-                        :action :container-outer
-                        :path $ [] :demo :interactive-container
-                        :data :outer
-                        :cursor :pointer
-                        :fill-color $ [] 198 70 48
-                        :line-color $ [] 198 90 78
-                        :line-width 2
-                        :accessibility $ {} (:id |nested-touch-outer) (:role :button) (:label "|Nested touch container") (:enabled? true)
-                        :children $ []
-                          {} (:type :text) (:text "|Touch container · child wins →")
-                            :position $ [] 770 455
-                            :color $ [] 0 0 98
-                            :size 14
-                            :baseline :middle
-                            :align :center
-                          {} (:type :touch-area) (:dx 45) (:dy 20)
-                            :position $ [] 965 455
-                            :action :container-inner
-                            :path $ [] :demo :interactive-container
-                            :data :inner
-                            :cursor :pointer
-                            :fill-color $ [] 285 78 54
-                            :line-color $ [] 285 92 80
-                            :line-width 2
-                            :accessibility $ {} (:id |nested-touch-inner) (:role :button) (:label "|Nested child action") (:enabled? true)
-                            :children $ []
-                              {} (:type :text) (:text |Inner)
-                                :position $ [] 965 455
-                                :color $ [] 0 0 98
-                                :size 13
-                                :baseline :middle
-                                :align :center
-                      {} (:type :focus-area) (:focus-id |nested-focus-container) (:tab-index 2) (:text-input? false)
-                        :position $ [] 850 525
-                        :dx 155
-                        :dy 26
-                        :action :focus-demo
-                        :path $ [] :demo :interactive-container
-                        :data :focus-container
-                        :fill-color $ [] 138 58 44
-                        :line-color $ [] 138 82 76
-                        :line-width 2
-                        :accessibility $ {} (:id |nested-focus-container) (:role :button) (:label "|Focusable container with child text") (:enabled? true) (:focusable? true)
-                        :children $ []
-                          {} (:type :circle)
-                            :position $ [] 730 525
-                            :radius 9
-                            :fill-color $ [] 52 88 68
-                          {} (:type :text) (:text "|Focus container · Tab then Enter")
-                            :position $ [] 875 525
-                            :color $ [] 0 0 98
-                            :size 15
-                            :baseline :middle
-                            :align :center
-              if start-loop?
-                launch-canvas-typed! (WindowOptions :title "|Calcit Paint · typed events / 强类型事件" :width 1100 :height 760 :min-width 720 :min-height 520 :resizable? true)
-                  fn (event) (handle-paint-event! event)
-                , &unit
-          :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ [] 'Bool
-        'toggle-animation! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn toggle-animation! ()
-              if @*animation-active?
-                do (reset! *animation-active? false) (render! false)
-                do (reset! *animation-active? true) (request-frame!)
+                    {} (:type :focus-area)
+                      :focus-id |nested-focus-container
+                      :tab-index 2
+                      :text-input? false
+                      :position $ [] 850 525
+                      :dx 155
+                      :dy 26
+                      :action :focus-demo
+                      :path $ [] :demo :interactive-container
+                      :data :focus-container
+                      :fill-color $ [] 138 58 44
+                      :line-color $ [] 138 82 76
+                      :line-width 2
+                      :accessibility $ {}
+                        :id |nested-focus-container
+                        :role :button
+                        :label "|Focusable container with child text"
+                        :enabled? true
+                        :focusable? true
+                      :children $ []
+                        {} (:type :circle)
+                          :position $ [] 730 525
+                          :radius 9
+                          :fill-color $ [] 52 88 68
+                        {} (:type :text)
+                          :text "|Focus container · Tab then Enter"
+                          :position $ [] 875 525
+                          :color $ [] 0 0 98
+                          :size 15
+                          :baseline :middle
+                          :align :center
+            if start-loop?
+              launch-canvas-typed!
+                WindowOptions :title "|Calcit Paint · typed events / 强类型事件" :width 1100 :height 760 :min-width 720 :min-height 520 :resizable? true
+                fn (event)
+                  handle-paint-event! event
               , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'Bool
+        'toggle-animation! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn toggle-animation! ()
+            if @*animation-active?
+              do
+                reset! *animation-active? false
+                render! false
+              do
+                reset! *animation-active? true
+                request-frame!
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
         'validate-scene-demo! $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn validate-scene-demo! () $ let
+          :code $ quote $ defn validate-scene-demo! ()
+            let
                 valid-scene $ {} (:type :group)
-                  :children $ []
-                    {} (:type :rounded-rect) (:width 160) (:height 70) (:radius 12)
+                  :children $ [] $ {} (:type :rounded-rect) (:width 160) (:height 70) (:radius 12)
                 valid-diagnostics $ validate-scene valid-scene
-                invalid-diagnostics $ validate-scene
-                  {} (:type :group)
-                    :children $ []
-                      {} $ :type :unknown-demo-shape
-                      {} (:type :group)
-                        :children $ [] true
-              if (empty? valid-diagnostics) (println "|scene validation passed / 场景校验通过")
+                invalid-diagnostics $ validate-scene $ {} (:type :group)
+                  :children $ []
+                    {} $ :type :unknown-demo-shape
+                    {} (:type :group)
+                      :children $ [] true
+              if
+                empty? valid-diagnostics
+                println "|scene validation passed / 场景校验通过"
                 raise $ str "|unexpected diagnostics for valid scene: " valid-diagnostics
               if
                 = 2 $ count invalid-diagnostics
@@ -1841,372 +2006,340 @@
                 raise $ str "|expected two invalid-scene diagnostics, got: " invalid-diagnostics
               , &unit
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'Unit)
-              :args $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
       :ns $ %{} 'NsEntry (:doc |)
-        :code $ quote
-          ns calcit-paint.main $ :require
-            calcit-paint.core :refer $ WindowOptions PaintEvent PaintTarget PaintFileDialogOptions PaintFileDialogFilter PaintFileDialogEvent launch-canvas-typed! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene request-frame! set-window-title! request-window-size! close-window! read-clipboard-text! write-clipboard-text! open-file-dialog! save-file-dialog!
+        :code $ quote $ ns calcit-paint.main
+          :require $ calcit-paint.core :refer $ WindowOptions PaintEvent PaintTarget PaintFileDialogOptions PaintFileDialogFilter PaintFileDialogEvent launch-canvas-typed! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene request-frame! set-window-title! request-window-size! close-window! read-clipboard-text! write-clipboard-text! open-file-dialog! save-file-dialog!
     'calcit-paint.ui $ %{} 'FileEntry
       :defs $ {}
-        'ButtonOptions $ %{} 'CodeEntry (:doc "|Options for an accessible touch button: explicit id/label/geometry plus optional target, enabled state, and colors. / 可访问触摸按钮的选项：显式 id/label/geometry，以及可选 target、enabled 状态与颜色。")
-          :code $ quote
-            defstruct ButtonOptions (:id 'String) (:label 'String) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
-              :action $ :: 'Option 'Dynamic
-              :path $ :: 'Option 'Dynamic
-              :data $ :: 'Option 'Dynamic
-              :enabled? $ :: 'Option 'Bool
-              :fill-color $ :: 'Option (:: 'List 'Number)
-              :text-color $ :: 'Option (:: 'List 'Number)
-              :text-size $ :: 'Option 'Number
+        'ButtonOptions $ %{} 'CodeEntry
+          :doc "|Options for an accessible touch button: explicit id/label/geometry plus optional target, enabled state, and colors. / 可访问触摸按钮的选项：显式 id/label/geometry，以及可选 target、enabled 状态与颜色。"
+          :code $ quote $ defstruct ButtonOptions (:id 'String) (:label 'String) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
+            :action $ :: 'Option 'Dynamic
+            :path $ :: 'Option 'Dynamic
+            :data $ :: 'Option 'Dynamic
+            :enabled? $ :: 'Option 'Bool
+            :fill-color $ :: 'Option $ :: 'List 'Number
+            :text-color $ :: 'Option $ :: 'List 'Number
+            :text-size $ :: 'Option 'Number
           :examples $ []
           :schema $ :: 'StructDef
-        'IconLabelOptions $ %{} 'CodeEntry (:doc "|Options for a decorative icon + label group. / 装饰性 icon + label group 的选项。")
-          :code $ quote
-            defstruct IconLabelOptions (:label 'String) (:x 'Number) (:y 'Number)
-              :gap $ :: 'Option 'Number
-              :icon-radius $ :: 'Option 'Number
-              :icon-color $ :: 'Option (:: 'List 'Number)
-              :text-color $ :: 'Option (:: 'List 'Number)
-              :text-size $ :: 'Option 'Number
-              :baseline $ :: 'Option 'Tag
+        'IconLabelOptions $ %{} 'CodeEntry
+          :doc "|Options for a decorative icon + label group. / 装饰性 icon + label group 的选项。"
+          :code $ quote $ defstruct IconLabelOptions (:label 'String) (:x 'Number) (:y 'Number)
+            :gap $ :: 'Option 'Number
+            :icon-radius $ :: 'Option 'Number
+            :icon-color $ :: 'Option $ :: 'List 'Number
+            :text-color $ :: 'Option $ :: 'List 'Number
+            :text-size $ :: 'Option 'Number
+            :baseline $ :: 'Option 'Tag
           :examples $ []
           :schema $ :: 'StructDef
-        'TextInputOptions $ %{} 'CodeEntry (:doc "|Options for an explicit :text-input focus area with an accessibility value. / 显式 :text-input focus area 的选项，带无障碍 value。")
-          :code $ quote
-            defstruct TextInputOptions (:id 'String) (:label 'String) (:value 'String) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
-              :tab-index $ :: 'Option 'Number
-              :action $ :: 'Option 'Dynamic
-              :path $ :: 'Option 'Dynamic
-              :data $ :: 'Option 'Dynamic
-              :enabled? $ :: 'Option 'Bool
-              :fill-color $ :: 'Option (:: 'List 'Number)
-              :line-color $ :: 'Option (:: 'List 'Number)
-              :line-width $ :: 'Option 'Number
-              :text-color $ :: 'Option (:: 'List 'Number)
-              :text-size $ :: 'Option 'Number
+        'TextInputOptions $ %{} 'CodeEntry
+          :doc "|Options for an explicit :text-input focus area with an accessibility value. / 显式 :text-input focus area 的选项，带无障碍 value。"
+          :code $ quote $ defstruct TextInputOptions (:id 'String) (:label 'String) (:value 'String) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
+            :tab-index $ :: 'Option 'Number
+            :action $ :: 'Option 'Dynamic
+            :path $ :: 'Option 'Dynamic
+            :data $ :: 'Option 'Dynamic
+            :enabled? $ :: 'Option 'Bool
+            :fill-color $ :: 'Option $ :: 'List 'Number
+            :line-color $ :: 'Option $ :: 'List 'Number
+            :line-width $ :: 'Option 'Number
+            :text-color $ :: 'Option $ :: 'List 'Number
+            :text-size $ :: 'Option 'Number
           :examples $ []
           :schema $ :: 'StructDef
-        'TouchContainerOptions $ %{} 'CodeEntry (:doc "|Options for a labelled accessible touch container, including an optional :role, stroke, and nested children. / 带标签的可访问 touch 容器选项，包含可选 :role、描边与嵌套 children。")
-          :code $ quote
-            defstruct TouchContainerOptions (:id 'String) (:label 'String) (:role 'Tag) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
-              :action $ :: 'Option 'Dynamic
-              :path $ :: 'Option 'Dynamic
-              :data $ :: 'Option 'Dynamic
-              :cursor $ :: 'Option 'Tag
-              :enabled? $ :: 'Option 'Bool
-              :fill-color $ :: 'Option (:: 'List 'Number)
-              :line-color $ :: 'Option (:: 'List 'Number)
-              :line-width $ :: 'Option 'Number
-              :children $ :: 'Option (:: 'List 'Dynamic)
-              :text-color $ :: 'Option (:: 'List 'Number)
-              :text-size $ :: 'Option 'Number
+        'TouchContainerOptions $ %{} 'CodeEntry
+          :doc "|Options for a labelled accessible touch container, including an optional :role, stroke, and nested children. / 带标签的可访问 touch 容器选项，包含可选 :role、描边与嵌套 children。"
+          :code $ quote $ defstruct TouchContainerOptions (:id 'String) (:label 'String) (:role 'Tag) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
+            :action $ :: 'Option 'Dynamic
+            :path $ :: 'Option 'Dynamic
+            :data $ :: 'Option 'Dynamic
+            :cursor $ :: 'Option 'Tag
+            :enabled? $ :: 'Option 'Bool
+            :fill-color $ :: 'Option $ :: 'List 'Number
+            :line-color $ :: 'Option $ :: 'List 'Number
+            :line-width $ :: 'Option 'Number
+            :children $ :: 'Option $ :: 'List 'Dynamic
+            :text-color $ :: 'Option $ :: 'List 'Number
+            :text-size $ :: 'Option 'Number
           :examples $ []
           :schema $ :: 'StructDef
-        'button $ %{} 'CodeEntry (:doc "|Build one accessible touch-area button scene map with a centered label; :action/:path/:data stay explicit and are never hidden. / 构建一个带居中标签的可访问 touch-area button scene map；:action/:path/:data 保持显式，不会被隐藏。")
-          :code $ quote
-            defn button (options)
-              hint-fn $ {}
-                :args $ [] 'calcit-paint.ui/ButtonOptions
-                :return $ :: 'Map 'Tag 'Dynamic
-              let
-                  id $ :id options
-                  label $ :label options
-                  x $ :x options
-                  y $ :y options
-                  fill-color $ .unwrap-or (:fill-color options) ([] 205 72 52)
-                  text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
-                  text-size $ .unwrap-or (:text-size options) 14
-                  enabled? $ .unwrap-or (:enabled? options) true
-                  target $ &merge
-                    if
-                      .some? $ :action options
-                      {} $ :action
-                        .unwrap $ :action options
-                      {}
-                    &merge
-                      if
-                        .some? $ :path options
-                        {} $ :path
-                          .unwrap $ :path options
-                        {}
-                      if
-                        .some? $ :data options
-                        {} $ :data
-                          .unwrap $ :data options
-                        {}
-                  base $ {} (:type :touch-area)
-                    :position $ [] x y
-                    :dx $ :dx options
-                    :dy $ :dy options
-                    :cursor :pointer
-                    :fill-color fill-color
-                    :accessibility $ {} (:id id) (:role :button) (:label label) (:enabled? enabled?)
-                    :children $ []
-                      {} (:type :text) (:text label)
-                        :position $ [] x y
-                        :color text-color
-                        :size text-size
-                        :baseline :middle
-                        :align :center
-                &merge base target
-          :examples $ []
-            quote $ let
-                scene $ button (ButtonOptions :id |example-button :label |Save :x 40 :y 40 :dx 120 :dy 36)
-              assert= ([]) (validate-scene scene)
-          :schema $ :: 'Fn
-            {}
+        'button $ %{} 'CodeEntry
+          :doc "|Build one accessible touch-area button scene map with a centered label; :action/:path/:data stay explicit and are never hidden. / 构建一个带居中标签的可访问 touch-area button scene map；:action/:path/:data 保持显式，不会被隐藏。"
+          :code $ quote $ defn button (options)
+            hint-fn $ {}
               :args $ [] 'calcit-paint.ui/ButtonOptions
               :return $ :: 'Map 'Tag 'Dynamic
-          :tests $ []
-            %{} 'TestEntry (:name |builds-valid-button)
-              :code $ quote
-                let
-                    scene $ button (ButtonOptions :id |test-button :label |Test :x 1 :y 2 :dx 10 :dy 20)
-                  assert= ([]) (validate-scene scene)
-                  , &unit
-        'demo-scene $ %{} 'CodeEntry (:doc "|Compose all scene builders into one validated scene that also works with render-to-png!. / 将所有 scene builder 组合为一个可校验、也可直接用于 render-to-png! 的场景。")
-          :code $ quote
-            defn demo-scene ()
-              hint-fn $ {}
-                :args $ []
-                :return $ :: 'Map 'Tag 'Dynamic
-              let
-                  icon $ icon-label
-                    IconLabelOptions :label |Asset :x 70 :y 230 :gap $ %some 34
-                {} (:type :group)
-                  :children $ []
-                    button $ ButtonOptions :id |ui-demo-save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action (%some :save)
-                    touch-container $ TouchContainerOptions :id |ui-demo-card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children
-                      %some $ [] icon
-                    text-input-focus-area $ TextInputOptions :id |ui-demo-editor :label |Editor :value |Draft :x 120 :y 320 :dx 220 :dy 40 :action (%some :edit)
-          :examples $ []
-            quote $ assert= ([])
-              validate-scene $ demo-scene
-          :schema $ :: 'Fn
-            {}
-              :args $ []
-              :return $ :: 'Map 'Tag 'Dynamic
-          :tests $ []
-            %{} 'TestEntry (:name |composes-valid-scene)
-              :code $ quote
-                do
-                  assert= ([])
-                    validate-scene $ demo-scene
-                  , &unit
-        'icon-label $ %{} 'CodeEntry (:doc "|Build a visual-only icon + label group; it adds no interaction or accessibility semantics. / 构建纯视觉 icon + label group；不添加交互或无障碍语义。")
-          :code $ quote
-            defn icon-label (options)
-              hint-fn $ {}
-                :args $ [] 'calcit-paint.ui/IconLabelOptions
-                :return $ :: 'Map 'Tag 'Dynamic
-              let
-                  label $ :label options
-                  x $ :x options
-                  y $ :y options
-                  gap $ .unwrap-or (:gap options) 34
-                  icon-radius $ .unwrap-or (:icon-radius options) 12
-                  icon-color $ .unwrap-or (:icon-color options) ([] 205 72 52)
-                  text-color $ .unwrap-or (:text-color options) ([] 0 0 96)
-                  text-size $ .unwrap-or (:text-size options) 14
-                  baseline $ .unwrap-or (:baseline options) :middle
-                {} (:type :group)
-                  :children $ []
-                    {} (:type :circle)
-                      :position $ [] x y
-                      :radius icon-radius
-                      :fill-color icon-color
-                    {} (:type :text) (:text label)
-                      :position $ [] (+ x gap) y
-                      :color text-color
-                      :size text-size
-                      :baseline baseline
-                      :align :left
-          :examples $ []
-            quote $ let
-                scene $ icon-label (IconLabelOptions :label |Asset :x 40 :y 220)
-              assert= ([]) (validate-scene scene)
-          :schema $ :: 'Fn
-            {}
-              :args $ [] 'calcit-paint.ui/IconLabelOptions
-              :return $ :: 'Map 'Tag 'Dynamic
-          :tests $ []
-            %{} 'TestEntry (:name |builds-visual-group)
-              :code $ quote
-                let
-                    scene $ icon-label (IconLabelOptions :label |Asset :x 1 :y 2)
-                  assert= ([]) (validate-scene scene)
-                  , &unit
-        'text-input-focus-area $ %{} 'CodeEntry (:doc "|Build a focus-area text input with :text-input? true and a focusable :text-input accessibility node. / 构建 :text-input? true 且可聚焦 :text-input 无障碍节点的 focus-area 文本输入。")
-          :code $ quote
-            defn text-input-focus-area (options)
-              hint-fn $ {}
-                :args $ [] 'calcit-paint.ui/TextInputOptions
-                :return $ :: 'Map 'Tag 'Dynamic
-              let
-                  id $ :id options
-                  label $ :label options
-                  value $ :value options
-                  x $ :x options
-                  y $ :y options
-                  tab-index $ .unwrap-or (:tab-index options) 0
-                  fill-color $ .unwrap-or (:fill-color options) ([] 215 70 45)
-                  line-color $ .unwrap-or (:line-color options) ([] 215 88 76)
-                  line-width $ .unwrap-or (:line-width options) 3
-                  text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
-                  text-size $ .unwrap-or (:text-size options) 18
-                  enabled? $ .unwrap-or (:enabled? options) true
-                  target $ &merge
+            let
+                id $ :id options
+                label $ :label options
+                x $ :x options
+                y $ :y options
+                fill-color $ .unwrap-or (:fill-color options) ([] 205 72 52)
+                text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
+                text-size $ .unwrap-or (:text-size options) 14
+                enabled? $ .unwrap-or (:enabled? options) true
+                target $ &merge
+                  if
+                    .some? $ :action options
+                    {} $ :action $ .unwrap (:action options)
+                    {}
+                  &merge
                     if
-                      .some? $ :action options
-                      {} $ :action
-                        .unwrap $ :action options
+                      .some? $ :path options
+                      {} $ :path $ .unwrap (:path options)
                       {}
-                    &merge
-                      if
-                        .some? $ :path options
-                        {} $ :path
-                          .unwrap $ :path options
-                        {}
-                      if
-                        .some? $ :data options
-                        {} $ :data
-                          .unwrap $ :data options
-                        {}
-                  base $ {} (:type :focus-area) (:focus-id id) (:tab-index tab-index) (:text-input? true)
-                    :position $ [] x y
-                    :dx $ :dx options
-                    :dy $ :dy options
-                    :fill-color fill-color
-                    :line-color line-color
-                    :line-width line-width
-                    :accessibility $ {} (:id id) (:role :text-input) (:label label) (:value value) (:enabled? enabled?) (:focusable? true)
-                    :children $ []
-                      {} (:type :text) (:text value)
-                        :position $ [] x y
-                        :color text-color
-                        :size text-size
-                        :baseline :middle
-                        :align :center
-                &merge base target
-          :examples $ []
-            quote $ let
-                scene $ text-input-focus-area (TextInputOptions :id |example-editor :label |Editor :value |Draft :x 40 :y 160 :dx 220 :dy 40)
-              assert= ([]) (validate-scene scene)
-          :schema $ :: 'Fn
-            {}
-              :args $ [] 'calcit-paint.ui/TextInputOptions
-              :return $ :: 'Map 'Tag 'Dynamic
-          :tests $ []
-            %{} 'TestEntry (:name |builds-valid-text-input)
-              :code $ quote
-                let
-                    scene $ text-input-focus-area (TextInputOptions :id |test-editor :label |Editor :value |Draft :x 1 :y 2 :dx 10 :dy 20)
-                  assert= ([]) (validate-scene scene)
-                  , &unit
-        'touch-container $ %{} 'CodeEntry (:doc "|Build a labelled touch-area container; children use scene coordinates and are drawn above the label. / 构建带标签的 touch-area 容器；children 使用场景坐标并绘制在标签之上。")
-          :code $ quote
-            defn touch-container (options)
-              hint-fn $ {}
-                :args $ [] 'calcit-paint.ui/TouchContainerOptions
-                :return $ :: 'Map 'Tag 'Dynamic
-              let
-                  id $ :id options
-                  label $ :label options
-                  role $ :role options
-                  x $ :x options
-                  y $ :y options
-                  fill-color $ .unwrap-or (:fill-color options) ([] 215 70 50)
-                  text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
-                  text-size $ .unwrap-or (:text-size options) 14
-                  enabled? $ .unwrap-or (:enabled? options) true
-                  children $ .unwrap-or (:children options) ([])
-                  label-child $ {} (:type :text) (:text label)
+                    if
+                      .some? $ :data options
+                      {} $ :data $ .unwrap (:data options)
+                      {}
+                base $ {} (:type :touch-area)
+                  :position $ [] x y
+                  :dx $ :dx options
+                  :dy $ :dy options
+                  :cursor :pointer
+                  :fill-color fill-color
+                  :accessibility $ {} (:id id) (:role :button) (:label label) (:enabled? enabled?)
+                  :children $ [] $ {} (:type :text) (:text label)
                     :position $ [] x y
                     :color text-color
                     :size text-size
                     :baseline :middle
                     :align :center
-                  stroke $ if
-                    .some? $ :line-color options
-                    {}
-                      :line-color $ .unwrap (:line-color options)
-                      :line-width $ .unwrap-or (:line-width options) 1
-                    {}
-                  target $ &merge
-                    if
-                      .some? $ :action options
-                      {} $ :action
-                        .unwrap $ :action options
-                      {}
-                    &merge
-                      if
-                        .some? $ :path options
-                        {} $ :path
-                          .unwrap $ :path options
-                        {}
-                      if
-                        .some? $ :data options
-                        {} $ :data
-                          .unwrap $ :data options
-                        {}
-                  base $ {} (:type :touch-area)
-                    :position $ [] x y
-                    :dx $ :dx options
-                    :dy $ :dy options
-                    :cursor $ .unwrap-or (:cursor options) :default
-                    :fill-color fill-color
-                    :accessibility $ {} (:id id) (:role role) (:label label) (:enabled? enabled?)
-                    :children $ &list:concat ([] label-child) children
-                &merge (&merge base stroke) target
-          :examples $ []
-            quote $ let
-                scene $ touch-container (TouchContainerOptions :id |example-card :label |Card :role :button :x 40 :y 100 :dx 160 :dy 48)
+              &merge base target
+          :examples $ [] $ quote
+            let
+                scene $ button $ ButtonOptions :id |example-button :label |Save :x 40 :y 40 :dx 120 :dy 36
               assert= ([]) (validate-scene scene)
-          :schema $ :: 'Fn
-            {}
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'calcit-paint.ui/ButtonOptions
+            :return $ :: 'Map 'Tag 'Dynamic
+          :tests $ [] $ %{} 'TestEntry
+            :name |builds-valid-button
+            :code $ quote $ let
+                scene $ button $ ButtonOptions :id |test-button :label |Test :x 1 :y 2 :dx 10 :dy 20
+              assert= ([]) (validate-scene scene)
+              , &unit
+        'demo-scene $ %{} 'CodeEntry
+          :doc "|Compose all scene builders into one validated scene that also works with render-to-png!. / 将所有 scene builder 组合为一个可校验、也可直接用于 render-to-png! 的场景。"
+          :code $ quote $ defn demo-scene ()
+            hint-fn $ {}
+              :args $ []
+              :return $ :: 'Map 'Tag 'Dynamic
+            let
+                icon $ icon-label $ IconLabelOptions :label |Asset :x 70 :y 230 :gap (%some 34)
+              {} (:type :group)
+                :children $ []
+                  button $ ButtonOptions :id |ui-demo-save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action $ %some :save
+                  touch-container $ TouchContainerOptions :id |ui-demo-card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children $ %some ([] icon)
+                  text-input-focus-area $ TextInputOptions :id |ui-demo-editor :label |Editor :value |Draft :x 120 :y 320 :dx 220 :dy 40 :action $ %some :edit
+          :examples $ [] $ quote
+            assert= ([])
+              validate-scene $ demo-scene
+          :schema $ :: 'Fn $ {}
+            :args $ []
+            :return $ :: 'Map 'Tag 'Dynamic
+          :tests $ [] $ %{} 'TestEntry
+            :name |composes-valid-scene
+            :code $ quote $ do
+              assert= ([])
+                validate-scene $ demo-scene
+              , &unit
+        'icon-label $ %{} 'CodeEntry
+          :doc "|Build a visual-only icon + label group; it adds no interaction or accessibility semantics. / 构建纯视觉 icon + label group；不添加交互或无障碍语义。"
+          :code $ quote $ defn icon-label (options)
+            hint-fn $ {}
+              :args $ [] 'calcit-paint.ui/IconLabelOptions
+              :return $ :: 'Map 'Tag 'Dynamic
+            let
+                label $ :label options
+                x $ :x options
+                y $ :y options
+                gap $ .unwrap-or (:gap options) 34
+                icon-radius $ .unwrap-or (:icon-radius options) 12
+                icon-color $ .unwrap-or (:icon-color options) ([] 205 72 52)
+                text-color $ .unwrap-or (:text-color options) ([] 0 0 96)
+                text-size $ .unwrap-or (:text-size options) 14
+                baseline $ .unwrap-or (:baseline options) :middle
+              {} (:type :group)
+                :children $ []
+                  {} (:type :circle)
+                    :position $ [] x y
+                    :radius icon-radius
+                    :fill-color icon-color
+                  {} (:type :text) (:text label)
+                    :position $ [] (+ x gap) y
+                    :color text-color
+                    :size text-size
+                    :baseline baseline
+                    :align :left
+          :examples $ [] $ quote
+            let
+                scene $ icon-label $ IconLabelOptions :label |Asset :x 40 :y 220
+              assert= ([]) (validate-scene scene)
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'calcit-paint.ui/IconLabelOptions
+            :return $ :: 'Map 'Tag 'Dynamic
+          :tests $ [] $ %{} 'TestEntry
+            :name |builds-visual-group
+            :code $ quote $ let
+                scene $ icon-label $ IconLabelOptions :label |Asset :x 1 :y 2
+              assert= ([]) (validate-scene scene)
+              , &unit
+        'text-input-focus-area $ %{} 'CodeEntry
+          :doc "|Build a focus-area text input with :text-input? true and a focusable :text-input accessibility node. / 构建 :text-input? true 且可聚焦 :text-input 无障碍节点的 focus-area 文本输入。"
+          :code $ quote $ defn text-input-focus-area (options)
+            hint-fn $ {}
+              :args $ [] 'calcit-paint.ui/TextInputOptions
+              :return $ :: 'Map 'Tag 'Dynamic
+            let
+                id $ :id options
+                label $ :label options
+                value $ :value options
+                x $ :x options
+                y $ :y options
+                tab-index $ .unwrap-or (:tab-index options) 0
+                fill-color $ .unwrap-or (:fill-color options) ([] 215 70 45)
+                line-color $ .unwrap-or (:line-color options) ([] 215 88 76)
+                line-width $ .unwrap-or (:line-width options) 3
+                text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
+                text-size $ .unwrap-or (:text-size options) 18
+                enabled? $ .unwrap-or (:enabled? options) true
+                target $ &merge
+                  if
+                    .some? $ :action options
+                    {} $ :action $ .unwrap (:action options)
+                    {}
+                  &merge
+                    if
+                      .some? $ :path options
+                      {} $ :path $ .unwrap (:path options)
+                      {}
+                    if
+                      .some? $ :data options
+                      {} $ :data $ .unwrap (:data options)
+                      {}
+                base $ {} (:type :focus-area) (:focus-id id) (:tab-index tab-index) (:text-input? true)
+                  :position $ [] x y
+                  :dx $ :dx options
+                  :dy $ :dy options
+                  :fill-color fill-color
+                  :line-color line-color
+                  :line-width line-width
+                  :accessibility $ {} (:id id) (:role :text-input) (:label label) (:value value) (:enabled? enabled?) (:focusable? true)
+                  :children $ [] $ {} (:type :text) (:text value)
+                    :position $ [] x y
+                    :color text-color
+                    :size text-size
+                    :baseline :middle
+                    :align :center
+              &merge base target
+          :examples $ [] $ quote
+            let
+                scene $ text-input-focus-area $ TextInputOptions :id |example-editor :label |Editor :value |Draft :x 40 :y 160 :dx 220 :dy 40
+              assert= ([]) (validate-scene scene)
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'calcit-paint.ui/TextInputOptions
+            :return $ :: 'Map 'Tag 'Dynamic
+          :tests $ [] $ %{} 'TestEntry
+            :name |builds-valid-text-input
+            :code $ quote $ let
+                scene $ text-input-focus-area $ TextInputOptions :id |test-editor :label |Editor :value |Draft :x 1 :y 2 :dx 10 :dy 20
+              assert= ([]) (validate-scene scene)
+              , &unit
+        'touch-container $ %{} 'CodeEntry
+          :doc "|Build a labelled touch-area container; children use scene coordinates and are drawn above the label. / 构建带标签的 touch-area 容器；children 使用场景坐标并绘制在标签之上。"
+          :code $ quote $ defn touch-container (options)
+            hint-fn $ {}
               :args $ [] 'calcit-paint.ui/TouchContainerOptions
               :return $ :: 'Map 'Tag 'Dynamic
-          :tests $ []
-            %{} 'TestEntry (:name |builds-valid-container)
-              :code $ quote
-                let
-                    scene $ touch-container (TouchContainerOptions :id |test-card :label |Card :role :button :x 1 :y 2 :dx 10 :dy 20)
-                  assert= ([]) (validate-scene scene)
-                  , &unit
+            let
+                id $ :id options
+                label $ :label options
+                role $ :role options
+                x $ :x options
+                y $ :y options
+                fill-color $ .unwrap-or (:fill-color options) ([] 215 70 50)
+                text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
+                text-size $ .unwrap-or (:text-size options) 14
+                enabled? $ .unwrap-or (:enabled? options) true
+                children $ .unwrap-or (:children options) ([])
+                label-child $ {} (:type :text) (:text label)
+                  :position $ [] x y
+                  :color text-color
+                  :size text-size
+                  :baseline :middle
+                  :align :center
+                stroke $ if
+                  .some? $ :line-color options
+                  {}
+                    :line-color $ .unwrap $ :line-color options
+                    :line-width $ .unwrap-or (:line-width options) 1
+                  {}
+                target $ &merge
+                  if
+                    .some? $ :action options
+                    {} $ :action $ .unwrap (:action options)
+                    {}
+                  &merge
+                    if
+                      .some? $ :path options
+                      {} $ :path $ .unwrap (:path options)
+                      {}
+                    if
+                      .some? $ :data options
+                      {} $ :data $ .unwrap (:data options)
+                      {}
+                base $ {} (:type :touch-area)
+                  :position $ [] x y
+                  :dx $ :dx options
+                  :dy $ :dy options
+                  :cursor $ .unwrap-or (:cursor options) :default
+                  :fill-color fill-color
+                  :accessibility $ {} (:id id) (:role role) (:label label) (:enabled? enabled?)
+                  :children $ &list:concat ([] label-child) children
+              &merge (&merge base stroke) target
+          :examples $ [] $ quote
+            let
+                scene $ touch-container $ TouchContainerOptions :id |example-card :label |Card :role :button :x 40 :y 100 :dx 160 :dy 48
+              assert= ([]) (validate-scene scene)
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'calcit-paint.ui/TouchContainerOptions
+            :return $ :: 'Map 'Tag 'Dynamic
+          :tests $ [] $ %{} 'TestEntry
+            :name |builds-valid-container
+            :code $ quote $ let
+                scene $ touch-container $ TouchContainerOptions :id |test-card :label |Card :role :button :x 1 :y 2 :dx 10 :dy 20
+              assert= ([]) (validate-scene scene)
+              , &unit
       :ns $ %{} 'NsEntry (:doc |)
-        :code $ quote
-          ns calcit-paint.ui $ :require
-            calcit-paint.core :refer $ validate-scene
+        :code $ quote $ ns calcit-paint.ui
+          :require $ calcit-paint.core :refer $ validate-scene
     'calcit-paint.util $ %{} 'FileEntry
       :defs $ {}
         'get-dylib-ext $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defmacro get-dylib-ext () $ case-default (&get-os) |.so (:macos |.dylib) (:windows |.dll)
+          :code $ quote $ defmacro get-dylib-ext ()
+            case-default (&get-os) |.so (:macos |.dylib) (:windows |.dll)
           :examples $ []
-          :schema $ :: 'Macro
-            {}
-              :capabilities $ #{} :platform-read
-              :expansion $ :: 'Expr 'String
-              :required $ []
+          :schema $ :: 'Macro $ {}
+            :capabilities $ #{} :platform-read
+            :expansion $ :: 'Expr 'String
+            :required $ []
         'get-dylib-path $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn get-dylib-path (p)
-              str (or-current-path calcit-dirname) p $ get-dylib-ext
+          :code $ quote $ defn get-dylib-path (p)
+            str (or-current-path calcit-dirname) p $ get-dylib-ext
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'String)
-              :args $ [] 'String
+          :schema $ :: 'Fn $ {} (:return 'String)
+            :args $ [] 'String
         'or-current-path $ %{} 'CodeEntry (:doc |)
-          :code $ quote
-            defn or-current-path (p)
-              if (blank? p) |. p
+          :code $ quote $ defn or-current-path (p)
+            if (blank? p) |. p
           :examples $ []
-          :schema $ :: 'Fn
-            {} (:return 'String)
-              :args $ [] 'String
+          :schema $ :: 'Fn $ {} (:return 'String)
+            :args $ [] 'String
       :ns $ %{} 'NsEntry (:doc |)
-        :code $ quote
-          ns calcit-paint.util $ :require
-            calcit-paint.$meta :refer $ calcit-dirname calcit-filename
+        :code $ quote $ ns calcit-paint.util
+          :require $ calcit-paint.$meta :refer $ calcit-dirname calcit-filename

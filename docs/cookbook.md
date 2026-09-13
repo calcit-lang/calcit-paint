@@ -60,8 +60,7 @@ the remaining cookbook recipes, including explicit-write offscreen export.
 Expected result: an empty diagnostic list. / 预期结果：空诊断列表。
 
 ```cirru.no-run
-ns cookbook.basic $ :require
-  calcit-paint.core :refer $ validate-scene
+ns cookbook.basic $ :require $ calcit-paint.core :refer (validate-scene)
 
 validate-scene $ {} (:type :rectangle)
   :position $ [] 20 20
@@ -76,21 +75,19 @@ Expected result: the circle is visible only inside the rounded card. /
 预期结果：圆形只在圆角卡片内部可见。
 
 ```cirru.no-run
-ns cookbook.clip $ :require
-  calcit-paint.core :refer $ validate-scene
+ns cookbook.clip $ :require $ calcit-paint.core :refer (validate-scene)
 
-validate-scene $ {} (:type :clip-rounded-rect)
+validate-scene $ {}
+  :type :clip-rounded-rect
   :position $ [] 20 20
   :width 180
   :height 96
   :radius 16
-  :children $ []
-    {} (:type :translate) (:x 40) (:y 0)
-      :children $ []
-        {} (:type :circle)
-          :position $ [] 20 68
-          :radius 48
-          :fill-color $ [] 280 74 54
+  :children $ [] $ {} (:type :translate) (:x 40) (:y 0)
+    :children $ [] $ {} (:type :circle)
+      :position $ [] 20 68
+      :radius 48
+      :fill-color $ [] 280 74 54
 ```
 
 ## 3. Touch and focus containers / touch 与 focus 容器
@@ -102,8 +99,7 @@ hits. The container position is hit geometry, not a local origin for children.
 不是 children 的局部原点。
 
 ```cirru.no-run
-ns cookbook.interaction $ :require
-  calcit-paint.core :refer $ validate-scene
+ns cookbook.interaction $ :require $ calcit-paint.core :refer (validate-scene)
 
 validate-scene $ {} (:type :touch-area) (:dx 120) (:dy 28)
   :position $ [] 180 80
@@ -117,12 +113,11 @@ validate-scene $ {} (:type :touch-area) (:dx 120) (:dy 28)
     {} (:type :touch-area) (:dx 32) (:dy 18)
       :position $ [] 260 80
       :action :inner
-      :children $ []
-        {} (:type :text) (:text |Inner)
-          :position $ [] 260 80
-          :color $ [] 0 0 96
-          :size 12
-          :align :center
+      :children $ [] $ {} (:type :text) (:text |Inner)
+        :position $ [] 260 80
+        :color $ [] 0 0 96
+        :size 12
+        :align :center
 ```
 
 Run the retained API gallery and use its nested touch and focus
@@ -142,10 +137,11 @@ reference.
 可运行的穷尽协议参考。
 
 ```cirru.no-run
-ns cookbook.events $ :require
-  calcit-paint.core :refer $ WindowOptions launch-canvas-typed!
+ns cookbook.events $ :require $ calcit-paint.core :refer
+  WindowOptions launch-canvas-typed!
 
-launch-canvas-typed! (WindowOptions :title |Cookbook :width 640 :height 420 :min-width 320 :min-height 240 :resizable? true)
+launch-canvas-typed!
+  WindowOptions :title |Cookbook :width 640 :height 420 :min-width 320 :min-height 240 :resizable? true
   fn (event)
     match event
       (:mouse-down payload)
@@ -166,8 +162,7 @@ be attached to `:focus-area`; a touch-only button must omit it.
 按钮必须省略它。
 
 ```cirru.no-run
-ns cookbook.accessibility $ :require
-  calcit-paint.core :refer $ validate-scene
+ns cookbook.accessibility $ :require $ calcit-paint.core :refer (validate-scene)
 
 validate-scene $ {} (:type :focus-area) (:focus-id |editor) (:text-input? true)
   :position $ [] 200 120
@@ -185,8 +180,7 @@ scene construction before a native-window smoke test.
 它只会写入指定文件。可在原生窗口 smoke 前，用于 CI 中快速覆盖视觉场景构造。
 
 ```cirru.no-run
-ns cookbook.offscreen $ :require
-  calcit-paint.core :refer $ render-to-png!
+ns cookbook.offscreen $ :require $ calcit-paint.core :refer (render-to-png!)
 
 render-to-png! $ {} (:path |cookbook.png) (:width 160) (:height 90)
   :background $ [] 220 22 14
@@ -233,10 +227,16 @@ relative path and choose sampling deliberately.
 自己的显式相对路径，并明确选择 sampling。
 
 ```cirru.no-run
-ns cookbook.asset $ :require
-  calcit-paint.core :refer $ validate-scene
+ns cookbook.asset $ :require $ calcit-paint.core :refer (validate-scene)
 
-validate-scene $ {} (:type :image) (:file-path |resources/calcit.png) (:x 20) (:y 20) (:w 96) (:h 56) (:fit :contain) (:sampling :linear)
+validate-scene $ {} (:type :image)
+  :file-path |resources/calcit.png
+  :x 20
+  :y 20
+  :w 96
+  :h 56
+  :fit :contain
+  :sampling :linear
 ```
 
 ## 9. Structured diagnostic repair / 结构化诊断修复
@@ -249,8 +249,8 @@ invalid scene → diagnostic → repaired scene → empty diagnostics loop.
 definition-attached example 会完整执行“非法 scene → 诊断 → 修复后 scene → 空诊断”闭环。
 
 ```cirru.no-run
-ns cookbook.structured-diagnostic $ :require
-  calcit-paint.core :refer $ validate-scene-structured
+ns cookbook.structured-diagnostic $ :require $ calcit-paint.core :refer
+  validate-scene-structured
 
 validate-scene-structured $ {} (:type :opacity) (:alpha 1.5)
   :children $ []
@@ -280,13 +280,11 @@ ns cookbook.ui-builders $ :require
   calcit-paint.core :refer $ validate-scene
 
 let
-    icon $ icon-label
-      IconLabelOptions :label |Asset :x 70 :y 190 :gap $ %some 34
+    icon $ icon-label $ IconLabelOptions :label |Asset :x 70 :y 190 :gap (%some 34)
     scene $ {} (:type :group)
       :children $ []
-        button $ ButtonOptions :id |save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action (%some :save)
-        touch-container $ TouchContainerOptions :id |card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children
-          %some $ [] icon
+        button $ ButtonOptions :id |save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action $ %some :save
+        touch-container $ TouchContainerOptions :id |card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children $ %some ([] icon)
         text-input-focus-area $ TextInputOptions :id |editor :label |Editor :value |Draft :x 120 :y 260 :dx 220 :dy 40
   validate-scene scene
 ```

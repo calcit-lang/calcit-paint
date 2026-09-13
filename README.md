@@ -106,7 +106,9 @@ calcit-paint.core/request-window-size!
 
 calcit-paint.core/close-window!
 
-calcit-paint.core/launch-canvas! $ fn (event) (println "|rendering to canvas...") (&unit)
+calcit-paint.core/launch-canvas! $ fn (event)
+  println "|rendering to canvas..."
+  &unit
 ```
 
 ### Native FFI / 原生 FFI
@@ -297,11 +299,10 @@ against the existing backdrop. Supported modes are `:src-over`, `:multiply`,
 
 ```cirru
 {} (:type :blend) (:mode :multiply)
-  :children $ []
-    {} (:type :circle)
-      :position $ [] 360 210
-      :radius 48
-      :fill-color $ [] 215 90 60
+  :children $ [] $ {} (:type :circle)
+    :position $ [] 360 210
+    :radius 48
+    :fill-color $ [] 215 90 60
 ```
 
 #### Compositing effects / 合成效果
@@ -328,27 +329,24 @@ HSL(A) `:color`；`blur` 需要非负 `:sigma-x` / `:sigma-y`；`color-filter` �
 ```cirru
 {} (:type :drop-shadow) (:dx 8) (:dy 7) (:sigma-x 3) (:sigma-y 3)
   :color $ [] 230 40 18 0.72
-  :children $ []
-    {} (:type :rounded-rect) (:radius 14)
-      :position $ [] 80 80
-      :width 110
-      :height 58
-      :fill-color $ [] 200 72 52
+  :children $ [] $ {} (:type :rounded-rect) (:radius 14)
+    :position $ [] 80 80
+    :width 110
+    :height 58
+    :fill-color $ [] 200 72 52
 
 {} (:type :blur) (:sigma-x 3) (:sigma-y 3)
-  :children $ []
-    {} (:type :circle)
-      :position $ [] 250 108
-      :radius 30
-      :fill-color $ [] 45 88 60
+  :children $ [] $ {} (:type :circle)
+    :position $ [] 250 108
+    :radius 30
+    :fill-color $ [] 45 88 60
 
 {} (:type :color-filter)
   :matrix $ [] 0.213 0.715 0.072 0 0 0.213 0.715 0.072 0 0 0.213 0.715 0.072 0 0 0 0 0 1 0
-  :children $ []
-    {} (:type :circle)
-      :position $ [] 350 108
-      :radius 30
-      :fill-color $ [] 315 88 62
+  :children $ [] $ {} (:type :circle)
+    :position $ [] 350 108
+    :radius 30
+    :fill-color $ [] 315 88 62
 ```
 
 The retained `calcit-paint.main/render!` API gallery shows all three effects.
@@ -444,7 +442,8 @@ platform-default font is drawn with `:alphabetic` baseline.
 | `:lang` | BCP47 language tag string / BCP47 语言标签字符串 | None / 无 |
 
 ```cirru.no-check
-{} (:type :text) (:text "|Bold italic · top")
+{} (:type :text)
+  :text "|Bold italic · top"
   :position $ [] 530 110
   :color $ [] 42 90 92
   :size 24
@@ -503,7 +502,13 @@ line metrics.
 alphabetic 基线的距离；空字符串宽度为零，仍保留对应字体的行度量。
 
 ```cirru.no-check
-measure-text! $ {} (:text "|Text layout / 文本排版") (:size 24) (:font-family |monospace) (:weight 700) (:style :italic) (:baseline :middle)
+measure-text! $ {}
+  :text "|Text layout / 文本排版"
+  :size 24
+  :font-family |monospace
+  :weight 700
+  :style :italic
+  :baseline :middle
 ```
 
 Run `./build.sh` followed by `calcit ./calcit.cirru` to run the maintained
@@ -525,7 +530,8 @@ ICU/BiDi shaping 的 Skia Paragraph/TextLayout，不会通过切分 UTF-8 字节
 现有单行 `:text` shape 与 `measure-text!` API 保持不变。
 
 ```cirru.no-check
-{} (:type :paragraph) (:text "|Calcit Paint paragraph\n中文段落 · explicit newline")
+{} (:type :paragraph)
+  :text "|Calcit Paint paragraph\n中文段落 · explicit newline"
   :position $ [] 40 610
   :max-width 300
   :color $ [] 42 90 92
@@ -715,16 +721,16 @@ zero width or height produces an empty visual and interactive clip.
 在 Skia 绘制与 Paint 命中测试中一致地收窄；宽或高为零时，视觉与交互 clip 均为空。
 
 ```cirru.no-check
-{} (:type :clip-rounded-rect) (:radius 20)
+{}
+  :type :clip-rounded-rect
+  :radius 20
   :position $ [] 220 80
   :width 260
   :height 160
-  :children $ []
-    {} (:type :translate) (:x 30) (:y 0)
-      :children $ []
-        {} (:type :touch-area) (:dx 65) (:dy 18) (:cursor :pointer)
-          :position $ [] 415 210
-          :action :clipped-target
+  :children $ [] $ {} (:type :translate) (:x 30) (:y 0)
+    :children $ [] $ {} (:type :touch-area) (:dx 65) (:dy 18) (:cursor :pointer)
+      :position $ [] 415 210
+      :action :clipped-target
 ```
 
 Clips are hierarchical intersections and retain the transform active at each
@@ -744,11 +750,10 @@ available because clipping affects pointer hit testing, not logical tab order.
 
 ```cirru
 {} (:type :opacity) (:alpha 0.6)
-  :children $ []
-    {} (:type :circle)
-      :position $ [] 80 80
-      :radius 40
-      :fill-color $ [] 20 80 60
+  :children $ [] $ {} (:type :circle)
+    :position $ [] 80 80
+    :radius 40
+    :fill-color $ [] 20 80 60
 ```
 
 - Touch Area, using `touch-area`
@@ -876,11 +881,10 @@ children 使用周围场景坐标系：交互容器的 `:position` 只定义自�
       :position $ [] 320 160
       :action :inner
       :fill-color $ [] 285 76 54
-      :children $ []
-        {} (:type :text) (:text |Inner)
-          :position $ [] 320 160
-          :color $ [] 0 0 98
-          :align :center
+      :children $ [] $ {} (:type :text) (:text |Inner)
+        :position $ [] 320 160
+        :color $ [] 0 0 98
+        :align :center
 ```
 
 
@@ -919,13 +923,11 @@ ns app.ui $ :require
   calcit-paint.core :refer $ validate-scene
 
 let
-    card-icon $ icon-label
-      IconLabelOptions :label |Asset :x 70 :y 190 :gap $ %some 34
+    card-icon $ icon-label $ IconLabelOptions :label |Asset :x 70 :y 190 :gap (%some 34)
     scene $ {} (:type :group)
       :children $ []
-        button $ ButtonOptions :id |save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action (%some :save)
-        touch-container $ TouchContainerOptions :id |card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children
-          %some $ [] card-icon
+        button $ ButtonOptions :id |save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action $ %some :save
+        touch-container $ TouchContainerOptions :id |card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children $ %some ([] card-icon)
   assert= ([]) (validate-scene scene)
 ```
 
@@ -952,12 +954,11 @@ that exact path is replaced. `:scene` is required (`:shape` is an alias), while
 render-to-png! $ {} (:path |snapshot.png) (:width 320) (:height 180)
   :background $ [] 225 25 12
   :scene $ {} (:type :group)
-    :children $ []
-      {} (:type :rectangle)
-        :position $ [] 20 20
-        :width 120
-        :height 80
-        :fill-color $ [] 205 70 42
+    :children $ [] $ {} (:type :rectangle)
+      :position $ [] 20 20
+      :width 120
+      :height 80
+      :fill-color $ [] 205 70 42
 ```
 
 Width and height are integer logical pixels from `1` through `4096`, with a
@@ -1051,8 +1052,7 @@ parsing prose:
 ```cirru.no-check
 let
     scene $ {} (:type :group)
-      :children $ []
-        {} (:type :rounded-rect) (:width 160) (:height 70) (:radius 12)
+      :children $ [] $ {} (:type :rounded-rect) (:width 160) (:height 70) (:radius 12)
     diagnostics $ validate-scene scene
   println diagnostics
 ```
@@ -1217,10 +1217,9 @@ launch-canvas-typed! options $ fn (event)
     (:frame frame)
       render-frame! $ :timestamp-ms frame
     (:mouse-down pointer)
-      match $ :action
-        :target pointer
-          (:some action) (dispatch! action)
-          (:none) (&unit)
+      match $ :action $ :target pointer
+        (:some action) (dispatch! action)
+        (:none) (&unit)
     (:window-close close)
       println $ :reason close
     _ $ println event
@@ -1471,7 +1470,7 @@ Duplicate focus IDs in one rendered scene are rejected.
   :fill-color $ [] 215 70 45
 
 {} (:type :key-listener) (:key |K) (:action :focus-first)
-  :modifiers $ {} (:shift? true)
+  :modifiers $ {} $ :shift? true
 
 {} (:type :key-listener) (:key |Enter) (:focus-id |field-a) (:action :field-submit)
 ```
@@ -1540,14 +1539,19 @@ Paint 仅在交互式 `touch-area` 或 `focus-area` 显式提供 `:accessibility
   :position $ [] 280 180
   :action :save-document
   :fill-color $ [] 210 76 48
-  :accessibility $ {} (:id |save-document) (:role :button) (:label "|Save document / 保存文档") (:enabled? true)
+  :accessibility $ {} (:id |save-document) (:role :button)
+    :label "|Save document / 保存文档"
+    :enabled? true
 
 {} (:type :focus-area) (:focus-id |editor) (:text-input? true)
   :position $ [] 280 250
   :dx 180
   :dy 28
   :action :edit-document
-  :accessibility $ {} (:id |editor) (:role :text-input) (:label "|Document body / 文档正文") (:value |Draft) (:focusable? true)
+  :accessibility $ {} (:id |editor) (:role :text-input)
+    :label "|Document body / 文档正文"
+    :value |Draft
+    :focusable? true
 ```
 
 The AccessKit tree is rebuilt from the latest rendered scene after redraw, with
