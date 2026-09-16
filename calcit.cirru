@@ -174,7 +174,9 @@
             :args $ []
         'check-resources! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn check-resources! (scene)
-            &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |check_resources scene
+            decode-map-as
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |check_resources scene
+              :: 'List 'PaintSceneDiagnostic
           :examples $ [] $ quote
             let
                 scene $ {} (:type :group)

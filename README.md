@@ -670,14 +670,16 @@ set-resource-root! /path/to/project
 `check-resources!` performs filesystem existence checks for `:image :file-path`
 and single-line `:text :font-file`, after resource-root resolution. It returns
 the same structured `PaintSceneDiagnostic` records as
-`validate-scene-structured`, with code `:missing-resource`, the root-relative
-`:path`, and the offending `:field`. Unlike `validate-scene-structured`, this
+`validate-scene-structured`, with code `:missing-resource`, the structural
+scene `:path`, the offending `:field`, and the resolved filesystem `:actual`.
+Unlike `validate-scene-structured`, this
 call reads the filesystem, so it belongs in explicit validation or tooling
 rather than every frame.
 
 `check-resources!` 会在 resource-root 解析后，对 `:image :file-path` 与单行
 `:text :font-file` 做文件存在性检查，返回与 `validate-scene-structured` 相同的结构化
-`PaintSceneDiagnostic`：code 为 `:missing-resource`，包含根相对 `:path` 与出错的 `:field`。
+`PaintSceneDiagnostic`：code 为 `:missing-resource`，包含 scene 结构路径 `:path`、
+出错的 `:field` 与解析后的文件路径 `:actual`。
 与 `validate-scene-structured` 不同，它会访问文件系统，因此应放在显式校验或工具流程中，
 而不是每帧调用。
 
