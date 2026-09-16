@@ -77,8 +77,7 @@ Expected result: the circle is visible only inside the rounded card. /
 ```cirru.no-run
 ns cookbook.clip $ :require $ calcit-paint.core :refer (validate-scene)
 
-validate-scene $ {}
-  :type :clip-rounded-rect
+validate-scene $ {} (:type :clip-rounded-rect)
   :position $ [] 20 20
   :width 180
   :height 96
@@ -137,8 +136,7 @@ reference.
 可运行的穷尽协议参考。
 
 ```cirru.no-run
-ns cookbook.events $ :require $ calcit-paint.core :refer
-  WindowOptions launch-canvas-typed!
+ns cookbook.events $ :require $ calcit-paint.core :refer (WindowOptions launch-canvas-typed!)
 
 launch-canvas-typed!
   WindowOptions :title |Cookbook :width 640 :height 420 :min-width 320 :min-height 240 :resizable? true
@@ -229,14 +227,7 @@ relative path and choose sampling deliberately.
 ```cirru.no-run
 ns cookbook.asset $ :require $ calcit-paint.core :refer (validate-scene)
 
-validate-scene $ {} (:type :image)
-  :file-path |resources/calcit.png
-  :x 20
-  :y 20
-  :w 96
-  :h 56
-  :fit :contain
-  :sampling :linear
+validate-scene $ {} (:type :image) (:file-path |resources/calcit.png) (:x 20) (:y 20) (:w 96) (:h 56) (:fit :contain) (:sampling :linear)
 ```
 
 ## 9. Structured diagnostic repair / 结构化诊断修复
@@ -249,8 +240,7 @@ invalid scene → diagnostic → repaired scene → empty diagnostics loop.
 definition-attached example 会完整执行“非法 scene → 诊断 → 修复后 scene → 空诊断”闭环。
 
 ```cirru.no-run
-ns cookbook.structured-diagnostic $ :require $ calcit-paint.core :refer
-  validate-scene-structured
+ns cookbook.structured-diagnostic $ :require $ calcit-paint.core :refer (validate-scene-structured)
 
 validate-scene-structured $ {} (:type :opacity) (:alpha 1.5)
   :children $ []
