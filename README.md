@@ -106,9 +106,7 @@ calcit-paint.core/request-window-size!
 
 calcit-paint.core/close-window!
 
-calcit-paint.core/launch-canvas! $ fn (event)
-  println "|rendering to canvas..."
-  &unit
+calcit-paint.core/launch-canvas! $ fn (event) (println "|rendering to canvas...") (&unit)
 ```
 
 ### Native FFI / 原生 FFI
@@ -442,8 +440,7 @@ platform-default font is drawn with `:alphabetic` baseline.
 | `:lang` | BCP47 language tag string / BCP47 语言标签字符串 | None / 无 |
 
 ```cirru.no-check
-{} (:type :text)
-  :text "|Bold italic · top"
+{} (:type :text) (:text "|Bold italic · top")
   :position $ [] 530 110
   :color $ [] 42 90 92
   :size 24
@@ -502,13 +499,7 @@ line metrics.
 alphabetic 基线的距离；空字符串宽度为零，仍保留对应字体的行度量。
 
 ```cirru.no-check
-measure-text! $ {}
-  :text "|Text layout / 文本排版"
-  :size 24
-  :font-family |monospace
-  :weight 700
-  :style :italic
-  :baseline :middle
+measure-text! $ {} (:text "|Text layout / 文本排版") (:size 24) (:font-family |monospace) (:weight 700) (:style :italic) (:baseline :middle)
 ```
 
 Run `./build.sh` followed by `calcit ./calcit.cirru` to run the maintained
@@ -530,8 +521,7 @@ ICU/BiDi shaping 的 Skia Paragraph/TextLayout，不会通过切分 UTF-8 字节
 现有单行 `:text` shape 与 `measure-text!` API 保持不变。
 
 ```cirru.no-check
-{} (:type :paragraph)
-  :text "|Calcit Paint paragraph\n中文段落 · explicit newline"
+{} (:type :paragraph) (:text "|Calcit Paint paragraph\n中文段落 · explicit newline")
   :position $ [] 40 610
   :max-width 300
   :color $ [] 42 90 92
@@ -680,14 +670,16 @@ set-resource-root! /path/to/project
 `check-resources!` performs filesystem existence checks for `:image :file-path`
 and single-line `:text :font-file`, after resource-root resolution. It returns
 the same structured `PaintSceneDiagnostic` records as
-`validate-scene-structured`, with code `:missing-resource`, the root-relative
-`:path`, and the offending `:field`. Unlike `validate-scene-structured`, this
+`validate-scene-structured`, with code `:missing-resource`, the structural
+scene `:path`, the offending `:field`, and the resolved filesystem `:actual`.
+Unlike `validate-scene-structured`, this
 call reads the filesystem, so it belongs in explicit validation or tooling
 rather than every frame.
 
 `check-resources!` 会在 resource-root 解析后，对 `:image :file-path` 与单行
 `:text :font-file` 做文件存在性检查，返回与 `validate-scene-structured` 相同的结构化
-`PaintSceneDiagnostic`：code 为 `:missing-resource`，包含根相对 `:path` 与出错的 `:field`。
+`PaintSceneDiagnostic`：code 为 `:missing-resource`，包含 scene 结构路径 `:path`、
+出错的 `:field` 与解析后的文件路径 `:actual`。
 与 `validate-scene-structured` 不同，它会访问文件系统，因此应放在显式校验或工具流程中，
 而不是每帧调用。
 
@@ -721,9 +713,7 @@ zero width or height produces an empty visual and interactive clip.
 在 Skia 绘制与 Paint 命中测试中一致地收窄；宽或高为零时，视觉与交互 clip 均为空。
 
 ```cirru.no-check
-{}
-  :type :clip-rounded-rect
-  :radius 20
+{} (:type :clip-rounded-rect) (:radius 20)
   :position $ [] 220 80
   :width 260
   :height 160
@@ -1539,19 +1529,14 @@ Paint 仅在交互式 `touch-area` 或 `focus-area` 显式提供 `:accessibility
   :position $ [] 280 180
   :action :save-document
   :fill-color $ [] 210 76 48
-  :accessibility $ {} (:id |save-document) (:role :button)
-    :label "|Save document / 保存文档"
-    :enabled? true
+  :accessibility $ {} (:id |save-document) (:role :button) (:label "|Save document / 保存文档") (:enabled? true)
 
 {} (:type :focus-area) (:focus-id |editor) (:text-input? true)
   :position $ [] 280 250
   :dx 180
   :dy 28
   :action :edit-document
-  :accessibility $ {} (:id |editor) (:role :text-input)
-    :label "|Document body / 文档正文"
-    :value |Draft
-    :focusable? true
+  :accessibility $ {} (:id |editor) (:role :text-input) (:label "|Document body / 文档正文") (:value |Draft) (:focusable? true)
 ```
 
 The AccessKit tree is rebuilt from the latest rendered scene after redraw, with
