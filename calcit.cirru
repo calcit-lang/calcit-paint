@@ -330,16 +330,15 @@
                       (:some value)
                         %some $ fs:path value
                     result $ PaintFileDialogEvent :request-id (:request-id wire) :operation (:operation wire) :status (:status wire) :path path-for-event :error error
-                  do
-                    case-default (:operation result)
-                      raise $ str "|unsupported typed file dialog operation: " $ :operation result
-                      :open &unit
-                      :save &unit
-                    case-default (:status result)
-                      raise $ str "|unsupported typed file dialog status: " $ :status result
-                      :selected $ PaintEvent :file-dialog-result result
-                      :cancelled $ PaintEvent :file-dialog-result result
-                      :failed $ PaintEvent :file-dialog-result result
+                  case-default (:operation result)
+                    raise $ str "|unsupported typed file dialog operation: " $ :operation result
+                    :open &unit
+                    :save &unit
+                  case-default (:status result)
+                    raise $ str "|unsupported typed file dialog status: " $ :status result
+                    :selected $ PaintEvent :file-dialog-result result
+                    :cancelled $ PaintEvent :file-dialog-result result
+                    :failed $ PaintEvent :file-dialog-result result
               (:accessibility-action payload)
                 let
                     action $ decode-map-as payload PaintAccessibilityActionEvent
@@ -859,7 +858,7 @@
                   , &unit
               (:mouse-down _) (regenerate!)
               (:key-down payload)
-                case-default (:name payload) (do &unit)
+                case-default (:name payload) &unit
                   |Space $ toggle-animation!
                   |R $ regenerate!
                   |P $ export-current!
@@ -868,10 +867,10 @@
                 if
                   = (:operation payload) :activate
                   regenerate!
-                  do &unit
+                  , &unit
               (:window-close payload)
                 println $ str "|Creative Art window closed / 创意绘制窗口已关闭: " $ :reason payload
-              _ $ do &unit
+              _ &unit
             , &unit
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Unit)
@@ -935,7 +934,7 @@
             reset! *playing? $ not @*playing?
             reset! *export-status $ if @*playing? "|Animation playing / 动画播放中" "|Animation paused / 动画已暂停"
             render-art!
-            if @*playing? (request-frame!) (do &unit)
+            if @*playing? (request-frame!) &unit
             , &unit
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Unit)
@@ -945,8 +944,7 @@
           :code $ quote $ defn validate-art-scene! ()
             let
                 diagnostics $ validate-scene-structured $ build-art-scene @*seed @*time-ms @*export-status true
-              if (empty? diagnostics) (do &unit)
-                raise $ str |unexpected-creative-art-diagnostics: diagnostics
+              if (empty? diagnostics) &unit $ raise $ str |unexpected-creative-art-diagnostics: diagnostics
             , &unit
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Unit)
@@ -1117,7 +1115,7 @@
               (:file-dialog-result payload) (handle-file-dialog-event! payload)
               (:accessibility-action payload)
                 do
-                  case-default (:operation payload) (do &unit)
+                  case-default (:operation payload) &unit
                     :set-value $ let
                         value $ :value payload
                       match value
@@ -1134,9 +1132,9 @@
                         end $ .unwrap-or (:selection-end payload) @*selection-end
                         replacement $ .unwrap-or (:text payload) |
                         next-value $ str (slice @*accessibility-value 0 start) replacement $ slice @*accessibility-value end (count @*accessibility-value)
-                      do (reset! *accessibility-value next-value)
-                        reset! *selection-start $ + start $ count replacement
-                        reset! *selection-end @*selection-start
+                      reset! *accessibility-value next-value
+                      reset! *selection-start $ + start $ count replacement
+                      reset! *selection-end @*selection-start
                   handle-target-event! (:operation payload) (:target payload) false
                   println $ str "|accessibility " (:operation payload) "|: " $ :id payload
                   render! false
@@ -1499,7 +1497,7 @@
                       :line-width 3
                       :accessibility $ {} (:id |field-a) (:role :text-input) (:label "|Focus A IME input") (:value @*accessibility-value) (:selection-start @*selection-start) (:selection-end @*selection-end) (:enabled? true) (:focusable? true)
                     {} (:type :text)
-                      :text $ str "|Focus A · " @*accessibility-value " [" @*selection-start : @*selection-end ]
+                      :text $ str "|Focus A · " @*accessibility-value "| [" @*selection-start : @*selection-end |]
                       :position $ [] 180 450
                       :color $ [] 0 0 98
                       :size 18
