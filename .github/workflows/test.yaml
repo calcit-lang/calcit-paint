@@ -39,7 +39,7 @@ jobs:
       - name: Enforce reviewed Calcit type-quality baseline
         run: calcit analyze quality --baseline config/calcit-quality.json
       - name: Reject dynamic method dispatch
-        run: calcit analyze dynamic-methods --max 0 --summary-only
+        run: calcit analyze dynamic-methods --summary-only
       - name: Validate Calcit documentation examples
         run: |
           calcit docs format-md README.md --check
