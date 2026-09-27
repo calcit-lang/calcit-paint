@@ -15,3 +15,7 @@ offscreen-demo.png
 creative-art.png
 
 dylibs/*
+dist
+.pnp.cjs
+.pnp.loader.mjs
+.yarn
