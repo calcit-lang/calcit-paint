@@ -128,14 +128,14 @@ EDN transport, and adapters are provided by
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi). Paint
 keeps ownership of the Skia/winit event loop, rendering state, shape decoding,
 and callback scheduling. The module tracks `calcit_native_ffi 0.1.2`; buffer
-and blocking-callback protocols remain at v1. It requires Calcit 0.14.11.
+and blocking-callback protocols remain at v1. It requires Calcit 0.28.0.
 
 C-safe buffer-v1/blocking-callback descriptor、ownership 规则、Cirru EDN
 transport 与 adapter 由
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi) 统一维护。
 Paint 仍负责 Skia/winit 事件循环、绘制状态、shape 解析和回调调度；
 模块当前使用 `calcit_native_ffi 0.1.2`，buffer 与 blocking-callback protocol
-均继续保持 v1；模块要求 Calcit 0.14.11。
+均继续保持 v1；模块要求 Calcit 0.28.0。
 
 A custom mirror may be used for Skia binaries when it is known to be healthy:
 
@@ -902,10 +902,10 @@ Use builders for consistent, accessible geometry and defaults on common
 controls; use a raw scene map when you need full control or a shape the helpers
 do not cover. Optional target fields stay `Option<Dynamic>` in the options
 struct and may be omitted; a present optional struct field is passed as
-`(%some value)`.
+`(Option :some value)`.
 
 需要一致、可访问的常用控件时使用 builder；需要完全控制或 helper 未覆盖的图元时直接写 scene
-map。可选 target 字段在选项 struct 中是 `Option<Dynamic>`，可省略；需要传值时写成 `(%some value)`。
+map。可选 target 字段在选项 struct 中是 `Option<Dynamic>`，可省略；需要传值时写成 `(Option :some value)`。
 
 ```cirru.no-check
 ns app.ui $ :require
@@ -913,11 +913,11 @@ ns app.ui $ :require
   calcit-paint.core :refer $ validate-scene
 
 let
-    card-icon $ icon-label $ IconLabelOptions :label |Asset :x 70 :y 190 :gap (%some 34)
+    card-icon $ icon-label $ IconLabelOptions :label |Asset :x 70 :y 190 :gap (Option :some 34)
     scene $ {} (:type :group)
       :children $ []
-        button $ ButtonOptions :id |save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action $ %some :save
-        touch-container $ TouchContainerOptions :id |card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children $ %some ([] card-icon)
+        button $ ButtonOptions :id |save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action $ Option :some :save
+        touch-container $ TouchContainerOptions :id |card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children $ Option :some ([] card-icon)
   assert= ([]) (validate-scene scene)
 ```
 
@@ -1245,12 +1245,13 @@ other theme tag; compatible callbacks receive the stable map form.
 Public wrappers use explicit `Unit` returns for side effects. Drawing and
 offscreen-export payloads are generic because each operation accepts a
 different EDN shape, while text and paragraph measurement return
-`Map<Tag, Number>`. Six partially typed definitions remain by design:
+`Map<Tag, Number>`. Eleven partially typed definitions remain by design:
 `build-art-scene` returns Paint's heterogeneous recursive scene map; the two
 compatible blocking launch APIs still deliver legacy `nil` and heterogeneous
 event maps; text-option and paragraph-option map values are heterogeneous; and
 `paint-event-from-ffi` accepts the one raw `Map<Tag, Dynamic>` transport value
-before strict nominal decoding. Callback result type `R` remains generic; all
+before strict nominal decoding. The five UI builders also return the same open
+scene maps. Callback result type `R` remains generic; all
 three launch APIs discard that result inside an adapter and
 return the serializable `:handled` tag to the blocking ABI because Calcit
 `Unit` is intentionally not Cirru EDN. These boundaries are tracked by the
@@ -1259,11 +1260,12 @@ values or JS FFI.
 
 公开 wrapper 的副作用返回值均显式声明为 `Unit`。不同绘制与离屏导出操作接收不同 EDN
 shape，因此 payload 使用泛型；单行文字与段落测量结果均明确为 `Map<Tag, Number>`。
-目前仅有六个 partial definition 是有意保留的真实框架边界：`build-art-scene` 返回
+目前十一处 partial definition 是有意保留的真实框架边界：`build-art-scene` 返回
 Paint 的异构递归 scene map；两个兼容的 blocking
 launch API 仍先送达旧行为的 `nil`、随后送达异构事件 map；单行文字与段落选项 map 的
 value 也为异构数据；`paint-event-from-ffi` 则只在严格 nominal 解码前接收一次原始
-`Map<Tag, Dynamic>` transport。callback 返回类型 `R` 仍为泛型；三个 launch API
+`Map<Tag, Dynamic>` transport；五个 UI builder 也返回相同的开放 scene map。
+callback 返回类型 `R` 仍为泛型；三个 launch API
 都在内部 adapter 中丢弃该结果，
 并向 blocking ABI 返回
 可序列化的 `:handled` tag，因为 Calcit `Unit` 本身并不是 Cirru EDN。这些边界由已审核
