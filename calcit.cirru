@@ -3,7 +3,7 @@
   :about "|Machine-generated snapshot. Do not edit directly — changes will be overwritten. Use `calcit query` to inspect and `calcit edit`/`calcit tree` to modify. Run `calcit docs agents --contract` before mutations; use `--full` for first orientation or changed contract digest. Manual edits must follow format and schema conventions, then run `calcit edit format`."
   :package |calcit-paint
   :entries $ {} $ :default
-    {} (:description |) (:init-fn 'calcit-paint.creative-art/main!) (:mode :native) (:reload-fn 'calcit-paint.creative-art/reload!)
+    {} (:description |) (:init-fn 'calcit-paint.creative-art/main!) (:mode :native) (:reload-fn 'calcit-paint.creative-art/reload!) (:target :native)
       :feature-policy $ {}
       :modules $ []
       :type-slots $ {}
@@ -326,9 +326,9 @@
                     path $ :path wire
                     error $ :error wire
                     path-for-event $ match path
-                      (:none) %none
+                      (:none) (Option :none)
                       (:some value)
-                        %some $ fs:path value
+                        Option :some $ fs:path value
                     result $ PaintFileDialogEvent :request-id (:request-id wire) :operation (:operation wire) :status (:status wire) :path path-for-event :error error
                   case-default (:operation result)
                     raise $ str "|unsupported typed file dialog operation: " $ :operation result
@@ -455,7 +455,7 @@
               :code $ quote $ let
                   event $ paint-event-from-ffi $ PaintEventFfi :file-dialog-result
                     {} (:request-id |open-image) (:operation :open) (:status :selected) (:path |/tmp/image.png)
-                      :error $ %none
+                      :error $ Option :none
                 assert-type event 'calcit-paint.core/PaintEvent
                 match event
                   (:file-dialog-result payload)
@@ -500,8 +500,8 @@
                   (:accessibility-action payload)
                     do
                       assert= :set-text-selection $ :operation payload
-                      assert= (%some 1) (:selection-start payload)
-                      assert= (%some 3) (:selection-end payload)
+                      assert= (Option :some 1) (:selection-start payload)
+                      assert= (Option :some 3) (:selection-end payload)
                       , &unit
                   _ $ raise |expected-accessibility-action
             %{} 'TestEntry (:name |decodes-replace-selected-text)
@@ -513,9 +513,9 @@
                   (:accessibility-action payload)
                     do
                       assert= :replace-selected-text $ :operation payload
-                      assert= (%some 1) (:selection-start payload)
-                      assert= (%some 3) (:selection-end payload)
-                      assert= (%some |XY) (:text payload)
+                      assert= (Option :some 1) (:selection-start payload)
+                      assert= (Option :some 3) (:selection-end payload)
+                      assert= (Option :some |XY) (:text payload)
                       , &unit
                   _ $ raise |expected-accessibility-action
         'push-drawing-data! $ %{} 'CodeEntry (:doc |)
@@ -630,16 +630,16 @@
                   assert= "|map or nil" $ :expected nested
                   assert= |true $ :actual nested
                   assert= :invalid-field $ :code effect
-                  assert= (%some |alpha) (:field effect)
+                  assert= (Option :some |alpha) (:field effect)
                   assert= "|between 0 and 1" $ :expected effect
                   assert= |1.5 $ :actual effect
                   assert= :unsupported-value $ :code resource
-                  assert= (%some |sampling) (:field resource)
+                  assert= (Option :some |sampling) (:field resource)
                   assert= |unsupported $ :actual resource
                   assert= :conflicting-fields $ :code legacy
-                  assert= (%some |fill-color) (:field legacy)
+                  assert= (Option :some |fill-color) (:field legacy)
                   assert= :cached-group-interactive $ :code cache
-                  assert= (%some |children) (:field cache)
+                  assert= (Option :some |children) (:field cache)
                 assert= no-diagnostics $ validate-scene-structured repaired-scene
                 , &unit
           :schema $ :: 'Fn $ {}
@@ -1168,16 +1168,16 @@
                 request-frame!
               :toggle-animation $ toggle-animation!
               :window-title $ do (set-window-title! "|Calcit Paint · open dialog / 打开文件")
-                open-file-dialog! $ PaintFileDialogOptions :request-id |demo-open :title (%some "|Open image / 打开图片") :directory
-                  %some $ fs:path |.
-                  , :file-name (%none) :filters $ []
+                open-file-dialog! $ PaintFileDialogOptions :request-id |demo-open :title (Option :some "|Open image / 打开图片") :directory
+                  Option :some $ fs:path |.
+                  , :file-name (Option :none) :filters $ []
                     PaintFileDialogFilter :name |Images :extensions $ [] |png |jpg |jpeg
                 reset! *file-drop-status "|file-dialog:open-pending (T)"
                 request-frame!
               :window-size $ do (request-window-size! 980 700)
-                save-file-dialog! $ PaintFileDialogOptions :request-id |demo-save :title (%some "|Save image / 保存图片") :directory
-                  %some $ fs:path |.
-                  , :file-name (%some |calcit-paint-export.png) :filters $ []
+                save-file-dialog! $ PaintFileDialogOptions :request-id |demo-save :title (Option :some "|Save image / 保存图片") :directory
+                  Option :some $ fs:path |.
+                  , :file-name (Option :some |calcit-paint-export.png) :filters $ []
                     PaintFileDialogFilter :name |PNG :extensions $ [] |png
                 reset! *file-drop-status "|file-dialog:save-pending (S)"
                 request-frame!
@@ -1861,12 +1861,12 @@
               :args $ []
               :return $ :: 'Map 'Tag 'Dynamic
             let
-                icon $ icon-label $ IconLabelOptions :label |Asset :x 70 :y 230 :gap (%some 34)
+                icon $ icon-label $ IconLabelOptions :label |Asset :x 70 :y 230 :gap (Option :some 34)
               {} (:type :group)
                 :children $ []
-                  button $ ButtonOptions :id |ui-demo-save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action $ %some :save
-                  touch-container $ TouchContainerOptions :id |ui-demo-card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children $ %some ([] icon)
-                  text-input-focus-area $ TextInputOptions :id |ui-demo-editor :label |Editor :value |Draft :x 120 :y 320 :dx 220 :dy 40 :action $ %some :edit
+                  button $ ButtonOptions :id |ui-demo-save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action $ Option :some :save
+                  touch-container $ TouchContainerOptions :id |ui-demo-card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children $ Option :some ([] icon)
+                  text-input-focus-area $ TextInputOptions :id |ui-demo-editor :label |Editor :value |Draft :x 120 :y 320 :dx 220 :dy 40 :action $ Option :some :edit
           :examples $ [] $ quote
             assert= ([])
               validate-scene $ demo-scene

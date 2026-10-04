@@ -259,10 +259,10 @@ calcit ./calcit.cirru analyze check-examples --ns calcit-paint.core --def valida
 
 Expected result: an empty diagnostics list. Builders return ordinary scene
 maps, so the composed scene validates and renders like any hand-written one.
-Optional fields are passed as `(%some value)`.
+Optional fields are passed as `(Option :some value)`.
 
 预期结果：空诊断列表。builder 返回普通 scene map，因此组合场景与手写场景一样可校验、可绘制。
-可选字段传值使用 `(%some value)`。
+可选字段传值使用 `(Option :some value)`。
 
 ```cirru.no-run
 ns cookbook.ui-builders $ :require
@@ -270,11 +270,11 @@ ns cookbook.ui-builders $ :require
   calcit-paint.core :refer $ validate-scene
 
 let
-    icon $ icon-label $ IconLabelOptions :label |Asset :x 70 :y 190 :gap (%some 34)
+    icon $ icon-label $ IconLabelOptions :label |Asset :x 70 :y 190 :gap (Option :some 34)
     scene $ {} (:type :group)
       :children $ []
-        button $ ButtonOptions :id |save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action $ %some :save
-        touch-container $ TouchContainerOptions :id |card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children $ %some ([] icon)
+        button $ ButtonOptions :id |save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action $ Option :some :save
+        touch-container $ TouchContainerOptions :id |card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children $ Option :some ([] icon)
         text-input-focus-area $ TextInputOptions :id |editor :label |Editor :value |Draft :x 120 :y 260 :dx 220 :dy 40
   validate-scene scene
 ```
