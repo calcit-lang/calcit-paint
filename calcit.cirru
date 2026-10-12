@@ -243,14 +243,18 @@
             :generics $ [] 'R
         'measure-paragraph! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn measure-paragraph! (data)
-            &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_paragraph data
+            decode-map-as
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_paragraph data
+              :: 'Map 'Tag 'Number
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] $ :: 'Map 'Tag 'Dynamic
             :return $ :: 'Map 'Tag 'Number
         'measure-text! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn measure-text! (data)
-            &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_text data
+            decode-map-as
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_text data
+              :: 'Map 'Tag 'Number
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] $ :: 'Map 'Tag 'Dynamic
@@ -330,20 +334,17 @@
                       (:some value)
                         Option :some $ fs:path value
                     result $ PaintFileDialogEvent :request-id (:request-id wire) :operation (:operation wire) :status (:status wire) :path path-for-event :error error
-                  case-default (:operation result)
-                    raise $ str "|unsupported typed file dialog operation: " $ :operation result
-                    :open &unit
-                    :save &unit
-                  case-default (:status result)
-                    raise $ str "|unsupported typed file dialog status: " $ :status result
+                  match (:operation result) (:open &unit) (:save &unit)
+                    _ $ raise $ str "|unsupported typed file dialog operation: " (:operation result)
+                  match (:status result)
                     :selected $ PaintEvent :file-dialog-result result
                     :cancelled $ PaintEvent :file-dialog-result result
                     :failed $ PaintEvent :file-dialog-result result
+                    _ $ raise $ str "|unsupported typed file dialog status: " (:status result)
               (:accessibility-action payload)
                 let
                     action $ decode-map-as payload PaintAccessibilityActionEvent
-                  case-default (:operation action)
-                    raise $ str "|unsupported typed accessibility operation: " $ :operation action
+                  match (:operation action)
                     :focus $ PaintEvent :accessibility-action action
                     :activate $ PaintEvent :accessibility-action action
                     :set-value $ let
@@ -365,6 +366,7 @@
                         .some? $ :text action
                       PaintEvent :accessibility-action action
                       raise |typed-replace-selected-text-accessibility-action-requires-selection-and-text
+                    _ $ raise $ str "|unsupported typed accessibility operation: " (:operation action)
               (:window-focus) (PaintEvent :window-focus)
               (:window-blur) (PaintEvent :window-blur)
               (:resize payload)
@@ -374,11 +376,11 @@
               (:window-theme payload)
                 let
                     theme-event $ decode-map-as payload PaintWindowThemeEvent
-                  case-default (:theme theme-event)
-                    raise $ str "|unsupported typed system theme: " $ :theme theme-event
+                  match (:theme theme-event)
                     :light $ PaintEvent :window-theme theme-event
                     :dark $ PaintEvent :window-theme theme-event
                     :unknown $ PaintEvent :window-theme theme-event
+                    _ $ raise $ str "|unsupported typed system theme: " (:theme theme-event)
               (:window-title-applied payload)
                 PaintEvent :window-title-applied $ decode-map-as payload PaintWindowTitleEvent
               (:window-size-request payload)
@@ -663,22 +665,22 @@
       :defs $ {}
         '*export-status $ %{} 'CodeEntry
           :doc "|Visible export status for the runnable studio. / 可运行 studio 中显示的导出状态。"
-          :code $ quote $ defatom *export-status "|Press P to export / 按 P 导出"
+          :code $ quote $ defref *export-status "|Press P to export / 按 P 导出"
           :examples $ []
           :schema $ :: 'Ref 'String
         '*playing? $ %{} 'CodeEntry
           :doc "|Whether the one-shot frame chain is active. / one-shot frame 链是否活跃。"
-          :code $ quote $ defatom *playing? false
+          :code $ quote $ defref *playing? false
           :examples $ []
           :schema $ :: 'Ref 'Bool
         '*seed $ %{} 'CodeEntry
           :doc "|Current deterministic artwork seed. / 当前确定性作品 seed。"
-          :code $ quote $ defatom *seed 17
+          :code $ quote $ defref *seed 17
           :examples $ []
           :schema $ :: 'Ref 'Number
         '*time-ms $ %{} 'CodeEntry
           :doc "|Current animation time from the Paint frame clock. / 来自 Paint frame clock 的当前动画时间。"
-          :code $ quote $ defatom *time-ms 0
+          :code $ quote $ defref *time-ms 0
           :examples $ []
           :schema $ :: 'Ref 'Number
         'build-art-scene $ %{} 'CodeEntry
@@ -858,11 +860,12 @@
                   , &unit
               (:mouse-down _) (regenerate!)
               (:key-down payload)
-                case-default (:name payload) &unit
+                match (:name payload)
                   |Space $ toggle-animation!
                   |R $ regenerate!
                   |P $ export-current!
                   |Q $ close-window!
+                  _ &unit
               (:accessibility-action payload)
                 if
                   = (:operation payload) :activate
@@ -955,43 +958,43 @@
     'calcit-paint.main $ %{} 'FileEntry
       :defs $ {}
         '*accessibility-value $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defatom *accessibility-value |Draft
+          :code $ quote $ defref *accessibility-value |Draft
           :examples $ []
           :schema $ :: 'Ref 'String
         '*animation-active? $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defatom *animation-active? false
+          :code $ quote $ defref *animation-active? false
           :examples $ []
           :schema $ :: 'Ref 'Bool
         '*animation-time-ms $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defatom *animation-time-ms 0
+          :code $ quote $ defref *animation-time-ms 0
           :examples $ []
           :schema $ :: 'Ref 'Number
         '*clipboard-status $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defatom *clipboard-status |clipboard:idle
+          :code $ quote $ defref *clipboard-status |clipboard:idle
           :examples $ []
           :schema $ :: 'Ref 'String
         '*file-drop-status $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defatom *file-drop-status |file-drop:idle
+          :code $ quote $ defref *file-drop-status |file-drop:idle
           :examples $ []
           :schema $ :: 'Ref 'String
         '*pointer-dirty? $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defatom *pointer-dirty? false
+          :code $ quote $ defref *pointer-dirty? false
           :examples $ []
           :schema $ :: 'Ref 'Bool
         '*pointer-status $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defatom *pointer-status |hover:idle
+          :code $ quote $ defref *pointer-status |hover:idle
           :examples $ []
           :schema $ :: 'Ref 'String
         '*selection-end $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defatom *selection-end 0
+          :code $ quote $ defref *selection-end 0
           :examples $ []
           :schema $ :: 'Ref 'Number
         '*selection-start $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defatom *selection-start 0
+          :code $ quote $ defref *selection-start 0
           :examples $ []
           :schema $ :: 'Ref 'Number
         '*system-theme $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defatom *system-theme :unknown
+          :code $ quote $ defref *system-theme :unknown
           :examples $ []
           :schema $ :: 'Ref 'Tag
         'export-offscreen-demo! $ %{} 'CodeEntry (:doc |)
@@ -1115,7 +1118,7 @@
               (:file-dialog-result payload) (handle-file-dialog-event! payload)
               (:accessibility-action payload)
                 do
-                  case-default (:operation payload) &unit
+                  match (:operation payload)
                     :set-value $ let
                         value $ :value payload
                       match value
@@ -1135,6 +1138,7 @@
                       reset! *accessibility-value next-value
                       reset! *selection-start $ + start $ count replacement
                       reset! *selection-end @*selection-start
+                    _ &unit
                   handle-target-event! (:operation payload) (:target payload) false
                   println $ str "|accessibility " (:operation payload) "|: " $ :id payload
                   render! false
@@ -1155,9 +1159,8 @@
             :args $ [] 'calcit-paint.core/PaintEvent
         'handle-target-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-target-event! (kind target captured?)
-            case-default
+            match
               .unwrap-or (:action target) :none
-              println |event: kind target
               :focus-first $ focus! |field-a
               :export-snapshot $ export-offscreen-demo!
               :clipboard-copy $ do (write-clipboard-text! "|Calcit Paint clipboard / 剪贴板") (reset! *clipboard-status "|copied: Calcit Paint clipboard / 已复制") (reset! *pointer-dirty? true) (request-frame!)
@@ -1188,6 +1191,7 @@
                   , |captured? captured?
                 reset! *pointer-dirty? true
                 request-frame!
+              _ $ println |event: kind target
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Unit)
             :args $ [] 'Tag 'calcit-paint.core/PaintTarget 'Bool
@@ -2049,7 +2053,7 @@
       :defs $ {}
         'get-dylib-ext $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defmacro get-dylib-ext ()
-            case-default (&get-os) |.so (:macos |.dylib) (:windows |.dll)
+            match (&get-os) (:macos |.dylib) (:windows |.dll) (_ |.so)
           :examples $ []
           :schema $ :: 'Macro $ {}
             :capabilities $ #{} :platform-read
