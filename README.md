@@ -128,14 +128,14 @@ EDN transport, and adapters are provided by
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi). Paint
 keeps ownership of the Skia/winit event loop, rendering state, shape decoding,
 and callback scheduling. The module tracks `calcit_native_ffi 0.1.2`; buffer
-and blocking-callback protocols remain at v1. It requires Calcit 0.28.0.
+and blocking-callback protocols remain at v1. It requires Calcit 0.29.0.
 
 C-safe buffer-v1/blocking-callback descriptor、ownership 规则、Cirru EDN
 transport 与 adapter 由
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi) 统一维护。
 Paint 仍负责 Skia/winit 事件循环、绘制状态、shape 解析和回调调度；
 模块当前使用 `calcit_native_ffi 0.1.2`，buffer 与 blocking-callback protocol
-均继续保持 v1；模块要求 Calcit 0.28.0。
+均继续保持 v1；模块要求 Calcit 0.29.0。
 
 A custom mirror may be used for Skia binaries when it is known to be healthy:
 
@@ -1126,10 +1126,11 @@ launch-canvas-typed!
   fn (event)
     match event
       (:key-down payload)
-        case-default (:name payload) (println payload)
+        match (:name payload)
           |T $ set-window-title! "|Updated title"
           |S $ request-window-size! 980 700
           |Q $ close-window!
+          _ $ println payload
       _ $ println event
 ```
 
@@ -1254,9 +1255,12 @@ before strict nominal decoding. The five UI builders also return the same open
 scene maps. Callback result type `R` remains generic; all
 three launch APIs discard that result inside an adapter and
 return the serializable `:handled` tag to the blocking ABI because Calcit
-`Unit` is intentionally not Cirru EDN. These boundaries are tracked by the
-reviewed quality baseline rather than being misrepresented as homogeneous
-values or JS FFI.
+`Unit` is intentionally not Cirru EDN. These reviewed boundaries retain their
+real open types rather than being misrepresented as homogeneous values or JS
+FFI. CI checks every project namespace with strict preprocessing and uses the
+current weak-types dynamic-method view, without a retired quality baseline.
+Text and paragraph measurement results are decoded at the native adapter
+boundary as `Map<Tag, Number>`, not merely declared as that type.
 
 公开 wrapper 的副作用返回值均显式声明为 `Unit`。不同绘制与离屏导出操作接收不同 EDN
 shape，因此 payload 使用泛型；单行文字与段落测量结果均明确为 `Map<Tag, Number>`。
@@ -1268,8 +1272,11 @@ value 也为异构数据；`paint-event-from-ffi` 则只在严格 nominal 解码
 callback 返回类型 `R` 仍为泛型；三个 launch API
 都在内部 adapter 中丢弃该结果，
 并向 blocking ABI 返回
-可序列化的 `:handled` tag，因为 Calcit `Unit` 本身并不是 Cirru EDN。这些边界由已审核
-的质量基线跟踪，而不会被错误标成同构类型或 JS FFI。
+可序列化的 `:handled` tag，因为 Calcit `Unit` 本身并不是 Cirru EDN。这些已审核边界
+保留真实开放类型，不会被错误标成同构类型或 JS FFI。CI 严格检查全部项目命名空间，
+并使用当前 weak-types dynamic-method 视图，不再保留已弃用的 quality baseline。
+文本与段落测量返回值在 native adapter 边界解码为 `Map<Tag, Number>`，而不只是声明
+这一返回类型。状态构造使用首选 `defref`，分支使用 `match`。
 
 ### Input events / 输入事件
 

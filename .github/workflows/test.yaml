@@ -21,7 +21,7 @@ jobs:
           cache: false
       - uses: calcit-lang/setup-calcit@ca701be5a471759e442aa053cd100720bbe1f09f # v1.5.0
         with:
-          version: "0.28.0"
+          version: "0.29.0"
           tools: calcit,caps
           caps-version: "0.1.1"
       - name: Verify immutable Actions provenance
@@ -43,13 +43,11 @@ jobs:
           git diff --exit-code -- calcit.cirru
           calcit ./calcit.cirru --strict-types --warn-dyn-method --check-only
       - name: Check all public Calcit namespaces
-        run: calcit analyze check-public --ns calcit-paint.core --ns calcit-paint.creative-art --ns calcit-paint.main --ns calcit-paint.ui --ns calcit-paint.util --summary-only
-      - name: Enforce reviewed Calcit type-quality baseline
-        run: calcit analyze quality --baseline config/calcit-quality.json
+        run: calcit --check-only --ns 'calcit-paint.$meta' --ns calcit-paint.core --ns calcit-paint.creative-art --ns calcit-paint.main --ns calcit-paint.ui --ns calcit-paint.util --summary-only
       - name: Reject dynamic method dispatch
         run: |
           set -euo pipefail
-          report="$(calcit analyze dynamic-methods --summary-only --format json)"
+          report="$(calcit analyze weak-types --only dynamic-method --summary-only --format json)"
           printf '%s\n' "$report"
           jq -e '.data.summary.findings == 0' <<< "$report"
       - name: Validate Calcit documentation examples
@@ -59,8 +57,8 @@ jobs:
           calcit docs format-md docs/cookbook.md --check
           calcit docs check-md docs/cookbook.md --failures-only
       - run: cargo fmt --check
-      - run: cargo test
-      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --locked
+      - run: cargo clippy --all-targets --locked -- -D warnings
       - run: ./build.sh
       - name: Check discoverable cookbook examples
         run: |

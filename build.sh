@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-cargo build --release
+cargo build --release --locked
 mkdir -p dylibs
 
 case "$(uname -s)" in
