@@ -21,7 +21,7 @@ jobs:
           cache: false
       - uses: calcit-lang/setup-calcit@ca701be5a471759e442aa053cd100720bbe1f09f # v1.5.0
         with:
-          version: "0.29.0"
+          version: "0.29.3"
           tools: calcit,caps
           caps-version: "0.1.1"
       - name: Verify immutable Actions provenance
@@ -88,7 +88,12 @@ jobs:
           done
       - name: Run text clipboard smoke
         run: |
-          xvfb-run -a calcit ./calcit.cirru eval 'do (&call-dylib-edn |./dylibs/libcalcit_paint.so |write_clipboard_text "|Paint clipboard smoke / 剪贴板") (assert= "|Paint clipboard smoke / 剪贴板" $ &call-dylib-edn |./dylibs/libcalcit_paint.so |read_clipboard_text)'
+          xvfb-run -a calcit ./calcit.cirru eval --dep ./ 'ns clipboard.smoke $ :require
+            calcit-paint.core :refer $ write-clipboard-text! read-clipboard-text!
+
+          do
+            write-clipboard-text! "|Paint clipboard smoke / 剪贴板"
+            assert= "|Paint clipboard smoke / 剪贴板" $ read-clipboard-text!'
       - name: Run offscreen PNG smoke
         run: |
           calcit ./calcit.cirru eval '&call-dylib-edn |./dylibs/libcalcit_paint.so |render_to_png $ {} (:path |offscreen-ci.png) (:width 12) (:height 8) (:scene ({} (:type :rectangle) (:position ([] 2 2)) (:width 6) (:height 4) (:fill-color ([] 0 100 50))))'
