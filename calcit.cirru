@@ -203,7 +203,9 @@
             :args $ [] 'String
         'focused? $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn focused? (id)
-            &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |focused id
+            let
+                value $ &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |focused id
+              if (bool? value) value $ raise "|Paint focused? expected a Bool"
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Bool)
             :args $ [] 'String
@@ -531,7 +533,9 @@
         'read-clipboard-text! $ %{} 'CodeEntry
           :doc "|Read UTF-8 text from the serialized system clipboard. / 从串行系统剪贴板读取 UTF-8 文本。"
           :code $ quote $ defn read-clipboard-text! ()
-            &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |read_clipboard_text
+            let
+                value $ &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |read_clipboard_text
+              if (string? value) value $ raise "|Paint clipboard read expected a String"
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'String)
             :args $ []
@@ -584,7 +588,9 @@
         'validate-scene $ %{} 'CodeEntry
           :doc "|Return compatible path-prefixed diagnostic messages for a scene. Prefer validate-scene-structured for automation. / 返回场景的兼容 path 前缀诊断消息；自动化优先使用 validate-scene-structured。"
           :code $ quote $ defn validate-scene (scene)
-            &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |validate_scene scene
+            decode-map-as
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |validate_scene scene
+              :: 'List 'String
           :examples $ [] $ quote
             validate-scene $ {} (:type :rectangle)
               :position $ [] 20 20
@@ -2032,7 +2038,7 @@
                   :cursor $ .unwrap-or (:cursor options) :default
                   :fill-color fill-color
                   :accessibility $ {} (:id id) (:role role) (:label label) (:enabled? enabled?)
-                  :children $ &list:concat ([] label-child) children
+                  :children $ .prepend children label-child
               &merge (&merge base stroke) target
           :examples $ [] $ quote
             let
