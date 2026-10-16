@@ -194,84 +194,8 @@
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Unit)
             :args $ []
-        'focus! $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn focus! (id)
-            &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |request_focus id
-            , &unit
-          :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'String
-        'focused? $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn focused? (id)
-            let
-                value $ &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |focused id
-              if (bool? value) value $ raise "|Paint focused? expected a Bool"
-          :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Bool)
-            :args $ [] 'String
-        'launch-canvas! $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn launch-canvas! (cb)
-            &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas $ fn (event) (cb event) :handled
-            , &unit
-          :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] $ :: 'Fn
-              {} (:return 'R)
-                :args $ [] 'Dynamic
-            :generics $ [] 'R
-        'launch-canvas-typed! $ %{} 'CodeEntry
-          :doc "|Launch the configured single Paint window with a nominal PaintEvent callback."
-          :code $ quote $ defn launch-canvas-typed! (options cb)
-            &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas_typed options $ fn (event)
-              cb $ paint-event-from-ffi event
-              , :handled
-            , &unit
-          :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'calcit-paint.core/WindowOptions $ :: 'Fn
-              {} (:return 'R)
-                :args $ [] 'calcit-paint.core/PaintEvent
-            :generics $ [] 'R
-        'launch-canvas-with-options! $ %{} 'CodeEntry
-          :doc "|Launch the blocking single-window event loop with nominal startup options."
-          :code $ quote $ defn launch-canvas-with-options! (options cb)
-            &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas_with_options options $ fn (event) (cb event) :handled
-            , &unit
-          :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'calcit-paint.core/WindowOptions $ :: 'Fn
-              {} (:return 'R)
-                :args $ [] 'Dynamic
-            :generics $ [] 'R
-        'measure-paragraph! $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn measure-paragraph! (data)
-            decode-map-as
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_paragraph data
-              :: 'Map 'Tag 'Number
-          :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] $ :: 'Map 'Tag 'Dynamic
-            :return $ :: 'Map 'Tag 'Number
-        'measure-text! $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn measure-text! (data)
-            decode-map-as
-              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_text data
-              :: 'Map 'Tag 'Number
-          :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] $ :: 'Map 'Tag 'Dynamic
-            :return $ :: 'Map 'Tag 'Number
-        'open-file-dialog! $ %{} 'CodeEntry
-          :doc "|Queue one native open-file dialog; its result is delivered later as :file-dialog-result. / 请求一个原生打开文件对话框；结果稍后以 :file-dialog-result 送达。"
-          :code $ quote $ defn open-file-dialog! (options)
-            &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |open_file_dialog options
-            , &unit
-          :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'calcit-paint.core/PaintFileDialogOptions
-        'paint-event-from-ffi $ %{} 'CodeEntry
-          :doc "|Strictly decode one native typed-event envelope into the public nominal protocol, validating system theme tags and accessibility selection payloads. / 严格将原生强类型事件 envelope 解码为公开 nominal 协议，并校验系统主题 tag 与无障碍 selection payload。"
-          :code $ quote $ defn paint-event-from-ffi (event)
+        'decode-paint-event-wire $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn decode-paint-event-wire (event)
             match event
               (:ready) (PaintEvent :ready)
               (:frame payload)
@@ -389,6 +313,90 @@
                 PaintEvent :window-size-request $ decode-map-as payload PaintWindowSizeEvent
               (:window-close payload)
                 PaintEvent :window-close $ decode-map-as payload PaintWindowCloseEvent
+              _ $ raise |unsupported-paint-wire-event
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'calcit-paint.core/PaintEvent)
+            :args $ [] 'Enum
+        'focus! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn focus! (id)
+            &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |request_focus id
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'String
+        'focused? $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn focused? (id)
+            let
+                value $ &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |focused id
+              if (bool? value) value $ raise "|Paint focused? expected a Bool"
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Bool)
+            :args $ [] 'String
+        'launch-canvas! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn launch-canvas! (cb)
+            &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas $ fn (event) (cb event) :handled
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] $ :: 'Fn
+              {} (:return 'R)
+                :args $ [] 'Dynamic
+            :generics $ [] 'R
+        'launch-canvas-typed! $ %{} 'CodeEntry
+          :doc "|Launch the configured single Paint window with a nominal PaintEvent callback."
+          :code $ quote $ defn launch-canvas-typed! (options cb)
+            &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas_typed options $ fn (event)
+              if (enum? event)
+                cb $ decode-paint-event-wire event
+                raise |expected-paint-wire-enum
+              , :handled
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'calcit-paint.core/WindowOptions $ :: 'Fn
+              {} (:return 'R)
+                :args $ [] 'calcit-paint.core/PaintEvent
+            :generics $ [] 'R
+        'launch-canvas-with-options! $ %{} 'CodeEntry
+          :doc "|Launch the blocking single-window event loop with nominal startup options."
+          :code $ quote $ defn launch-canvas-with-options! (options cb)
+            &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas_with_options options $ fn (event) (cb event) :handled
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'calcit-paint.core/WindowOptions $ :: 'Fn
+              {} (:return 'R)
+                :args $ [] 'Dynamic
+            :generics $ [] 'R
+        'measure-paragraph! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn measure-paragraph! (data)
+            decode-map-as
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_paragraph data
+              :: 'Map 'Tag 'Number
+          :examples $ []
+          :schema $ :: 'Fn $ {}
+            :args $ [] $ :: 'Map 'Tag 'Dynamic
+            :return $ :: 'Map 'Tag 'Number
+        'measure-text! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn measure-text! (data)
+            decode-map-as
+              &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_text data
+              :: 'Map 'Tag 'Number
+          :examples $ []
+          :schema $ :: 'Fn $ {}
+            :args $ [] $ :: 'Map 'Tag 'Dynamic
+            :return $ :: 'Map 'Tag 'Number
+        'open-file-dialog! $ %{} 'CodeEntry
+          :doc "|Queue one native open-file dialog; its result is delivered later as :file-dialog-result. / 请求一个原生打开文件对话框；结果稍后以 :file-dialog-result 送达。"
+          :code $ quote $ defn open-file-dialog! (options)
+            &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |open_file_dialog options
+            , &unit
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'calcit-paint.core/PaintFileDialogOptions
+        'paint-event-from-ffi $ %{} 'CodeEntry
+          :doc "|Strictly decode one native typed-event envelope into the public nominal protocol, validating system theme tags and accessibility selection payloads. / 严格将原生强类型事件 envelope 解码为公开 nominal 协议，并校验系统主题 tag 与无障碍 selection payload。"
+          :code $ quote $ defn paint-event-from-ffi (event) (decode-paint-event-wire event)
           :examples $ []
             quote $ let
                 event $ paint-event-from-ffi $ PaintEventFfi :frame
@@ -1160,6 +1168,7 @@
               (:window-title-applied payload) (println |window-title-applied: payload)
               (:window-size-request payload) (println |window-size-request: payload)
               (:window-close payload) (println |window-close: payload)
+            , &unit
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Unit)
             :args $ [] 'calcit-paint.core/PaintEvent

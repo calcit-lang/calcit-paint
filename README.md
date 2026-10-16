@@ -24,6 +24,33 @@ and binary-build constraints. / SVG 有意不作为 `0.1.0` 的公开 scene node
 [SVG 资源调研](docs/svg-assets-research.md)确认 Skia 能绘制本地 SVG，同时记录诊断、
 尺寸、缓存与二进制构建方面仍需解决的约束。
 
+### 工具链升级 / Toolchain update
+
+使用者影响：`0.2.6` 候选固定正式 Calcit `0.30.0`，不再使用 `0.29.3`。
+本次同步工具链、CI 与说明，并在 typed callback 接收处确认真实 wire Enum，
+复用原有分支和 payload decoder，转换为闭合的 `PaintEvent`；示例 handler
+在原副作用之后明确返回 Unit。不修改 Rust renderer、scene 数据、公开 callback
+签名或 buffer/blocking ABI，也不重复发布未变更的 Rust crate。
+仍需构建本机 dylib；不新增 JS/WASM 或前端 COS/CDN 部署。
+
+User impact: the `0.2.6` candidate pins stable Calcit `0.30.0` instead of `0.29.3`.
+This update aligns the toolchain, CI and documentation, checks the actual wire
+Enum at the typed callback boundary, reuses the original branches and payload
+decoders to build a closed `PaintEvent`, and explicitly returns Unit after the example
+handler's effects. The Rust renderer, scene data, public callback signatures and
+buffer/blocking ABI are unchanged.
+The unchanged Rust crate is not republished. Build the native dylib first;
+no JS/WASM backend or frontend COS/CDN deployment is introduced.
+
+测试与 SVG research workflow 从同一 `deps.cirru` 选择 CLI；测试 CI 采用完整 strict
+workflow，保留原公开定义、附带断言、cookbook、离屏 PNG 和 blocking canvas 验收。
+不增加 checker、改写规则、Dynamic/unsafe 或预算豁免。
+
+Both test and SVG research workflows select the CLI from `deps.cirru`. Test CI
+uses complete strict verification and retains public-definition checks, attached
+assertions, cookbook, offscreen PNG and blocking canvas smoke tests. No checker,
+rewrite rule, Dynamic/unsafe boundary or budget waiver is added.
+
 ### Usages / 使用方式
 
 It runs [Calcit](https://github.com/calcit-lang/calcit) and is driven by the canonical `calcit.cirru` Snapshot source.
@@ -128,14 +155,14 @@ EDN transport, and adapters are provided by
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi). Paint
 keeps ownership of the Skia/winit event loop, rendering state, shape decoding,
 and callback scheduling. The module tracks `calcit_native_ffi 0.1.2`; buffer
-and blocking-callback protocols remain at v1. It requires Calcit 0.29.3.
+and blocking-callback protocols remain at v1. It requires Calcit 0.30.0.
 
 C-safe buffer-v1/blocking-callback descriptor、ownership 规则、Cirru EDN
 transport 与 adapter 由
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi) 统一维护。
 Paint 仍负责 Skia/winit 事件循环、绘制状态、shape 解析和回调调度；
 模块当前使用 `calcit_native_ffi 0.1.2`，buffer 与 blocking-callback protocol
-均继续保持 v1；模块要求 Calcit 0.29.3。
+均继续保持 v1；模块要求 Calcit 0.30.0。
 
 A custom mirror may be used for Skia binaries when it is known to be healthy:
 
@@ -1262,6 +1289,14 @@ current weak-types dynamic-method view, without a retired quality baseline.
 Text and paragraph measurement results are decoded at the native adapter
 boundary as `Map<Tag, Number>`, not merely declared as that type.
 
+Native blocking transport currently reconstructs anonymous Enums, even when the
+Rust envelope carries a type name. The launch adapter therefore checks `enum?`
+before the internal wire decoder; it does not cast that value to `PaintEventFfi`.
+The public `paint-event-from-ffi` signature stays nominal and delegates to the
+same decoder, without duplicating the event branches. Unknown wire variants raise.
+This boundary was verified with the real single-frame blocking canvas smoke,
+not only the attached tests that construct nominal events directly.
+
 公开 wrapper 的副作用返回值均显式声明为 `Unit`。不同绘制与离屏导出操作接收不同 EDN
 shape，因此 payload 使用泛型；单行文字与段落测量结果均明确为 `Map<Tag, Number>`。
 目前十一处 partial definition 是有意保留的真实框架边界：`build-art-scene` 返回
@@ -1277,6 +1312,13 @@ callback 返回类型 `R` 仍为泛型；三个 launch API
 并使用当前 weak-types dynamic-method 视图，不再保留已弃用的 quality baseline。
 文本与段落测量返回值在 native adapter 边界解码为 `Map<Tag, Number>`，而不只是声明
 这一返回类型。状态构造使用首选 `defref`，分支使用 `match`。
+
+native blocking transport 当前收到的是匿名 Enum，即使 Rust envelope 带有类型名。
+launch adapter 因而先用 `enum?` 确认实际 wire 容器，再调用内部 wire decoder，
+不把它强转为 `PaintEventFfi`。公开 `paint-event-from-ffi` 保留原 nominal 签名，
+共享同一份原事件分支与 payload decoder；未知 wire variant 明确报错。
+该边界已经由真实单帧 blocking canvas smoke 验证，而不只依赖直接构造 nominal
+事件的附带测试。
 
 ### Input events / 输入事件
 
