@@ -45,13 +45,14 @@ Build the native dylib first;
 no JS/WASM backend or frontend COS/CDN deployment is introduced.
 
 同时退役 #103 中保留的空 Map 合并规避：三个 UI builder 使用公开
-`merge-dynamic` 替代内部 `&merge`，可选字段省略与右侧覆盖顺序不变。
+`merge` 替代内部 `&merge`，可选字段省略与右侧覆盖顺序不变；不再使用同样已弃用的 `merge-dynamic`。
 Option 接收者方法已在此前恢复，本轮不新增改写规则或强转。开放 scene Map
 与旧 callback 的 11 项动态类型仍需人工评审，不能把通过门禁称为零类型债务。
 
-The three UI builders now use public `merge-dynamic` instead of internal
+The three UI builders now use public `merge` instead of internal
 `&merge`, retiring the empty-map workaround tracked in #103. Optional-field
-omission and right-hand overwrite order stay unchanged. The 11 dynamic type
+omission and right-hand overwrite order stay unchanged; deprecated `merge-dynamic`
+is not used. The 11 dynamic type
 findings in open scene maps and legacy callbacks remain review boundaries;
 passing the gates is not a claim of zero type debt.
 
