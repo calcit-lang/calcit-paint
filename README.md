@@ -72,6 +72,10 @@ uses complete strict verification and checks every definition, retaining attache
 assertions, cookbook, offscreen PNG and blocking canvas smoke tests. No checker,
 rewrite rule, Dynamic/unsafe boundary or budget waiver is added.
 
+SVG research 的 Linux/Xvfb CI 显式选择 `svg-research,skia-safe/x11`，与实际 X11
+后端及 rust-skia 0.97.2 已发布的官方预编译组合匹配。默认构建不启用 SVG 或额外 X11
+feature，其他平台配置不变；不把需要完整源码 fallback 的任意 feature 组合称为都有预编译包。
+
 ### Usages / 使用方式
 
 It runs [Calcit](https://github.com/calcit-lang/calcit) and is driven by the canonical `calcit.cirru` Snapshot source.
