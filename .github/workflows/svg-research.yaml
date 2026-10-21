@@ -46,8 +46,8 @@ jobs:
           cat baseline-build-time.txt
       - name: Build and test SVG research feature
         run: |
-          /usr/bin/time -p -o svg-build-time.txt cargo test --release --features svg-research svg_research
-          cargo build --release --features svg-research
+          /usr/bin/time -p -o svg-build-time.txt cargo test --release --features svg-research,skia-safe/x11 svg_research
+          cargo build --release --features svg-research,skia-safe/x11
           stat -c 'SVG-enabled dylib bytes: %s' target/release/libcalcit_paint.so
           cat svg-build-time.txt
       - name: Run SVG overlay in a native window

@@ -26,23 +26,27 @@ and binary-build constraints. / SVG 有意不作为 `0.1.0` 的公开 scene node
 
 ### 工具链升级 / Toolchain update
 
-使用者影响：候选模块 `0.2.7` 配对正式 Calcit `0.30.1`，取代源码中的 alpha 工具链。
-下游须按 `deps.cirru` 同步 CLI，并重新解析原生模块；仍需构建本机 dylib。
-Linux CI 覆盖不等于完整跨平台兼容承诺。已发布的 `0.2.6` tag 保持原内容，
-Rust crate 不重复发布；模块仅发布 annotated Git tag，不创建会触发 crates.io 的 GitHub Release（见 #105）。
-相对 `0.2.6`，本轮纳入此前已合并的公开 Map 合并迁移，不修改 Rust renderer、scene
-数据、公开 callback 签名或 buffer/blocking ABI。原有 typed callback 仍检查
+使用者影响：候选模块 `0.2.8` 继续配对正式 Calcit `0.30.1`。
+下游须重新解析并构建对应 native 源码，不能复用旧版本 dylib。
+本 patch 只收紧显式 `CALCIT_PAINT_SMOKE_ONCE` 模式：必须成功绘制并交换首帧，
+初始化、场景绘制、buffer swap 或 callback 失败均返回错误；未完成成功帧也不再报告成功（#128）。
+未设置该变量的正常交互模式保持既有行为，公开 scene/callback 和 C-safe ABI 不改。
+Linux CI 覆盖不等于完整跨平台兼容承诺。旧 tag 均不移动，Rust crate 元数据同步为 `0.2.8`，
+但不发布 crates.io；模块只发布 annotated Git tag，不创建会触发 crates.io 的 GitHub Release（见 #105）。
+原有 typed callback 仍检查
 真实 wire Enum、使用闭合 `PaintEvent`，handler 在副作用之后返回 Unit。
 仍需构建本机 dylib；不新增 JS/WASM 或前端 COS/CDN 部署。
 
-User impact: candidate module `0.2.7` pairs with stable Calcit `0.30.1`, replacing
-the source's alpha toolchain. Consumers must align their CLI with `deps.cirru`
-and resolve the native module again. Linux CI is not a complete cross-platform
-compatibility claim. The published `0.2.6` tag stays unchanged; the Rust crate is
-not republished. Module releases use annotated Git tags only, not GitHub Releases
-that would trigger crates.io (see #105). Relative to `0.2.6`, this release includes
-the previously merged public Map-merge migration. The Rust renderer, scene
-data, public callback signatures and buffer/blocking ABI remain unchanged, as do
+User impact: candidate module `0.2.8` remains paired with stable Calcit `0.30.1`.
+Rebuild the native library from the matching source; do not reuse an older dylib.
+Only explicit `CALCIT_PAINT_SMOKE_ONCE` mode is tightened: success requires a
+drawn and swapped first frame; initialization, drawing, swap and callback errors
+propagate, and exiting without a successful frame fails (#128). Normal interactive
+behavior without that variable, scene/callback contracts and the C-safe ABI stay
+unchanged. Linux CI is not a complete cross-platform compatibility claim.
+Old tags stay unchanged. Rust crate metadata becomes `0.2.8` without publishing
+to crates.io. Module releases use annotated Git tags only, not GitHub Releases
+that would trigger crates.io (see #105). The renderer and public ABI stay unchanged, as do
 the checked wire Enum, closed `PaintEvent` decoder and Unit-returning handlers.
 Build the native dylib first;
 no JS/WASM backend or frontend COS/CDN deployment is introduced.
@@ -67,6 +71,10 @@ Both test and SVG research workflows select the CLI from `deps.cirru`. Test CI
 uses complete strict verification and checks every definition, retaining attached
 assertions, cookbook, offscreen PNG and blocking canvas smoke tests. No checker,
 rewrite rule, Dynamic/unsafe boundary or budget waiver is added.
+
+SVG research 的 Linux/Xvfb CI 显式选择 `svg-research,skia-safe/x11`，与实际 X11
+后端及 rust-skia 0.97.2 已发布的官方预编译组合匹配。默认构建不启用 SVG 或额外 X11
+feature，其他平台配置不变；不把需要完整源码 fallback 的任意 feature 组合称为都有预编译包。
 
 ### Usages / 使用方式
 
