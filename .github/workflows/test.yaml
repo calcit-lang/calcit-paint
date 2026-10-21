@@ -39,11 +39,14 @@ jobs:
           caps verify --toolchain
       - name: Validate canonical Calcit snapshot
         run: |
+          set -euo pipefail
           calcit ./calcit.cirru edit format
           git diff --exit-code -- calcit.cirru
-          calcit ./calcit.cirru fix --workflow strict --verify --format edn
-      - name: Check all public Calcit namespaces
-        run: calcit --check-only --ns 'calcit-paint.$meta' --ns calcit-paint.core --ns calcit-paint.creative-art --ns calcit-paint.main --ns calcit-paint.ui --ns calcit-paint.util --summary-only
+          report="$(calcit ./calcit.cirru fix --workflow strict --verify --format json)"
+          printf '%s\n' "$report"
+          jq -e '.data.workflow.status == "passed" and (.diagnostics | length) == 0' <<< "$report"
+      - name: Check all Calcit definitions
+        run: calcit --check-only --all-defs --summary-only
       - name: Reject dynamic method dispatch
         run: |
           set -euo pipefail

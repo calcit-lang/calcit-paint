@@ -26,19 +26,22 @@ and binary-build constraints. / SVG 有意不作为 `0.1.0` 的公开 scene node
 
 ### 工具链升级 / Toolchain update
 
-使用者影响：本轮源码声明固定已发布的 Calcit `0.30.1-alpha.5`，不再使用 `0.30.0`。
-这是预发布工具链验收，不是正式 `0.30.1` 的完整跨平台兼容声明；正式发行当前
-尚未包含 macOS 二进制。已发布的模块 `0.2.6` tag 保持原内容，不重复发布
-未变更的 Rust crate。本次同步工具链并恢复公开的 Map 合并写法，不修改 Rust renderer、scene
+使用者影响：候选模块 `0.2.7` 配对正式 Calcit `0.30.1`，取代源码中的 alpha 工具链。
+下游须按 `deps.cirru` 同步 CLI，并重新解析原生模块；仍需构建本机 dylib。
+Linux CI 覆盖不等于完整跨平台兼容承诺。已发布的 `0.2.6` tag 保持原内容，
+Rust crate 不重复发布；模块仅发布 annotated Git tag，不创建会触发 crates.io 的 GitHub Release（见 #105）。
+相对 `0.2.6`，本轮纳入此前已合并的公开 Map 合并迁移，不修改 Rust renderer、scene
 数据、公开 callback 签名或 buffer/blocking ABI。原有 typed callback 仍检查
 真实 wire Enum、使用闭合 `PaintEvent`，handler 在副作用之后返回 Unit。
 仍需构建本机 dylib；不新增 JS/WASM 或前端 COS/CDN 部署。
 
-User impact: current source pins published Calcit `0.30.1-alpha.5` instead of `0.30.0`.
-This is prerelease validation, not a complete cross-platform compatibility claim
-for stable `0.30.1`, whose current assets do not include a macOS binary.
-The published module `0.2.6` tag stays unchanged; the Rust crate is not republished.
-The toolchain and public Map-merge syntax are updated. The Rust renderer, scene
+User impact: candidate module `0.2.7` pairs with stable Calcit `0.30.1`, replacing
+the source's alpha toolchain. Consumers must align their CLI with `deps.cirru`
+and resolve the native module again. Linux CI is not a complete cross-platform
+compatibility claim. The published `0.2.6` tag stays unchanged; the Rust crate is
+not republished. Module releases use annotated Git tags only, not GitHub Releases
+that would trigger crates.io (see #105). Relative to `0.2.6`, this release includes
+the previously merged public Map-merge migration. The Rust renderer, scene
 data, public callback signatures and buffer/blocking ABI remain unchanged, as do
 the checked wire Enum, closed `PaintEvent` decoder and Unit-returning handlers.
 Build the native dylib first;
@@ -57,11 +60,11 @@ findings in open scene maps and legacy callbacks remain review boundaries;
 passing the gates is not a claim of zero type debt.
 
 测试与 SVG research workflow 从同一 `deps.cirru` 选择 CLI；测试 CI 采用完整 strict
-workflow，保留原公开定义、附带断言、cookbook、离屏 PNG 和 blocking canvas 验收。
+workflow，检查全部定义并保留原附带断言、cookbook、离屏 PNG 和 blocking canvas 验收。
 不增加 checker、改写规则、Dynamic/unsafe 或预算豁免。
 
 Both test and SVG research workflows select the CLI from `deps.cirru`. Test CI
-uses complete strict verification and retains public-definition checks, attached
+uses complete strict verification and checks every definition, retaining attached
 assertions, cookbook, offscreen PNG and blocking canvas smoke tests. No checker,
 rewrite rule, Dynamic/unsafe boundary or budget waiver is added.
 
@@ -171,7 +174,7 @@ keeps ownership of the Skia/winit event loop, rendering state, shape decoding,
 and callback scheduling. The module tracks `calcit_native_ffi 0.1.2`; buffer
 and blocking-callback protocols remain at v1. The published `0.2.6` module
 declares Calcit `0.30.0`; current source follows `deps.cirru`
-(`0.30.1-alpha.5` in this migration).
+(`0.30.1` in this migration).
 
 C-safe buffer-v1/blocking-callback descriptor、ownership 规则、Cirru EDN
 transport 与 adapter 由
@@ -179,7 +182,7 @@ transport 与 adapter 由
 Paint 仍负责 Skia/winit 事件循环、绘制状态、shape 解析和回调调度；
 模块当前使用 `calcit_native_ffi 0.1.2`，buffer 与 blocking-callback protocol
 均继续保持 v1；已发布的 `0.2.6` 模块声明 Calcit `0.30.0`，当前源码以
-`deps.cirru` 为准（本轮为 `0.30.1-alpha.5`）。
+`deps.cirru` 为准（本轮为正式 `0.30.1`）。
 
 A custom mirror may be used for Skia binaries when it is known to be healthy:
 
