@@ -46,7 +46,7 @@ jobs:
           printf '%s\n' "$report"
           jq -e '.data.workflow.status == "passed" and (.diagnostics | length) == 0' <<< "$report"
       - name: Check all Calcit definitions
-        run: calcit --check-only --all-defs --summary-only
+        run: calcit --check-only --all-defs
       - name: Reject dynamic method dispatch
         run: |
           set -euo pipefail
