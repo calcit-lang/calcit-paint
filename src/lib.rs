@@ -135,6 +135,7 @@ struct PaintApplication<F> {
   first_paint: bool,
   initial_theme_dispatched: bool,
   smoke_once: bool,
+  smoke_result: Option<Result<(), String>>,
   ime_allowed: bool,
   cursor_icon: CursorIcon,
   occluded: bool,
@@ -161,6 +162,9 @@ where
     while let Some(event) = events.pop_front() {
       if let Err(error) = (self.handler)(vec![event]) {
         eprintln!("error in handling paint event: {error}");
+        if self.smoke_once && !matches!(self.smoke_result.as_ref(), Some(Err(_))) {
+          self.smoke_result = Some(Err(format!("paint smoke callback failed: {error}")));
+        }
       }
       match take_focus_events() {
         Ok(pending) => events.extend(pending),
@@ -438,9 +442,21 @@ where
         canvas.scale((scale_factor, scale_factor));
         if let Err(error) = renderer::draw_page(canvas, messages, true) {
           eprintln!("failed drawing paint scene: {error}");
+          if self.smoke_once {
+            self.smoke_result = Some(Err(format!("paint smoke drawing failed: {error}")));
+            self.request_exit(event_loop, "render-error");
+            return;
+          }
         }
       }
-      Err(error) => eprintln!("failed extracting paint messages: {error}"),
+      Err(error) => {
+        eprintln!("failed extracting paint messages: {error}");
+        if self.smoke_once {
+          self.smoke_result = Some(Err(error));
+          self.request_exit(event_loop, "render-error");
+          return;
+        }
+      }
     }
 
     let pointer_events = handlers::handle_pointer_scene_change(&self.input);
@@ -468,8 +484,14 @@ where
     let env = self.env();
     if let Err(error) = env.gl_surface.swap_buffers(&env.gl_context) {
       eprintln!("failed to swap OpenGL buffers: {error}");
+      if self.smoke_once {
+        self.smoke_result = Some(Err(format!("paint smoke buffer swap failed: {error}")));
+      }
       self.request_exit(event_loop, "render-error");
     } else if self.smoke_once {
+      if self.smoke_result.is_none() {
+        self.smoke_result = Some(Ok(()));
+      }
       self.request_exit(event_loop, "smoke");
     }
   }
@@ -493,7 +515,12 @@ where
         }
         Err(error) => {
           eprintln!("failed initializing paint window in resumed: {error}");
-          self.request_exit(event_loop, "startup-error");
+          if self.smoke_once {
+            self.smoke_result = Some(Err(format!("paint smoke initialization failed: {error}")));
+            event_loop.exit();
+          } else {
+            self.request_exit(event_loop, "startup-error");
+          }
           return;
         }
       }
@@ -818,6 +845,14 @@ fn create_env(event_loop: &ActiveEventLoop, options: window_lifecycle::WindowSta
   Ok(env)
 }
 
+fn finish_smoke_run(smoke_once: bool, result: Option<Result<(), String>>) -> Result<(), String> {
+  if smoke_once {
+    result.unwrap_or_else(|| Err("paint smoke exited before a successful frame".to_owned()))
+  } else {
+    Ok(())
+  }
+}
+
 fn launch_canvas_impl(
   options: window_lifecycle::WindowStartupOptions,
   handler: impl Fn(Vec<Edn>) -> Result<Edn, String>,
@@ -839,6 +874,7 @@ fn launch_canvas_impl(
     first_paint: true,
     initial_theme_dispatched: false,
     smoke_once: std::env::var_os("CALCIT_PAINT_SMOKE_ONCE").is_some(),
+    smoke_result: None,
     ime_allowed: false,
     cursor_icon: CursorIcon::default(),
     occluded: false,
@@ -852,6 +888,7 @@ fn launch_canvas_impl(
   event_loop
     .run_app(&mut application)
     .map_err(|error| format!("paint event loop failed: {error}"))?;
+  finish_smoke_run(application.smoke_once, application.smoke_result)?;
   Ok(Edn::Nil)
 }
 
@@ -1192,6 +1229,19 @@ fn create_surface(
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn smoke_requires_a_successful_frame_and_preserves_failures() {
+    assert_eq!(finish_smoke_run(false, None), Ok(()));
+    assert_eq!(finish_smoke_run(true, Some(Ok(()))), Ok(()));
+    assert!(finish_smoke_run(true, None)
+      .unwrap_err()
+      .contains("before a successful frame"));
+    assert_eq!(
+      finish_smoke_run(true, Some(Err("draw failed".to_owned()))),
+      Err("draw failed".to_owned())
+    );
+  }
 
   #[test]
   fn drawing_queue_validates_and_drains_commands() {
