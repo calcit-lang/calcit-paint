@@ -158,7 +158,7 @@ calcit-paint.core/request-window-size!
 
 calcit-paint.core/close-window!
 
-calcit-paint.core/launch-canvas! $ fn (event) (println "|rendering to canvas...") (&unit)
+calcit-paint.core/launch-canvas! $ fn (event) (println "|rendering to canvas...") &unit
 ```
 
 ### Native FFI / 原生 FFI
@@ -1265,7 +1265,7 @@ launch-canvas-typed! options $ fn (event)
     (:mouse-down pointer)
       match $ :action $ :target pointer
         (:some action) (dispatch! action)
-        (:none) (&unit)
+        (:none) &unit
     (:window-close close)
       println $ :reason close
     _ $ println event
