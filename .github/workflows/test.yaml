@@ -119,7 +119,7 @@ jobs:
 
           do
             push-drawing-data! |render-canvas! $ {} (:type :smoke-invalid-shape)
-            launch-canvas! $ fn (event) (&unit)' 2>&1)"
+            launch-canvas! $ fn (event) &unit' 2>&1)"
           status=$?
           set -e
           printf '%s\n' "$output"
