@@ -44,7 +44,7 @@ jobs:
           git diff --exit-code -- calcit.cirru
           report="$(calcit ./calcit.cirru fix --workflow strict --verify --format json)"
           printf '%s\n' "$report"
-          jq -e '.data.workflow.status == "passed" and (.diagnostics | length) == 0' <<< "$report"
+          jq -e '.data.workflow.status? == "passed" and .diagnostics? == []' <<< "$report"
       - name: Check all Calcit definitions
         run: calcit --check-only --all-defs
       - name: Reject dynamic method dispatch
