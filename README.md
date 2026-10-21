@@ -26,21 +26,35 @@ and binary-build constraints. / SVG 有意不作为 `0.1.0` 的公开 scene node
 
 ### 工具链升级 / Toolchain update
 
-使用者影响：`0.2.6` 候选固定正式 Calcit `0.30.0`，不再使用 `0.29.3`。
-本次同步工具链、CI 与说明，并在 typed callback 接收处确认真实 wire Enum，
-复用原有分支和 payload decoder，转换为闭合的 `PaintEvent`；示例 handler
-在原副作用之后明确返回 Unit。不修改 Rust renderer、scene 数据、公开 callback
-签名或 buffer/blocking ABI，也不重复发布未变更的 Rust crate。
+使用者影响：本轮源码声明固定已发布的 Calcit `0.30.1-alpha.5`，不再使用 `0.30.0`。
+这是预发布工具链验收，不是正式 `0.30.1` 的完整跨平台兼容声明；正式发行当前
+尚未包含 macOS 二进制。已发布的模块 `0.2.6` tag 保持原内容，不重复发布
+未变更的 Rust crate。本次同步工具链并恢复公开的 Map 合并写法，不修改 Rust renderer、scene
+数据、公开 callback 签名或 buffer/blocking ABI。原有 typed callback 仍检查
+真实 wire Enum、使用闭合 `PaintEvent`，handler 在副作用之后返回 Unit。
 仍需构建本机 dylib；不新增 JS/WASM 或前端 COS/CDN 部署。
 
-User impact: the `0.2.6` candidate pins stable Calcit `0.30.0` instead of `0.29.3`.
-This update aligns the toolchain, CI and documentation, checks the actual wire
-Enum at the typed callback boundary, reuses the original branches and payload
-decoders to build a closed `PaintEvent`, and explicitly returns Unit after the example
-handler's effects. The Rust renderer, scene data, public callback signatures and
-buffer/blocking ABI are unchanged.
-The unchanged Rust crate is not republished. Build the native dylib first;
+User impact: current source pins published Calcit `0.30.1-alpha.5` instead of `0.30.0`.
+This is prerelease validation, not a complete cross-platform compatibility claim
+for stable `0.30.1`, whose current assets do not include a macOS binary.
+The published module `0.2.6` tag stays unchanged; the Rust crate is not republished.
+The toolchain and public Map-merge syntax are updated. The Rust renderer, scene
+data, public callback signatures and buffer/blocking ABI remain unchanged, as do
+the checked wire Enum, closed `PaintEvent` decoder and Unit-returning handlers.
+Build the native dylib first;
 no JS/WASM backend or frontend COS/CDN deployment is introduced.
+
+同时退役 #103 中保留的空 Map 合并规避：三个 UI builder 使用公开
+`merge` 替代内部 `&merge`，可选字段省略与右侧覆盖顺序不变；不再使用同样已弃用的 `merge-dynamic`。
+Option 接收者方法已在此前恢复，本轮不新增改写规则或强转。开放 scene Map
+与旧 callback 的 11 项动态类型仍需人工评审，不能把通过门禁称为零类型债务。
+
+The three UI builders now use public `merge` instead of internal
+`&merge`, retiring the empty-map workaround tracked in #103. Optional-field
+omission and right-hand overwrite order stay unchanged; deprecated `merge-dynamic`
+is not used. The 11 dynamic type
+findings in open scene maps and legacy callbacks remain review boundaries;
+passing the gates is not a claim of zero type debt.
 
 测试与 SVG research workflow 从同一 `deps.cirru` 选择 CLI；测试 CI 采用完整 strict
 workflow，保留原公开定义、附带断言、cookbook、离屏 PNG 和 blocking canvas 验收。
@@ -155,14 +169,17 @@ EDN transport, and adapters are provided by
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi). Paint
 keeps ownership of the Skia/winit event loop, rendering state, shape decoding,
 and callback scheduling. The module tracks `calcit_native_ffi 0.1.2`; buffer
-and blocking-callback protocols remain at v1. It requires Calcit 0.30.0.
+and blocking-callback protocols remain at v1. The published `0.2.6` module
+declares Calcit `0.30.0`; current source follows `deps.cirru`
+(`0.30.1-alpha.5` in this migration).
 
 C-safe buffer-v1/blocking-callback descriptor、ownership 规则、Cirru EDN
 transport 与 adapter 由
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi) 统一维护。
 Paint 仍负责 Skia/winit 事件循环、绘制状态、shape 解析和回调调度；
 模块当前使用 `calcit_native_ffi 0.1.2`，buffer 与 blocking-callback protocol
-均继续保持 v1；模块要求 Calcit 0.30.0。
+均继续保持 v1；已发布的 `0.2.6` 模块声明 Calcit `0.30.0`，当前源码以
+`deps.cirru` 为准（本轮为 `0.30.1-alpha.5`）。
 
 A custom mirror may be used for Skia binaries when it is known to be healthy:
 

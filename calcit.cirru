@@ -1833,12 +1833,12 @@
                 text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
                 text-size $ .unwrap-or (:text-size options) 14
                 enabled? $ .unwrap-or (:enabled? options) true
-                target $ &merge
+                target $ merge
                   if
                     .some? $ :action options
                     {} $ :action $ .unwrap (:action options)
                     {}
-                  &merge
+                  merge
                     if
                       .some? $ :path options
                       {} $ :path $ .unwrap (:path options)
@@ -1860,7 +1860,7 @@
                     :size text-size
                     :baseline :middle
                     :align :center
-              &merge base target
+              merge base target
           :examples $ [] $ quote
             let
                 scene $ button $ ButtonOptions :id |example-button :label |Save :x 40 :y 40 :dx 120 :dy 36
@@ -1956,12 +1956,12 @@
                 text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
                 text-size $ .unwrap-or (:text-size options) 18
                 enabled? $ .unwrap-or (:enabled? options) true
-                target $ &merge
+                target $ merge
                   if
                     .some? $ :action options
                     {} $ :action $ .unwrap (:action options)
                     {}
-                  &merge
+                  merge
                     if
                       .some? $ :path options
                       {} $ :path $ .unwrap (:path options)
@@ -1984,7 +1984,7 @@
                     :size text-size
                     :baseline :middle
                     :align :center
-              &merge base target
+              merge base target
           :examples $ [] $ quote
             let
                 scene $ text-input-focus-area $ TextInputOptions :id |example-editor :label |Editor :value |Draft :x 40 :y 160 :dx 220 :dy 40
@@ -2026,12 +2026,12 @@
                     :line-color $ .unwrap $ :line-color options
                     :line-width $ .unwrap-or (:line-width options) 1
                   {}
-                target $ &merge
+                target $ merge
                   if
                     .some? $ :action options
                     {} $ :action $ .unwrap (:action options)
                     {}
-                  &merge
+                  merge
                     if
                       .some? $ :path options
                       {} $ :path $ .unwrap (:path options)
@@ -2048,7 +2048,7 @@
                   :fill-color fill-color
                   :accessibility $ {} (:id id) (:role role) (:label label) (:enabled? enabled?)
                   :children $ .prepend children label-child
-              &merge (&merge base stroke) target
+              merge (merge base stroke) target
           :examples $ [] $ quote
             let
                 scene $ touch-container $ TouchContainerOptions :id |example-card :label |Card :role :button :x 40 :y 100 :dx 160 :dy 48
