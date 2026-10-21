@@ -517,6 +517,8 @@ where
           eprintln!("failed initializing paint window in resumed: {error}");
           if self.smoke_once {
             self.smoke_result = Some(Err(format!("paint smoke initialization failed: {error}")));
+            // No Env exists; exiting must not dispatch window callbacks that require it.
+            self.close_dispatched = true;
             event_loop.exit();
           } else {
             self.request_exit(event_loop, "startup-error");
