@@ -634,7 +634,7 @@
                     :fill-color $ [] 0 0 0
                 no-diagnostics $ []
               do
-                assert= 5 $ count diagnostics
+                assert= 5 $ .len diagnostics
                 let
                     nested $ &list:nth diagnostics 0
                     effect $ &list:nth diagnostics 1
@@ -1138,8 +1138,8 @@
                       match value
                         (:some next-value)
                           do (reset! *accessibility-value next-value)
-                            reset! *selection-start $ count next-value
-                            reset! *selection-end $ count next-value
+                            reset! *selection-start $ .len next-value
+                            reset! *selection-end $ .len next-value
                         (:none) &unit
                     :set-text-selection $ do
                       reset! *selection-start $ .unwrap-or (:selection-start payload) @*selection-start
@@ -1148,9 +1148,9 @@
                         start $ .unwrap-or (:selection-start payload) @*selection-start
                         end $ .unwrap-or (:selection-end payload) @*selection-end
                         replacement $ .unwrap-or (:text payload) |
-                        next-value $ str (slice @*accessibility-value 0 start) replacement $ slice @*accessibility-value end (count @*accessibility-value)
+                        next-value $ str (slice @*accessibility-value 0 start) replacement $ slice @*accessibility-value end (.len @*accessibility-value)
                       reset! *accessibility-value next-value
-                      reset! *selection-start $ + start $ count replacement
+                      reset! *selection-start $ + start $ .len replacement
                       reset! *selection-end @*selection-start
                     _ &unit
                   handle-target-event! (:operation payload) (:target payload) false
@@ -1752,7 +1752,7 @@
               if (empty? valid-diagnostics) (println "|scene validation passed / 场景校验通过")
                 raise $ str "|unexpected diagnostics for valid scene: " valid-diagnostics
               if
-                = 2 $ count invalid-diagnostics
+                = 2 $ .len invalid-diagnostics
                 println "|expected validation diagnostics / 预期校验诊断: " invalid-diagnostics
                 raise $ str "|expected two invalid-scene diagnostics, got: " invalid-diagnostics
               , &unit
@@ -1833,12 +1833,12 @@
                 text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
                 text-size $ .unwrap-or (:text-size options) 14
                 enabled? $ .unwrap-or (:enabled? options) true
-                target $ merge
+                target $ .merge
                   if
                     .some? $ :action options
                     {} $ :action $ .unwrap (:action options)
                     {}
-                  merge
+                  .merge
                     if
                       .some? $ :path options
                       {} $ :path $ .unwrap (:path options)
@@ -1860,7 +1860,7 @@
                     :size text-size
                     :baseline :middle
                     :align :center
-              merge base target
+              .merge base target
           :examples $ [] $ quote
             let
                 scene $ button $ ButtonOptions :id |example-button :label |Save :x 40 :y 40 :dx 120 :dy 36
@@ -1956,12 +1956,12 @@
                 text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
                 text-size $ .unwrap-or (:text-size options) 18
                 enabled? $ .unwrap-or (:enabled? options) true
-                target $ merge
+                target $ .merge
                   if
                     .some? $ :action options
                     {} $ :action $ .unwrap (:action options)
                     {}
-                  merge
+                  .merge
                     if
                       .some? $ :path options
                       {} $ :path $ .unwrap (:path options)
@@ -1984,7 +1984,7 @@
                     :size text-size
                     :baseline :middle
                     :align :center
-              merge base target
+              .merge base target
           :examples $ [] $ quote
             let
                 scene $ text-input-focus-area $ TextInputOptions :id |example-editor :label |Editor :value |Draft :x 40 :y 160 :dx 220 :dy 40
@@ -2026,12 +2026,12 @@
                     :line-color $ .unwrap $ :line-color options
                     :line-width $ .unwrap-or (:line-width options) 1
                   {}
-                target $ merge
+                target $ .merge
                   if
                     .some? $ :action options
                     {} $ :action $ .unwrap (:action options)
                     {}
-                  merge
+                  .merge
                     if
                       .some? $ :path options
                       {} $ :path $ .unwrap (:path options)
@@ -2048,7 +2048,7 @@
                   :fill-color fill-color
                   :accessibility $ {} (:id id) (:role role) (:label label) (:enabled? enabled?)
                   :children $ .prepend children label-child
-              merge (merge base stroke) target
+              .merge (.merge base stroke) target
           :examples $ [] $ quote
             let
                 scene $ touch-container $ TouchContainerOptions :id |example-card :label |Card :role :button :x 40 :y 100 :dx 160 :dy 48
