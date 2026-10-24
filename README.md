@@ -26,6 +26,12 @@ and binary-build constraints. / SVG 有意不作为 `0.1.0` 的公开 scene node
 
 ### 工具链升级 / Toolchain update
 
+本轮源码维护迁移十五处普通源码及一处附带示例的旧调用：UI scene Map 合并使用 `.merge`，字符串和诊断列表
+长度使用 `.len`。可选字段省略、覆盖顺序、Unicode scalar 选择索引及原断言均不变；
+公开 scene/PaintEvent schema、Rust renderer、FFI/ABI、剪贴板和对话框行为不改。
+保留原 Rust、文档、附带测试、离屏和正反 blocking smoke 门禁，不新增检查脚本或预算。
+不修改模块版本、不移动旧 tag、不创建 GitHub Release 或发布 crates.io。
+
 使用者影响：候选模块 `0.2.8` 继续配对正式 Calcit `0.30.1`。
 下游须重新解析并构建对应 native 源码，不能复用旧版本 dylib。
 本 patch 只收紧显式 `CALCIT_PAINT_SMOKE_ONCE` 模式：必须成功绘制并交换首帧，
@@ -52,12 +58,12 @@ Build the native dylib first;
 no JS/WASM backend or frontend COS/CDN deployment is introduced.
 
 同时退役 #103 中保留的空 Map 合并规避：三个 UI builder 使用公开
-`merge` 替代内部 `&merge`，可选字段省略与右侧覆盖顺序不变；不再使用同样已弃用的 `merge-dynamic`。
+`.merge` 替代内部 `&merge` 及旧前缀调用，可选字段省略与右侧覆盖顺序不变；不再使用同样已弃用的 `merge-dynamic`。
 Option 接收者方法已在此前恢复，本轮不新增改写规则或强转。开放 scene Map
 与旧 callback 的 11 项动态类型仍需人工评审，不能把通过门禁称为零类型债务。
 
-The three UI builders now use public `merge` instead of internal
-`&merge`, retiring the empty-map workaround tracked in #103. Optional-field
+The three UI builders now use public `.merge` instead of internal
+`&merge` or prefix calls, retiring the empty-map workaround tracked in #103. Optional-field
 omission and right-hand overwrite order stay unchanged; deprecated `merge-dynamic`
 is not used. The 11 dynamic type
 findings in open scene maps and legacy callbacks remain review boundaries;
