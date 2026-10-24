@@ -1148,7 +1148,9 @@
                         start $ .unwrap-or (:selection-start payload) @*selection-start
                         end $ .unwrap-or (:selection-end payload) @*selection-end
                         replacement $ .unwrap-or (:text payload) |
-                        next-value $ str (slice @*accessibility-value 0 start) replacement $ slice @*accessibility-value end (.len @*accessibility-value)
+                        next-value $ str
+                          slice @*accessibility-value 0 $ Option :some start
+                          , replacement $ slice @*accessibility-value end
                       reset! *accessibility-value next-value
                       reset! *selection-start $ + start $ .len replacement
                       reset! *selection-end @*selection-start
