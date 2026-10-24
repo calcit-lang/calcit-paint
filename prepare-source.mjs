@@ -35,10 +35,21 @@ for(const d of matches.definitions){
   }
 }
 assert.deepEqual(counts,{merge:10,count:5});
+const structured=expected.find(d=>d.id==='calcit-paint.core/validate-scene-structured');
+let exampleChanges=0;
+function updateExample(n){
+  if(!Array.isArray(n))return n;
+  const result=n.map(updateExample);
+  if(result[0]==='count'){assert.deepEqual(result,['count','diagnostics']);result[0]='.len';exampleChanges++;}
+  return result;
+}
+structured.examples=structured.examples.map(updateExample);assert.equal(exampleChanges,1);
+const examplesCode=run('cirru','format',JSON.stringify(structured.examples.map(example=>['quote',example])));
+ops.push(['edit','examples',structured.id,'--code',examplesCode]);
 writeFileSync('acceptance/before.json',JSON.stringify(before,null,2));writeFileSync('acceptance/operations.json',JSON.stringify(ops,null,2));
 const args=['edit','transaction','--file','acceptance/operations.json','--format','json'];
 const preview=JSON.parse(run(...args,'--dry-run'));assert.ok(preview.scoped_revision);
 writeFileSync('acceptance/preview.json',JSON.stringify(preview,null,2));writeFileSync('acceptance/applied.json',run(...args,'--expect-revision',preview.scoped_revision));
 assert.deepEqual(inventory(),expected,'Only15callheads; all schemas/FFI/callbacks/fields/tests/assertions/docs/metadata unchanged');assert.deepEqual(q('config'),config);
 writeFileSync('acceptance/after.json',JSON.stringify(expected,null,2));writeFileSync('acceptance/snapshot-blob.txt',execFileSync('git',['hash-object','calcit.cirru'],{encoding:'utf8'}));
-console.log(JSON.stringify({definitions:expected.length,counts,changedDefinitions:5,tests:expected.reduce((n,d)=>n+d.tests.length,0)}));
+console.log(JSON.stringify({definitions:expected.length,counts,exampleChanges,changedDefinitions:6,tests:expected.reduce((n,d)=>n+d.tests.length,0)}));
