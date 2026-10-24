@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
-const run=(...args)=>execFileSync(process.env.PAINT_QUERY_CLI||'calcit',args,{encoding:'utf8',maxBuffer:30*1024*1024,stdio:['ignore','pipe','ignore']});
+const run=(...args)=>{
+  try{return execFileSync(process.env.PAINT_QUERY_CLI||'calcit',args,{encoding:'utf8',maxBuffer:30*1024*1024,stdio:['ignore','pipe','pipe']});}
+  catch(error){if(error.stderr)process.stderr.write(error.stderr);throw error;}
+};
 const q=(...args)=>JSON.parse(run('query',...args,'--format','json')).data;
 mkdirSync('acceptance',{recursive:true});
 function inventory(){
@@ -44,7 +47,11 @@ function updateExample(n){
   return result;
 }
 structured.examples=structured.examples.map(updateExample);assert.equal(exampleChanges,1);
-const examplesCode=run('cirru','format',JSON.stringify(structured.examples.map(example=>['quote',example])));
+const examplesCode=structured.examples.map(example=>{
+  const quoted=['quote',example],code=run('cirru','format',JSON.stringify(quoted));
+  assert.deepEqual(JSON.parse(run('cirru','parse',code)),quoted);
+  return code;
+}).join('\n');
 ops.push(['edit','examples',structured.id,'--code',examplesCode]);
 writeFileSync('acceptance/before.json',JSON.stringify(before,null,2));writeFileSync('acceptance/operations.json',JSON.stringify(ops,null,2));
 const args=['edit','transaction','--file','acceptance/operations.json','--format','json'];
