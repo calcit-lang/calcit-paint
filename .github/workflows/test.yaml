@@ -42,7 +42,7 @@ jobs:
           set -euo pipefail
           calcit ./calcit.cirru edit format
           if ! git diff --exit-code --quiet -- calcit.cirru; then
-            echo '::error file=calcit.cirru::Snapshot is not canonical. With Calcit 0.31.0-alpha.2, run calcit ./calcit.cirru edit format and inspect definitions through calcit query def.'
+            echo '::error file=calcit.cirru::Snapshot is not canonical. With the Calcit version from deps.cirru, run calcit ./calcit.cirru edit format and inspect definitions through calcit query def.'
             exit 1
           fi
           report="$(calcit ./calcit.cirru fix --workflow strict --verify --format json)"

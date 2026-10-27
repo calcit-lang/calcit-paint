@@ -1,5 +1,7 @@
 ## Calcit Paint
 
+当前开发工具链为已发布 `0.31.0-alpha.7`，仍由原 Linux/Xvfb、Rust 与 Calcit 全部门禁验收；以下源码迁移说明为既有 0.2.8 内容，本次不改 Rust renderer、ABI 或模块版本。
+
 > Skia-backed 2D renderer and experimental Creative Art toolkit for Calcit.
 > 基于 Skia 的 Calcit 2D 渲染器与实验性 Creative Art 工具。
 
@@ -32,7 +34,7 @@ and binary-build constraints. / SVG 有意不作为 `0.1.0` 的公开 scene node
 保留原 Rust、文档、附带测试、离屏和正反 blocking smoke 门禁，不新增检查脚本或预算。
 不修改模块版本、不移动旧 tag、不创建 GitHub Release 或发布 crates.io。
 
-使用者影响：候选模块 `0.2.8` 改为配对 Calcit 预发布 `0.31.0-alpha.2`：无障碍文本替换中的 `slice` 显式终点改用
+使用者影响：候选模块 `0.2.8` 改为配对 Calcit 预发布 `0.31.0-alpha.7`：无障碍文本替换中的 `slice` 显式终点改用
 `Option :some`，切到末尾时省略终点（calcit-lang/calcit#2213）。
 下游须重新解析并构建对应 native 源码，不能复用旧版本 dylib。
 本 patch 只收紧显式 `CALCIT_PAINT_SMOKE_ONCE` 模式：必须成功绘制并交换首帧，
@@ -44,7 +46,7 @@ Linux CI 覆盖不等于完整跨平台兼容承诺。旧 tag 均不移动，Rus
 真实 wire Enum、使用闭合 `PaintEvent`，handler 在副作用之后返回 Unit。
 仍需构建本机 dylib；不新增 JS/WASM 或前端 COS/CDN 部署。
 
-User impact: candidate module `0.2.8` now pairs with the Calcit prerelease `0.31.0-alpha.2`:
+User impact: candidate module `0.2.8` now pairs with the Calcit prerelease `0.31.0-alpha.7`:
 accessibility text replacement passes `slice` endpoints as `Option :some` and omits
 the endpoint when slicing to the end (calcit-lang/calcit#2213).
 Rebuild the native library from the matching source; do not reuse an older dylib.
@@ -191,7 +193,7 @@ keeps ownership of the Skia/winit event loop, rendering state, shape decoding,
 and callback scheduling. The module tracks `calcit_native_ffi 0.1.2`; buffer
 and blocking-callback protocols remain at v1. The published `0.2.6` module
 declares Calcit `0.30.0`; current source follows `deps.cirru`
-(`0.31.0-alpha.2` in this migration).
+(`0.31.0-alpha.7` in this migration).
 
 C-safe buffer-v1/blocking-callback descriptor、ownership 规则、Cirru EDN
 transport 与 adapter 由
@@ -199,7 +201,7 @@ transport 与 adapter 由
 Paint 仍负责 Skia/winit 事件循环、绘制状态、shape 解析和回调调度；
 模块当前使用 `calcit_native_ffi 0.1.2`，buffer 与 blocking-callback protocol
 均继续保持 v1；已发布的 `0.2.6` 模块声明 Calcit `0.30.0`，当前源码以
-`deps.cirru` 为准（本轮为预发布 `0.31.0-alpha.2`）。
+`deps.cirru` 为准（本轮为预发布 `0.31.0-alpha.7`）。
 
 A custom mirror may be used for Skia binaries when it is known to be healthy:
 
