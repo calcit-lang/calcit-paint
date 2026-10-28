@@ -13,165 +13,164 @@
         'PaintAccessibilityActionEvent $ %{} 'CodeEntry
           :doc "|Typed accessibility request. Operation is :focus, :activate, :set-value, :set-text-selection, or :replace-selected-text; :set-value uses value, selection operations use Unicode scalar selection-start/selection-end, and replacement adds text. / 强类型无障碍请求。operation 为 :focus、:activate、:set-value、:set-text-selection 或 :replace-selected-text；:set-value 使用 value，selection 操作使用 Unicode scalar 的 selection-start/selection-end，替换额外携带 text。"
           :code $ quote $ defstruct PaintAccessibilityActionEvent (:id 'String) (:operation 'Tag) (:target 'calcit-paint.core/PaintTarget)
-            :value $ :: 'Option 'String
-            :selection-start $ :: 'Option 'Number
-            :selection-end $ :: 'Option 'Number
-            :text $ :: 'Option 'String
+            :value $ quote $ Option String
+            :selection-start $ quote $ Option Number
+            :selection-end $ quote $ Option Number
+            :text $ quote $ Option String
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintEvent $ %{} 'CodeEntry
           :doc "|Nominal exhaustive event protocol for typed Paint callbacks, including system theme observations. / 用于强类型 Paint callback 的 nominal 穷尽事件协议，包含系统主题观测。"
           :code $ quote $ defenum PaintEvent (:ready) (:frame 'calcit-paint.core/PaintFrameEvent) (:mouse-down 'calcit-paint.core/PaintPointerEvent) (:mouse-up 'calcit-paint.core/PaintPointerEvent) (:mouse-move 'calcit-paint.core/PaintPointerEvent) (:mouse-leave 'calcit-paint.core/PaintPointerEvent) (:mouse-wheel 'calcit-paint.core/PaintPointerEvent) (:pointer-enter 'calcit-paint.core/PaintPointerEvent) (:pointer-leave 'calcit-paint.core/PaintPointerEvent) (:pointer-cancel 'calcit-paint.core/PaintPointerEvent) (:key-down 'calcit-paint.core/PaintKeyboardEvent) (:key-up 'calcit-paint.core/PaintKeyboardEvent) (:focus-in 'calcit-paint.core/PaintFocusEvent) (:focus-out 'calcit-paint.core/PaintFocusEvent) (:ime-enabled 'calcit-paint.core/PaintTextInputEvent) (:ime-disabled 'calcit-paint.core/PaintTextInputEvent) (:composition-start 'calcit-paint.core/PaintTextInputEvent) (:composition-update 'calcit-paint.core/PaintTextInputEvent) (:composition-end 'calcit-paint.core/PaintTextInputEvent) (:text-input 'calcit-paint.core/PaintTextInputEvent) (:file-hover 'calcit-paint.core/PaintFileEvent) (:file-drop 'calcit-paint.core/PaintFileEvent) (:file-hover-cancel 'calcit-paint.core/PaintFileHoverCancelEvent) (:file-dialog-result 'calcit-paint.core/PaintFileDialogEvent) (:accessibility-action 'calcit-paint.core/PaintAccessibilityActionEvent) (:window-focus) (:window-blur) (:resize 'calcit-paint.core/PaintWindowMetricsEvent) (:scale-factor 'calcit-paint.core/PaintWindowMetricsEvent) (:window-theme 'calcit-paint.core/PaintWindowThemeEvent) (:window-title-applied 'calcit-paint.core/PaintWindowTitleEvent) (:window-size-request 'calcit-paint.core/PaintWindowSizeEvent) (:window-close 'calcit-paint.core/PaintWindowCloseEvent)
           :examples $ []
-          :schema $ :: 'EnumDef
+          :schema $ quote EnumDef
         'PaintEventFfi $ %{} 'CodeEntry
           :doc "|Internal generic envelope received from the native typed-event transport."
           :code $ quote $ defenum PaintEventFfi ([] 'Raw) (:ready) (:frame 'Raw) (:mouse-down 'Raw) (:mouse-up 'Raw) (:mouse-move 'Raw) (:mouse-leave 'Raw) (:mouse-wheel 'Raw) (:pointer-enter 'Raw) (:pointer-leave 'Raw) (:pointer-cancel 'Raw) (:key-down 'Raw) (:key-up 'Raw) (:focus-in 'Raw) (:focus-out 'Raw) (:ime-enabled 'Raw) (:ime-disabled 'Raw) (:composition-start 'Raw) (:composition-update 'Raw) (:composition-end 'Raw) (:text-input 'Raw) (:file-hover 'Raw) (:file-drop 'Raw) (:file-hover-cancel 'Raw) (:file-dialog-result 'Raw) (:accessibility-action 'Raw) (:window-focus) (:window-blur) (:resize 'Raw) (:scale-factor 'Raw) (:window-theme 'Raw) (:window-title-applied 'Raw) (:window-size-request 'Raw) (:window-close 'Raw)
           :examples $ []
-          :schema $ :: 'EnumDef
+          :schema $ quote EnumDef
         'PaintFileDialogEvent $ %{} 'CodeEntry
           :doc "|Typed terminal native-dialog result. Status is :selected, :cancelled, or :failed. / 强类型原生对话框终态结果。status 为 :selected、:cancelled 或 :failed。"
           :code $ quote $ defstruct PaintFileDialogEvent (:request-id 'String) (:operation 'Tag) (:status 'Tag)
-            :path $ :: 'Option 'FsPath
-            :error $ :: 'Option 'String
+            :path $ quote $ Option FsPath
+            :error $ quote $ Option String
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintFileDialogEventWire $ %{} 'CodeEntry
           :doc "|Internal UTF-8 native dialog result decoded before constructing a nominal FsPath. / 内部 UTF-8 原生对话框结果，在构造 nominal FsPath 前解码。"
           :code $ quote $ defstruct PaintFileDialogEventWire (:request-id 'String) (:operation 'Tag) (:status 'Tag)
-            :path $ :: 'Option 'String
-            :error $ :: 'Option 'String
+            :path $ quote $ Option String
+            :error $ quote $ Option String
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintFileDialogFilter $ %{} 'CodeEntry
           :doc "|One native file dialog filter with a human label and extensions without leading dots. / 原生文件对话框过滤器，含人类可读标签与不带前导点的扩展名。"
           :code $ quote $ defstruct PaintFileDialogFilter (:name 'String)
-            :extensions $ :: 'List 'String
+            :extensions $ quote $ List String
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintFileDialogOptions $ %{} 'CodeEntry
           :doc "|Strict native dialog request options; request-id is echoed by the terminal result event. / 严格原生对话框请求配置；request-id 会在终态结果事件中原样返回。"
           :code $ quote $ defstruct PaintFileDialogOptions (:request-id 'String)
-            :title $ :: 'Option 'String
-            :directory $ :: 'Option 'FsPath
-            :file-name $ :: 'Option 'String
-            :filters $ :: 'List 'calcit-paint.core/PaintFileDialogFilter
+            :title $ quote $ Option String
+            :directory $ quote $ Option FsPath
+            :file-name $ quote $ Option String
+            :filters $ quote $ List calcit-paint.core/PaintFileDialogFilter
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintFileEvent $ %{} 'CodeEntry
           :doc "|Typed file hover/drop payload with a nominal Calcit filesystem path."
           :code $ quote $ defstruct PaintFileEvent (:path 'FsPath) (:x 'Number) (:y 'Number) (:modifiers 'calcit-paint.core/PaintModifiers)
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintFileEventWire $ %{} 'CodeEntry
           :doc "|Internal UTF-8 wire payload decoded before constructing a nominal FsPath."
           :code $ quote $ defstruct PaintFileEventWire (:path 'String) (:x 'Number) (:y 'Number) (:modifiers 'calcit-paint.core/PaintModifiers)
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintFileHoverCancelEvent $ %{} 'CodeEntry
           :doc "|Typed file-hover cancellation payload without a fabricated path."
           :code $ quote $ defstruct PaintFileHoverCancelEvent (:x 'Number) (:y 'Number) (:modifiers 'calcit-paint.core/PaintModifiers)
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintFocusEvent $ %{} 'CodeEntry (:doc "|Typed focus transition payload.")
           :code $ quote $ defstruct PaintFocusEvent (:focus-id 'String)
-            :related-focus-id $ :: 'Option 'String
+            :related-focus-id $ quote $ Option String
             :reason 'Tag
             :target 'calcit-paint.core/PaintTarget
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintFrameEvent $ %{} 'CodeEntry (:doc "|Typed on-demand animation frame payload.")
           :code $ quote $ defstruct PaintFrameEvent (:frame 'Number) (:timestamp-ms 'Number) (:delta-ms 'Number) (:width 'Number) (:height 'Number) (:scale-factor 'Number)
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintKeyboardEvent $ %{} 'CodeEntry (:doc "|Typed logical and physical keyboard payload.")
           :code $ quote $ defstruct PaintKeyboardEvent (:key-code 'Number) (:physical-key 'String) (:name 'String) (:modifiers 'calcit-paint.core/PaintModifiers)
-            :focus-id $ :: 'Option 'String
-            :shortcut? $ :: 'Option 'Bool
+            :focus-id $ quote $ Option String
+            :shortcut? $ quote $ Option Bool
             :target 'calcit-paint.core/PaintTarget
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintModifiers $ %{} 'CodeEntry (:doc "|Closed keyboard and pointer modifier state.")
           :code $ quote $ defstruct PaintModifiers (:shift? 'Bool) (:control? 'Bool) (:alt? 'Bool) (:super? 'Bool)
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintPointerEvent $ %{} 'CodeEntry
           :doc "|Typed pointer, mouse, hover, cancellation, and wheel payload."
           :code $ quote $ defstruct PaintPointerEvent (:x 'Number) (:y 'Number) (:clicks 'Number) (:modifiers 'calcit-paint.core/PaintModifiers) (:target 'calcit-paint.core/PaintTarget)
-            :dx $ :: 'Option 'Number
-            :dy $ :: 'Option 'Number
-            :button $ :: 'Option 'Tag
-            :button-id $ :: 'Option 'Number
-            :cursor $ :: 'Option 'Tag
-            :captured? $ :: 'Option 'Bool
-            :cancelled? $ :: 'Option 'Bool
-            :reason $ :: 'Option 'Tag
-            :unit $ :: 'Option 'Tag
+            :dx $ quote $ Option Number
+            :dy $ quote $ Option Number
+            :button $ quote $ Option Tag
+            :button-id $ quote $ Option Number
+            :cursor $ quote $ Option Tag
+            :captured? $ quote $ Option Bool
+            :cancelled? $ quote $ Option Bool
+            :reason $ quote $ Option Tag
+            :unit $ quote $ Option Tag
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintSceneDiagnostic $ %{} 'CodeEntry
           :doc "|Stable scene validation record; path and code are automation contracts while message may improve. / 稳定场景校验记录；path 与 code 是自动化契约，message 可持续改进。"
           :code $ quote $ defstruct PaintSceneDiagnostic (:path 'String) (:code 'Tag)
-            :field $ :: 'Option 'String
+            :field $ quote $ Option String
             :expected 'String
             :actual 'String
             :message 'String
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintTarget $ %{} 'CodeEntry
           :doc "|Application-defined target values kept at one explicit open boundary."
           :code $ quote $ defstruct PaintTarget
-            :action $ :: 'Option 'Dynamic
-            :path $ :: 'Option 'Dynamic
-            :data $ :: 'Option 'Dynamic
+            :action $ quote $ Option Dynamic
+            :path $ quote $ Option Dynamic
+            :data $ quote $ Option Dynamic
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintTextInputEvent $ %{} 'CodeEntry
           :doc "|Typed IME composition and committed text payload."
           :code $ quote $ defstruct PaintTextInputEvent (:focus-id 'String) (:text 'String)
-            :cursor-start $ :: 'Option 'Number
-            :cursor-end $ :: 'Option 'Number
-            :cancelled? $ :: 'Option 'Bool
+            :cursor-start $ quote $ Option Number
+            :cursor-end $ quote $ Option Number
+            :cancelled? $ quote $ Option Bool
             :target 'calcit-paint.core/PaintTarget
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintWindowCloseEvent $ %{} 'CodeEntry (:doc "|Typed exactly-once window close payload.")
           :code $ quote $ defstruct PaintWindowCloseEvent (:reason 'Tag)
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintWindowMetricsEvent $ %{} 'CodeEntry (:doc "|Typed logical window metrics and scale payload.")
           :code $ quote $ defstruct PaintWindowMetricsEvent (:width 'Number) (:height 'Number) (:scale-factor 'Number)
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintWindowSizeEvent $ %{} 'CodeEntry (:doc "|Typed logical-size request acknowledgement.")
           :code $ quote $ defstruct PaintWindowSizeEvent (:status 'Tag) (:requested-width 'Number) (:requested-height 'Number)
-            :actual-width $ :: 'Option 'Number
-            :actual-height $ :: 'Option 'Number
-            :matched? $ :: 'Option 'Bool
+            :actual-width $ quote $ Option Number
+            :actual-height $ quote $ Option Number
+            :matched? $ quote $ Option Bool
             :scale-factor 'Number
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintWindowThemeEvent $ %{} 'CodeEntry
           :doc "|Typed system theme payload: :light, :dark, or :unknown, plus whether it is the initial observation. / 强类型系统主题 payload：:light、:dark 或 :unknown，并标明是否为初始观测。"
           :code $ quote $ defstruct PaintWindowThemeEvent (:theme 'Tag) (:initial? 'Bool)
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'PaintWindowTitleEvent $ %{} 'CodeEntry (:doc "|Typed applied window-title acknowledgement.")
           :code $ quote $ defstruct PaintWindowTitleEvent (:title 'String)
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'WindowOptions $ %{} 'CodeEntry
           :doc "|Strict startup configuration for the single Paint window."
           :code $ quote $ defstruct WindowOptions (:title 'String) (:width 'Number) (:height 'Number) (:min-width 'Number) (:min-height 'Number) (:resizable? 'Bool)
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'blur! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn blur! ()
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |clear_focus
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
         'check-resources! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn check-resources! (scene)
             decode-map-as
@@ -182,18 +181,16 @@
                 scene $ {} (:type :group)
                   :children $ [] $ {} (:type :image) (:file-path |resources/does-not-exist.png) (:x 0) (:y 0) (:w 8) (:h 8)
               check-resources! scene
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'T
-            :generics $ [] 'T
-            :return $ :: 'List 'calcit-paint.core/PaintSceneDiagnostic
+          :schema $ quote $ Fn T
+            -> $ List calcit-paint.core/PaintSceneDiagnostic
+            :generics T
         'close-window! $ %{} 'CodeEntry
           :doc "|Queue an orderly close request for the active Paint window."
           :code $ quote $ defn close-window! ()
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |close_window
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
         'decode-paint-event-wire $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn decode-paint-event-wire (event)
             match event
@@ -315,33 +312,29 @@
                 PaintEvent :window-close $ decode-map-as payload PaintWindowCloseEvent
               _ $ raise |unsupported-paint-wire-event
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'calcit-paint.core/PaintEvent)
-            :args $ [] 'Enum
+          :schema $ quote $ Fn Enum (-> calcit-paint.core/PaintEvent)
         'focus! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn focus! (id)
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |request_focus id
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'String
+          :schema $ quote $ Fn String (-> Unit)
         'focused? $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn focused? (id)
             let
                 value $ &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |focused id
               if (bool? value) value $ raise "|Paint focused? expected a Bool"
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Bool)
-            :args $ [] 'String
+          :schema $ quote $ Fn String (-> Bool)
         'launch-canvas! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn launch-canvas! (cb)
             &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas $ fn (event) (cb event) :handled
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] $ :: 'Fn
-              {} (:return 'R)
-                :args $ [] 'Dynamic
-            :generics $ [] 'R
+          :schema $ quote $ Fn
+            Fn Dynamic $ -> R
+            -> Unit
+            :generics R
         'launch-canvas-typed! $ %{} 'CodeEntry
           :doc "|Launch the configured single Paint window with a nominal PaintEvent callback."
           :code $ quote $ defn launch-canvas-typed! (options cb)
@@ -352,48 +345,43 @@
               , :handled
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'calcit-paint.core/WindowOptions $ :: 'Fn
-              {} (:return 'R)
-                :args $ [] 'calcit-paint.core/PaintEvent
-            :generics $ [] 'R
+          :schema $ quote $ Fn calcit-paint.core/WindowOptions
+            Fn calcit-paint.core/PaintEvent $ -> R
+            -> Unit
+            :generics R
         'launch-canvas-with-options! $ %{} 'CodeEntry
           :doc "|Launch the blocking single-window event loop with nominal startup options."
           :code $ quote $ defn launch-canvas-with-options! (options cb)
             &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas_with_options options $ fn (event) (cb event) :handled
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'calcit-paint.core/WindowOptions $ :: 'Fn
-              {} (:return 'R)
-                :args $ [] 'Dynamic
-            :generics $ [] 'R
+          :schema $ quote $ Fn calcit-paint.core/WindowOptions
+            Fn Dynamic $ -> R
+            -> Unit
+            :generics R
         'measure-paragraph! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn measure-paragraph! (data)
             decode-map-as
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_paragraph data
               :: 'Map 'Tag 'Number
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] $ :: 'Map 'Tag 'Dynamic
-            :return $ :: 'Map 'Tag 'Number
+          :schema $ quote $ Fn (Map Tag Dynamic)
+            -> $ Map Tag Number
         'measure-text! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn measure-text! (data)
             decode-map-as
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_text data
               :: 'Map 'Tag 'Number
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] $ :: 'Map 'Tag 'Dynamic
-            :return $ :: 'Map 'Tag 'Number
+          :schema $ quote $ Fn (Map Tag Dynamic)
+            -> $ Map Tag Number
         'open-file-dialog! $ %{} 'CodeEntry
           :doc "|Queue one native open-file dialog; its result is delivered later as :file-dialog-result. / 请求一个原生打开文件对话框；结果稍后以 :file-dialog-result 送达。"
           :code $ quote $ defn open-file-dialog! (options)
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |open_file_dialog options
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'calcit-paint.core/PaintFileDialogOptions
+          :schema $ quote $ Fn calcit-paint.core/PaintFileDialogOptions (-> Unit)
         'paint-event-from-ffi $ %{} 'CodeEntry
           :doc "|Strictly decode one native typed-event envelope into the public nominal protocol, validating system theme tags and accessibility selection payloads. / 严格将原生强类型事件 envelope 解码为公开 nominal 协议，并校验系统主题 tag 与无障碍 selection payload。"
           :code $ quote $ defn paint-event-from-ffi (event) (decode-paint-event-wire event)
@@ -409,8 +397,9 @@
             quote $ paint-event-from-ffi $ PaintEventFfi :file-hover
               {} (:path |assets/demo.png) (:x 24) (:y 36)
                 :modifiers $ {} (:shift? false) (:control? false) (:alt? false) (:super? false)
-          :schema $ :: 'Fn $ {} (:return 'calcit-paint.core/PaintEvent)
-            :args $ [] $ :: 'calcit-paint.core/PaintEventFfi (:: 'Map 'Tag 'Dynamic)
+          :schema $ quote $ Fn
+            calcit-paint.core/PaintEventFfi $ Map Tag Dynamic
+            -> calcit-paint.core/PaintEvent
           :tests $ []
             %{} 'TestEntry (:name |decodes-frame-payload)
               :code $ quote $ let
@@ -535,9 +524,7 @@
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |push_drawing_data op data
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'String 'T
-            :generics $ [] 'T
+          :schema $ quote $ Fn String T (-> Unit) (:generics T)
         'read-clipboard-text! $ %{} 'CodeEntry
           :doc "|Read UTF-8 text from the serialized system clipboard. / 从串行系统剪贴板读取 UTF-8 文本。"
           :code $ quote $ defn read-clipboard-text! ()
@@ -545,54 +532,46 @@
                 value $ &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |read_clipboard_text
               if (string? value) value $ raise "|Paint clipboard read expected a String"
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'String)
-            :args $ []
+          :schema $ quote $ Fn (-> String)
         'render-to-png! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-to-png! (options)
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |render_to_png options
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'T
-            :generics $ [] 'T
+          :schema $ quote $ Fn T (-> Unit) (:generics T)
         'request-frame! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn request-frame! ()
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |request_frame
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
         'request-window-size! $ %{} 'CodeEntry
           :doc "|Queue a positive finite logical-size request for the active Paint window."
           :code $ quote $ defn request-window-size! (width height)
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |request_window_size width height
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'Number 'Number
+          :schema $ quote $ Fn Number Number (-> Unit)
         'save-file-dialog! $ %{} 'CodeEntry
           :doc "|Queue one native save-file dialog; its result is delivered later as :file-dialog-result. / 请求一个原生保存文件对话框；结果稍后以 :file-dialog-result 送达。"
           :code $ quote $ defn save-file-dialog! (options)
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |save_file_dialog options
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'calcit-paint.core/PaintFileDialogOptions
+          :schema $ quote $ Fn calcit-paint.core/PaintFileDialogOptions (-> Unit)
         'set-resource-root! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn set-resource-root! (path)
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |set_resource_root path
             , &unit
           :examples $ [] $ quote (set-resource-root! |resources)
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'String
+          :schema $ quote $ Fn String (-> Unit)
         'set-window-title! $ %{} 'CodeEntry
           :doc "|Queue a title update for serialized application on the active event loop."
           :code $ quote $ defn set-window-title! (title)
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |set_window_title title
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'String
+          :schema $ quote $ Fn String (-> Unit)
         'validate-scene $ %{} 'CodeEntry
           :doc "|Return compatible path-prefixed diagnostic messages for a scene. Prefer validate-scene-structured for automation. / 返回场景的兼容 path 前缀诊断消息；自动化优先使用 validate-scene-structured。"
           :code $ quote $ defn validate-scene (scene)
@@ -605,10 +584,9 @@
               :width 120
               :height 48
               :fill-color $ [] 210 72 48
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'T
-            :generics $ [] 'T
-            :return $ :: 'List 'String
+          :schema $ quote $ Fn T
+            -> $ List String
+            :generics T
         'validate-scene-structured $ %{} 'CodeEntry
           :doc "|Return typed machine-readable diagnostics for a scene while leaving it unchanged. / 返回场景的强类型机器可读诊断，不修改输入场景。"
           :code $ quote $ defn validate-scene-structured (scene)
@@ -658,18 +636,16 @@
                   assert= (Option :some |children) (:field cache)
                 assert= no-diagnostics $ validate-scene-structured repaired-scene
                 , &unit
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'T
-            :generics $ [] 'T
-            :return $ :: 'List 'calcit-paint.core/PaintSceneDiagnostic
+          :schema $ quote $ Fn T
+            -> $ List calcit-paint.core/PaintSceneDiagnostic
+            :generics T
         'write-clipboard-text! $ %{} 'CodeEntry
           :doc "|Write UTF-8 text to the serialized system clipboard. / 向串行系统剪贴板写入 UTF-8 文本。"
           :code $ quote $ defn write-clipboard-text! (text)
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |write_clipboard_text text
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'String
+          :schema $ quote $ Fn String (-> Unit)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns calcit-paint.core
           :require
@@ -681,22 +657,22 @@
           :doc "|Visible export status for the runnable studio. / 可运行 studio 中显示的导出状态。"
           :code $ quote $ defref *export-status "|Press P to export / 按 P 导出"
           :examples $ []
-          :schema $ :: 'Ref 'String
+          :schema $ quote $ Ref String
         '*playing? $ %{} 'CodeEntry
           :doc "|Whether the one-shot frame chain is active. / one-shot frame 链是否活跃。"
           :code $ quote $ defref *playing? false
           :examples $ []
-          :schema $ :: 'Ref 'Bool
+          :schema $ quote $ Ref Bool
         '*seed $ %{} 'CodeEntry
           :doc "|Current deterministic artwork seed. / 当前确定性作品 seed。"
           :code $ quote $ defref *seed 17
           :examples $ []
-          :schema $ :: 'Ref 'Number
+          :schema $ quote $ Ref Number
         '*time-ms $ %{} 'CodeEntry
           :doc "|Current animation time from the Paint frame clock. / 来自 Paint frame clock 的当前动画时间。"
           :code $ quote $ defref *time-ms 0
           :examples $ []
-          :schema $ :: 'Ref 'Number
+          :schema $ quote $ Ref Number
         'build-art-scene $ %{} 'CodeEntry
           :doc "|Build the open scene-map boundary shared by the window and offscreen export. / 构建窗口与离屏导出共享的开放 scene-map 边界。"
           :code $ quote $ defn build-art-scene (seed time-ms export-status controls?)
@@ -832,9 +808,8 @@
             let
                 scene $ build-art-scene 17 0 |preview false
               assert= ([]) (validate-scene-structured scene)
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Number 'Number 'String 'Bool
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn Number Number String Bool
+            -> $ Map Tag Dynamic
           :tests $ [] $ %{} 'TestEntry (:name |returns-group-scene)
             :code $ quote $ let
                 scene $ build-art-scene 17 0 |testing false
@@ -848,8 +823,7 @@
               :scene $ build-art-scene seed time-ms |exported false
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'String 'Number 'Number
+          :schema $ quote $ Fn String Number Number (-> Unit)
         'export-current! $ %{} 'CodeEntry
           :doc "|Export the current artwork to creative-art.png. / 将当前作品导出到 creative-art.png。"
           :code $ quote $ defn export-current! () (export-art-frame! |creative-art.png @*seed @*time-ms)
@@ -858,8 +832,7 @@
             println "|Exported creative-art.png / 已导出 creative-art.png"
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
         'handle-event! $ %{} 'CodeEntry
           :doc "|Drive creative controls from the closed nominal PaintEvent protocol. / 通过封闭 nominal PaintEvent 协议驱动创作控制。"
           :code $ quote $ defn handle-event! (event)
@@ -890,8 +863,7 @@
               _ &unit
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'calcit-paint.core/PaintEvent
+          :schema $ quote $ Fn calcit-paint.core/PaintEvent (-> Unit)
         'main! $ %{} 'CodeEntry
           :doc "|Validate, then launch the runnable Creative Art Preview. / 完成校验后启动可运行的 Creative Art Preview。"
           :code $ quote $ defn main! ()
@@ -902,8 +874,7 @@
               fn (event) (handle-event! event)
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
         'regenerate! $ %{} 'CodeEntry
           :doc "|Advance the deterministic seed and redraw. / 递增确定性 seed 并重绘。"
           :code $ quote $ defn regenerate! ()
@@ -913,14 +884,12 @@
             render-art!
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
         'reload! $ %{} 'CodeEntry
           :doc "|Redraw the artwork after a Calcit reload. / Calcit reload 后重绘作品。"
           :code $ quote $ defn reload! () (render-art!) (println "|Creative Art reloaded / 创意绘制已重载") &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
         'render-art! $ %{} 'CodeEntry
           :doc "|Render the current creative state into the active Paint window. / 将当前创作状态绘制到活跃 Paint 窗口。"
           :code $ quote $ defn render-art! ()
@@ -928,16 +897,14 @@
             push-drawing-data! |render-canvas! $ build-art-scene @*seed @*time-ms @*export-status true
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
         'seeded-unit $ %{} 'CodeEntry
           :doc "|Return a deterministic number in [0, 1] for one seed/index pair. / 为一组 seed/index 返回 [0, 1] 内的确定性数字。"
           :code $ quote $ defn seeded-unit (seed index)
             * 0.5 $ + 1 $ sin
               + (* seed 12.9898) (* index 78.233)
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Number)
-            :args $ [] 'Number 'Number
+          :schema $ quote $ Fn Number Number (-> Number)
           :tests $ [] $ %{} 'TestEntry (:name |deterministic-unit-range)
             :code $ quote $ let
                 a $ seeded-unit 17 4
@@ -954,8 +921,7 @@
             if @*playing? (request-frame!) &unit
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
         'validate-art-scene! $ %{} 'CodeEntry
           :doc "|Validate the generated preview through the structured public boundary before launch. / 启动前通过公开结构化边界校验生成的预览。"
           :code $ quote $ defn validate-art-scene! ()
@@ -964,8 +930,7 @@
               if (empty? diagnostics) &unit $ raise $ str |unexpected-creative-art-diagnostics: diagnostics
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns calcit-paint.creative-art
           :require $ calcit-paint.core :refer $ WindowOptions PaintEvent launch-canvas-typed! push-drawing-data! render-to-png! request-frame! close-window! validate-scene-structured
@@ -974,43 +939,43 @@
         '*accessibility-value $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *accessibility-value |Draft
           :examples $ []
-          :schema $ :: 'Ref 'String
+          :schema $ quote $ Ref String
         '*animation-active? $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *animation-active? false
           :examples $ []
-          :schema $ :: 'Ref 'Bool
+          :schema $ quote $ Ref Bool
         '*animation-time-ms $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *animation-time-ms 0
           :examples $ []
-          :schema $ :: 'Ref 'Number
+          :schema $ quote $ Ref Number
         '*clipboard-status $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *clipboard-status |clipboard:idle
           :examples $ []
-          :schema $ :: 'Ref 'String
+          :schema $ quote $ Ref String
         '*file-drop-status $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *file-drop-status |file-drop:idle
           :examples $ []
-          :schema $ :: 'Ref 'String
+          :schema $ quote $ Ref String
         '*pointer-dirty? $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *pointer-dirty? false
           :examples $ []
-          :schema $ :: 'Ref 'Bool
+          :schema $ quote $ Ref Bool
         '*pointer-status $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *pointer-status |hover:idle
           :examples $ []
-          :schema $ :: 'Ref 'String
+          :schema $ quote $ Ref String
         '*selection-end $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *selection-end 0
           :examples $ []
-          :schema $ :: 'Ref 'Number
+          :schema $ quote $ Ref Number
         '*selection-start $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *selection-start 0
           :examples $ []
-          :schema $ :: 'Ref 'Number
+          :schema $ quote $ Ref Number
         '*system-theme $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *system-theme :unknown
           :examples $ []
-          :schema $ :: 'Ref 'Tag
+          :schema $ quote $ Ref Tag
         'export-offscreen-demo! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn export-offscreen-demo! ()
             render-to-png! $ {} (:path |offscreen-demo.png) (:width 360) (:height 180)
@@ -1040,20 +1005,16 @@
             println "|Exported offscreen-demo.png / 已导出离屏快照"
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
         'handle-file-dialog-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-file-dialog-event! (payload)
-            hint-fn $ {}
-              :args $ [] 'calcit-paint.core/PaintFileDialogEvent
-              :return 'Unit
+            hint-fn $ Fn calcit-paint.core/PaintFileDialogEvent $ -> Unit
             reset! *file-drop-status $ str-spaced :file-dialog (:operation payload) (:status payload) (:request-id payload) (:path payload) (:error payload)
             reset! *pointer-dirty? true
             request-frame!
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'calcit-paint.core/PaintFileDialogEvent
+          :schema $ quote $ Fn calcit-paint.core/PaintFileDialogEvent (-> Unit)
         'handle-file-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-file-event! (kind payload)
             reset! *file-drop-status $ str-spaced kind
@@ -1062,16 +1023,14 @@
             reset! *pointer-dirty? true
             request-frame!
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'Tag 'calcit-paint.core/PaintFileEvent
+          :schema $ quote $ Fn Tag calcit-paint.core/PaintFileEvent (-> Unit)
         'handle-file-hover-cancel! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-file-hover-cancel! (payload)
             reset! *file-drop-status $ str-spaced :file-hover-cancel |@ (:x payload) (:y payload)
             reset! *pointer-dirty? true
             request-frame!
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'calcit-paint.core/PaintFileHoverCancelEvent
+          :schema $ quote $ Fn calcit-paint.core/PaintFileHoverCancelEvent (-> Unit)
         'handle-paint-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-paint-event! (event)
             match event
@@ -1172,8 +1131,7 @@
               (:window-close payload) (println |window-close: payload)
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'calcit-paint.core/PaintEvent
+          :schema $ quote $ Fn calcit-paint.core/PaintEvent (-> Unit)
         'handle-target-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-target-event! (kind target captured?)
             match
@@ -1210,8 +1168,7 @@
                 request-frame!
               _ $ println |event: kind target
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'Tag 'calcit-paint.core/PaintTarget 'Bool
+          :schema $ quote $ Fn Tag calcit-paint.core/PaintTarget Bool (-> Unit)
         'main! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn main! () (println |started)
             println $ measure-text! $ {} (:text "|Text layout / 文本排版") (:size 24) (:font-family |monospace) (:weight 700) (:style :italic) (:baseline :middle)
@@ -1219,13 +1176,11 @@
             validate-scene-demo!
             render! true
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! () (render! false) (println "|reloads 19")
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
         'render! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render! (start-loop?)
             push-drawing-data! |reset-canvas! $ if (= @*system-theme :dark) ([] 225 24 12)
@@ -1729,8 +1684,7 @@
                 fn (event) (handle-paint-event! event)
               , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'Bool
+          :schema $ quote $ Fn Bool (-> Unit)
         'toggle-animation! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn toggle-animation! ()
             if @*animation-active?
@@ -1738,8 +1692,7 @@
               do (reset! *animation-active? true) (request-frame!)
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
         'validate-scene-demo! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-scene-demo! ()
             let
@@ -1759,8 +1712,7 @@
                 raise $ str "|expected two invalid-scene diagnostics, got: " invalid-diagnostics
               , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
+          :schema $ quote $ Fn (-> Unit)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns calcit-paint.main
           :require $ calcit-paint.core :refer $ WindowOptions PaintEvent PaintTarget PaintFileDialogOptions PaintFileDialogFilter PaintFileDialogEvent launch-canvas-typed! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene request-frame! set-window-title! request-window-size! close-window! read-clipboard-text! write-clipboard-text! open-file-dialog! save-file-dialog!
@@ -1769,63 +1721,61 @@
         'ButtonOptions $ %{} 'CodeEntry
           :doc "|Options for an accessible touch button: explicit id/label/geometry plus optional target, enabled state, and colors. / 可访问触摸按钮的选项：显式 id/label/geometry，以及可选 target、enabled 状态与颜色。"
           :code $ quote $ defstruct ButtonOptions (:id 'String) (:label 'String) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
-            :action $ :: 'Option 'Dynamic
-            :path $ :: 'Option 'Dynamic
-            :data $ :: 'Option 'Dynamic
-            :enabled? $ :: 'Option 'Bool
-            :fill-color $ :: 'Option $ :: 'List 'Number
-            :text-color $ :: 'Option $ :: 'List 'Number
-            :text-size $ :: 'Option 'Number
+            :action $ quote $ Option Dynamic
+            :path $ quote $ Option Dynamic
+            :data $ quote $ Option Dynamic
+            :enabled? $ quote $ Option Bool
+            :fill-color $ quote $ Option (List Number)
+            :text-color $ quote $ Option (List Number)
+            :text-size $ quote $ Option Number
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'IconLabelOptions $ %{} 'CodeEntry
           :doc "|Options for a decorative icon + label group. / 装饰性 icon + label group 的选项。"
           :code $ quote $ defstruct IconLabelOptions (:label 'String) (:x 'Number) (:y 'Number)
-            :gap $ :: 'Option 'Number
-            :icon-radius $ :: 'Option 'Number
-            :icon-color $ :: 'Option $ :: 'List 'Number
-            :text-color $ :: 'Option $ :: 'List 'Number
-            :text-size $ :: 'Option 'Number
-            :baseline $ :: 'Option 'Tag
+            :gap $ quote $ Option Number
+            :icon-radius $ quote $ Option Number
+            :icon-color $ quote $ Option (List Number)
+            :text-color $ quote $ Option (List Number)
+            :text-size $ quote $ Option Number
+            :baseline $ quote $ Option Tag
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'TextInputOptions $ %{} 'CodeEntry
           :doc "|Options for an explicit :text-input focus area with an accessibility value. / 显式 :text-input focus area 的选项，带无障碍 value。"
           :code $ quote $ defstruct TextInputOptions (:id 'String) (:label 'String) (:value 'String) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
-            :tab-index $ :: 'Option 'Number
-            :action $ :: 'Option 'Dynamic
-            :path $ :: 'Option 'Dynamic
-            :data $ :: 'Option 'Dynamic
-            :enabled? $ :: 'Option 'Bool
-            :fill-color $ :: 'Option $ :: 'List 'Number
-            :line-color $ :: 'Option $ :: 'List 'Number
-            :line-width $ :: 'Option 'Number
-            :text-color $ :: 'Option $ :: 'List 'Number
-            :text-size $ :: 'Option 'Number
+            :tab-index $ quote $ Option Number
+            :action $ quote $ Option Dynamic
+            :path $ quote $ Option Dynamic
+            :data $ quote $ Option Dynamic
+            :enabled? $ quote $ Option Bool
+            :fill-color $ quote $ Option (List Number)
+            :line-color $ quote $ Option (List Number)
+            :line-width $ quote $ Option Number
+            :text-color $ quote $ Option (List Number)
+            :text-size $ quote $ Option Number
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'TouchContainerOptions $ %{} 'CodeEntry
           :doc "|Options for a labelled accessible touch container, including an optional :role, stroke, and nested children. / 带标签的可访问 touch 容器选项，包含可选 :role、描边与嵌套 children。"
           :code $ quote $ defstruct TouchContainerOptions (:id 'String) (:label 'String) (:role 'Tag) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
-            :action $ :: 'Option 'Dynamic
-            :path $ :: 'Option 'Dynamic
-            :data $ :: 'Option 'Dynamic
-            :cursor $ :: 'Option 'Tag
-            :enabled? $ :: 'Option 'Bool
-            :fill-color $ :: 'Option $ :: 'List 'Number
-            :line-color $ :: 'Option $ :: 'List 'Number
-            :line-width $ :: 'Option 'Number
-            :children $ :: 'Option $ :: 'List 'Dynamic
-            :text-color $ :: 'Option $ :: 'List 'Number
-            :text-size $ :: 'Option 'Number
+            :action $ quote $ Option Dynamic
+            :path $ quote $ Option Dynamic
+            :data $ quote $ Option Dynamic
+            :cursor $ quote $ Option Tag
+            :enabled? $ quote $ Option Bool
+            :fill-color $ quote $ Option (List Number)
+            :line-color $ quote $ Option (List Number)
+            :line-width $ quote $ Option Number
+            :children $ quote $ Option (List Dynamic)
+            :text-color $ quote $ Option (List Number)
+            :text-size $ quote $ Option Number
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'button $ %{} 'CodeEntry
           :doc "|Build one accessible touch-area button scene map with a centered label; :action/:path/:data stay explicit and are never hidden. / 构建一个带居中标签的可访问 touch-area button scene map；:action/:path/:data 保持显式，不会被隐藏。"
           :code $ quote $ defn button (options)
-            hint-fn $ {}
-              :args $ [] 'calcit-paint.ui/ButtonOptions
-              :return $ :: 'Map 'Tag 'Dynamic
+            hint-fn $ Fn calcit-paint.ui/ButtonOptions $ -> (Map Tag Dynamic)
             let
                 id $ :id options
                 label $ :label options
@@ -1867,9 +1817,8 @@
             let
                 scene $ button $ ButtonOptions :id |example-button :label |Save :x 40 :y 40 :dx 120 :dy 36
               assert= ([]) (validate-scene scene)
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'calcit-paint.ui/ButtonOptions
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn calcit-paint.ui/ButtonOptions
+            -> $ Map Tag Dynamic
           :tests $ [] $ %{} 'TestEntry (:name |builds-valid-button)
             :code $ quote $ let
                 scene $ button $ ButtonOptions :id |test-button :label |Test :x 1 :y 2 :dx 10 :dy 20
@@ -1878,9 +1827,7 @@
         'demo-scene $ %{} 'CodeEntry
           :doc "|Compose all scene builders into one validated scene that also works with render-to-png!. / 将所有 scene builder 组合为一个可校验、也可直接用于 render-to-png! 的场景。"
           :code $ quote $ defn demo-scene ()
-            hint-fn $ {}
-              :args $ []
-              :return $ :: 'Map 'Tag 'Dynamic
+            hint-fn $ Fn $ -> (Map Tag Dynamic)
             let
                 icon $ icon-label $ IconLabelOptions :label |Asset :x 70 :y 230 :gap (Option :some 34)
               {} (:type :group)
@@ -1891,9 +1838,8 @@
           :examples $ [] $ quote
             assert= ([])
               validate-scene $ demo-scene
-          :schema $ :: 'Fn $ {}
-            :args $ []
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn
+            -> $ Map Tag Dynamic
           :tests $ [] $ %{} 'TestEntry (:name |composes-valid-scene)
             :code $ quote $ do
               assert= ([])
@@ -1902,9 +1848,7 @@
         'icon-label $ %{} 'CodeEntry
           :doc "|Build a visual-only icon + label group; it adds no interaction or accessibility semantics. / 构建纯视觉 icon + label group；不添加交互或无障碍语义。"
           :code $ quote $ defn icon-label (options)
-            hint-fn $ {}
-              :args $ [] 'calcit-paint.ui/IconLabelOptions
-              :return $ :: 'Map 'Tag 'Dynamic
+            hint-fn $ Fn calcit-paint.ui/IconLabelOptions $ -> (Map Tag Dynamic)
             let
                 label $ :label options
                 x $ :x options
@@ -1931,9 +1875,8 @@
             let
                 scene $ icon-label $ IconLabelOptions :label |Asset :x 40 :y 220
               assert= ([]) (validate-scene scene)
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'calcit-paint.ui/IconLabelOptions
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn calcit-paint.ui/IconLabelOptions
+            -> $ Map Tag Dynamic
           :tests $ [] $ %{} 'TestEntry (:name |builds-visual-group)
             :code $ quote $ let
                 scene $ icon-label $ IconLabelOptions :label |Asset :x 1 :y 2
@@ -1942,9 +1885,7 @@
         'text-input-focus-area $ %{} 'CodeEntry
           :doc "|Build a focus-area text input with :text-input? true and a focusable :text-input accessibility node. / 构建 :text-input? true 且可聚焦 :text-input 无障碍节点的 focus-area 文本输入。"
           :code $ quote $ defn text-input-focus-area (options)
-            hint-fn $ {}
-              :args $ [] 'calcit-paint.ui/TextInputOptions
-              :return $ :: 'Map 'Tag 'Dynamic
+            hint-fn $ Fn calcit-paint.ui/TextInputOptions $ -> (Map Tag Dynamic)
             let
                 id $ :id options
                 label $ :label options
@@ -1991,9 +1932,8 @@
             let
                 scene $ text-input-focus-area $ TextInputOptions :id |example-editor :label |Editor :value |Draft :x 40 :y 160 :dx 220 :dy 40
               assert= ([]) (validate-scene scene)
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'calcit-paint.ui/TextInputOptions
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn calcit-paint.ui/TextInputOptions
+            -> $ Map Tag Dynamic
           :tests $ [] $ %{} 'TestEntry (:name |builds-valid-text-input)
             :code $ quote $ let
                 scene $ text-input-focus-area $ TextInputOptions :id |test-editor :label |Editor :value |Draft :x 1 :y 2 :dx 10 :dy 20
@@ -2002,9 +1942,7 @@
         'touch-container $ %{} 'CodeEntry
           :doc "|Build a labelled touch-area container; children use scene coordinates and are drawn above the label. / 构建带标签的 touch-area 容器；children 使用场景坐标并绘制在标签之上。"
           :code $ quote $ defn touch-container (options)
-            hint-fn $ {}
-              :args $ [] 'calcit-paint.ui/TouchContainerOptions
-              :return $ :: 'Map 'Tag 'Dynamic
+            hint-fn $ Fn calcit-paint.ui/TouchContainerOptions $ -> (Map Tag Dynamic)
             let
                 id $ :id options
                 label $ :label options
@@ -2055,9 +1993,8 @@
             let
                 scene $ touch-container $ TouchContainerOptions :id |example-card :label |Card :role :button :x 40 :y 100 :dx 160 :dy 48
               assert= ([]) (validate-scene scene)
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'calcit-paint.ui/TouchContainerOptions
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn calcit-paint.ui/TouchContainerOptions
+            -> $ Map Tag Dynamic
           :tests $ [] $ %{} 'TestEntry (:name |builds-valid-container)
             :code $ quote $ let
                 scene $ touch-container $ TouchContainerOptions :id |test-card :label |Card :role :button :x 1 :y 2 :dx 10 :dy 20
@@ -2072,22 +2009,19 @@
           :code $ quote $ defmacro get-dylib-ext ()
             match (&get-os) (:macos |.dylib) (:windows |.dll) (_ |.so)
           :examples $ []
-          :schema $ :: 'Macro $ {}
-            :capabilities $ #{} :platform-read
-            :expansion $ :: 'Expr 'String
-            :required $ []
+          :schema $ quote $ Macro
+            -> $ Expr String
+            :capabilities :platform-read
         'get-dylib-path $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn get-dylib-path (p)
             str (or-current-path calcit-dirname) p $ get-dylib-ext
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'String)
-            :args $ [] 'String
+          :schema $ quote $ Fn String (-> String)
         'or-current-path $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn or-current-path (p)
             if (blank? p) |. p
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'String)
-            :args $ [] 'String
+          :schema $ quote $ Fn String (-> String)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns calcit-paint.util
           :require $ calcit-paint.$meta :refer $ calcit-dirname calcit-filename

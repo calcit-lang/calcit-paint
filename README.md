@@ -1,6 +1,11 @@
 ## Calcit Paint
 
-当前开发工具链为已发布 `0.31.0`，仍由原 Linux/Xvfb、Rust 与 Calcit 全部门禁验收；以下源码迁移说明为既有 0.2.8 内容，本次不改 Rust renderer、ABI 或模块版本。
+当前候选模块 `0.2.9` 配对正式 Calcit `0.32.0`，通过官方 format 迁移类型标注；
+下游须同步工具链并按精确依赖构建原生库。Rust renderer、ABI、事件合同与原门禁保持，
+Cargo crate 仍为 `0.2.8`，不发布 crates.io 或 GitHub Release。候选不等于已发布 tag。
+
+Calcit 0.32.0 的 native `identical?` 对容器采用身份比较；需要结构值比较的消费者应使用 `=`。
+本轮仍需原 Linux/Xvfb、Rust、离屏渲染和 Calcit 全部门禁验收；以下为 0.2.8 历史迁移说明。
 
 > Skia-backed 2D renderer and experimental Creative Art toolkit for Calcit.
 > 基于 Skia 的 Calcit 2D 渲染器与实验性 Creative Art 工具。
@@ -86,6 +91,12 @@ rewrite rule, Dynamic/unsafe boundary or budget waiver is added.
 SVG research 的 Linux/Xvfb CI 显式选择 `svg-research,skia-safe/x11`，与实际 X11
 后端及 rust-skia 0.97.2 已发布的官方预编译组合匹配。默认构建不启用 SVG 或额外 X11
 feature，其他平台配置不变；不把需要完整源码 fallback 的任意 feature 组合称为都有预编译包。
+
+### Historical scaffold plans / 历史 scaffold
+
+`docs/architectures/` 中 12 份计划保留为历史设计输入，不是受支持的 0.32.0 重放入口。
+其中的定义已落地到当前 Snapshot，部分计划仍含旧类型或占位内容；当前 CI 和工具不读取它们。
+现行合同以官方 `query schema` / `query def`、实现及运行测试为准，不从旧计划推断当前行为。
 
 ### Usages / 使用方式
 
@@ -193,7 +204,7 @@ keeps ownership of the Skia/winit event loop, rendering state, shape decoding,
 and callback scheduling. The module tracks `calcit_native_ffi 0.1.2`; buffer
 and blocking-callback protocols remain at v1. The published `0.2.6` module
 declares Calcit `0.30.0`; current source follows `deps.cirru`
-(`0.31.0` in this migration).
+(`0.32.0` in this migration).
 
 C-safe buffer-v1/blocking-callback descriptor、ownership 规则、Cirru EDN
 transport 与 adapter 由
@@ -201,7 +212,7 @@ transport 与 adapter 由
 Paint 仍负责 Skia/winit 事件循环、绘制状态、shape 解析和回调调度；
 模块当前使用 `calcit_native_ffi 0.1.2`，buffer 与 blocking-callback protocol
 均继续保持 v1；已发布的 `0.2.6` 模块声明 Calcit `0.30.0`，当前源码以
-`deps.cirru` 为准（本轮为正式版 `0.31.0`）。
+`deps.cirru` 为准（本轮为正式版 `0.32.0`）。
 
 A custom mirror may be used for Skia binaries when it is known to be healthy:
 
