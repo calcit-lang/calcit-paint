@@ -12,6 +12,11 @@ buffer/blocking 协议仍为 v1。Calcit Snapshot、Rust renderer 和公开事�
 Calcit 0.32.0 的 native `identical?` 对容器采用身份比较；需要结构值比较的消费者应使用 `=`。
 以下保留历史迁移说明。
 
+Current user impact: candidate module and Cargo metadata `0.2.10` pair with
+Calcit `0.32.1` and `calcit_native_ffi 0.1.3`. Rebuild the matching native library;
+buffer/blocking protocols remain v1. This candidate does not publish to crates.io
+or create a GitHub Release. Earlier migration notes below are historical.
+
 > Skia-backed 2D renderer and experimental Creative Art toolkit for Calcit.
 > 基于 Skia 的 Calcit 2D 渲染器与实验性 Creative Art 工具。
 
@@ -36,7 +41,7 @@ and binary-build constraints. / SVG 有意不作为 `0.1.0` 的公开 scene node
 [SVG 资源调研](docs/svg-assets-research.md)确认 Skia 能绘制本地 SVG，同时记录诊断、
 尺寸、缓存与二进制构建方面仍需解决的约束。
 
-### 工具链升级 / Toolchain update
+### 历史工具链迁移 / Historical toolchain migrations
 
 本轮源码维护迁移十五处普通源码及一处附带示例的旧调用：UI scene Map 合并使用 `.merge`，字符串和诊断列表
 长度使用 `.len`。可选字段省略、覆盖顺序、Unicode scalar 选择索引及原断言均不变；
@@ -56,7 +61,7 @@ Linux CI 覆盖不等于完整跨平台兼容承诺。旧 tag 均不移动，Rus
 真实 wire Enum、使用闭合 `PaintEvent`，handler 在副作用之后返回 Unit。
 仍需构建本机 dylib；不新增 JS/WASM 或前端 COS/CDN 部署。
 
-User impact: candidate module `0.2.8` now pairs with Calcit `0.31.0`:
+Historical migration note: candidate module `0.2.8` paired with Calcit `0.31.0`:
 accessibility text replacement passes `slice` endpoints as `Option :some` and omits
 the endpoint when slicing to the end (calcit-lang/calcit#2213).
 Rebuild the native library from the matching source; do not reuse an older dylib.
