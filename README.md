@@ -1,11 +1,16 @@
 ## Calcit Paint
 
-当前候选模块 `0.2.9` 配对正式 Calcit `0.32.0`，通过官方 format 迁移类型标注；
-下游须同步工具链并按精确依赖构建原生库。Rust renderer、ABI、事件合同与原门禁保持，
-Cargo crate 仍为 `0.2.8`，不发布 crates.io 或 GitHub Release。候选不等于已发布 tag。
+当前候选模块与 Cargo 元数据同步为 `0.2.10`，配对正式 Calcit `0.32.1`。
+下游须同步工具链，并重新构建对应原生库；共享 `calcit_native_ffi` 从 `0.1.2` 更新到 `0.1.3`，
+buffer/blocking 协议仍为 v1。Calcit Snapshot、Rust renderer 和公开事件合同保持不变。
+候选不等于已发布 tag；本轮不发布 crates.io 或 GitHub Release。
+
+使用精确正式 Action tag，接受 tag 可移动风险并删除旧 SHA pin 专用检查；原 Rust、类型、
+文档、离屏渲染及正反 blocking smoke 门禁保留。剪贴板 smoke 仅在 Linux/Xvfb CI 运行，
+不操作维护者本机剪贴板；自动 smoke 不代表完整桌面交互或跨平台验收。
 
 Calcit 0.32.0 的 native `identical?` 对容器采用身份比较；需要结构值比较的消费者应使用 `=`。
-本轮仍需原 Linux/Xvfb、Rust、离屏渲染和 Calcit 全部门禁验收；以下为 0.2.8 历史迁移说明。
+以下保留历史迁移说明。
 
 > Skia-backed 2D renderer and experimental Creative Art toolkit for Calcit.
 > 基于 Skia 的 Calcit 2D 渲染器与实验性 Creative Art 工具。
@@ -201,18 +206,18 @@ The C-safe buffer-v1 and blocking-callback descriptors, ownership rules, Cirru
 EDN transport, and adapters are provided by
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi). Paint
 keeps ownership of the Skia/winit event loop, rendering state, shape decoding,
-and callback scheduling. The module tracks `calcit_native_ffi 0.1.2`; buffer
+and callback scheduling. The module tracks `calcit_native_ffi 0.1.3`; buffer
 and blocking-callback protocols remain at v1. The published `0.2.6` module
 declares Calcit `0.30.0`; current source follows `deps.cirru`
-(`0.32.0` in this migration).
+(`0.32.1` in this migration).
 
 C-safe buffer-v1/blocking-callback descriptor、ownership 规则、Cirru EDN
 transport 与 adapter 由
 [`calcit_native_ffi`](https://github.com/calcit-lang/calcit-native-ffi) 统一维护。
 Paint 仍负责 Skia/winit 事件循环、绘制状态、shape 解析和回调调度；
-模块当前使用 `calcit_native_ffi 0.1.2`，buffer 与 blocking-callback protocol
+模块当前使用 `calcit_native_ffi 0.1.3`，buffer 与 blocking-callback protocol
 均继续保持 v1；已发布的 `0.2.6` 模块声明 Calcit `0.30.0`，当前源码以
-`deps.cirru` 为准（本轮为正式版 `0.32.0`）。
+`deps.cirru` 为准（本轮为正式版 `0.32.1`）。
 
 A custom mirror may be used for Skia binaries when it is known to be healthy:
 
