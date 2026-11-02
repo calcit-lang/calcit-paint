@@ -7,6 +7,8 @@ buffer/blocking 协议仍为 v1。本次仅规范 Calcit 类型声明，保持 R
 
 沿用精确正式 Action tag、原 Rust、类型、文档、离屏渲染及正反 blocking smoke 门禁。
 剪贴板 smoke 仅在 Linux/Xvfb CI 运行；自动 smoke 不代表完整桌面交互或跨平台验收。
+本机 macOS SDK 27.2 的源码回退构建仍受 [Skia 绑定问题](https://github.com/rust-skia/rust-skia/issues/1331)
+影响；未修改的 main 与本候选均复现。原 Linux/Xvfb 全部门禁已通过，macOS 源码构建仍需跟进上游。
 开放场景数据与原 raw 回调仍保持真实边界，typed 事件入口继续使用既有 `PaintEvent`，
 不以不完整 union 或强转替代递归场景协议。
 
@@ -19,6 +21,9 @@ remains `0.1.3` with buffer/blocking ABI v1. Canonicalize Calcit declarations
 while preserving renderer, event/scene contracts and original tests. Raw scene
 boundaries and the existing typed PaintEvent entry remain distinct; no incomplete
 union or cast is introduced. No crates.io publication or GitHub Release.
+Local macOS SDK 27.2 source-fallback builds reproduce the upstream Skia binding
+issue linked above on both unchanged main and this candidate. Original Linux/Xvfb
+gates pass; macOS source-build support remains unresolved.
 Earlier migration notes below remain historical.
 
 > Skia-backed 2D renderer and experimental Creative Art toolkit for Calcit.
