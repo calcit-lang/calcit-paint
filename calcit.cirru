@@ -12,7 +12,7 @@
       :defs $ {}
         'PaintAccessibilityActionEvent $ %{} 'CodeEntry
           :doc "|Typed accessibility request. Operation is :focus, :activate, :set-value, :set-text-selection, or :replace-selected-text; :set-value uses value, selection operations use Unicode scalar selection-start/selection-end, and replacement adds text. / 强类型无障碍请求。operation 为 :focus、:activate、:set-value、:set-text-selection 或 :replace-selected-text；:set-value 使用 value，selection 操作使用 Unicode scalar 的 selection-start/selection-end，替换额外携带 text。"
-          :code $ quote $ defstruct PaintAccessibilityActionEvent (:id 'String) (:operation 'Tag) (:target 'calcit-paint.core/PaintTarget)
+          :code $ quote $ defstruct PaintAccessibilityActionEvent (:id String) (:operation Tag) (:target calcit-paint.core/PaintTarget)
             :value $ quote $ Option String
             :selection-start $ quote $ Option Number
             :selection-end $ quote $ Option Number
@@ -21,37 +21,37 @@
           :schema $ quote StructDef
         'PaintEvent $ %{} 'CodeEntry
           :doc "|Nominal exhaustive event protocol for typed Paint callbacks, including system theme observations. / 用于强类型 Paint callback 的 nominal 穷尽事件协议，包含系统主题观测。"
-          :code $ quote $ defenum PaintEvent (:ready) (:frame 'calcit-paint.core/PaintFrameEvent) (:mouse-down 'calcit-paint.core/PaintPointerEvent) (:mouse-up 'calcit-paint.core/PaintPointerEvent) (:mouse-move 'calcit-paint.core/PaintPointerEvent) (:mouse-leave 'calcit-paint.core/PaintPointerEvent) (:mouse-wheel 'calcit-paint.core/PaintPointerEvent) (:pointer-enter 'calcit-paint.core/PaintPointerEvent) (:pointer-leave 'calcit-paint.core/PaintPointerEvent) (:pointer-cancel 'calcit-paint.core/PaintPointerEvent) (:key-down 'calcit-paint.core/PaintKeyboardEvent) (:key-up 'calcit-paint.core/PaintKeyboardEvent) (:focus-in 'calcit-paint.core/PaintFocusEvent) (:focus-out 'calcit-paint.core/PaintFocusEvent) (:ime-enabled 'calcit-paint.core/PaintTextInputEvent) (:ime-disabled 'calcit-paint.core/PaintTextInputEvent) (:composition-start 'calcit-paint.core/PaintTextInputEvent) (:composition-update 'calcit-paint.core/PaintTextInputEvent) (:composition-end 'calcit-paint.core/PaintTextInputEvent) (:text-input 'calcit-paint.core/PaintTextInputEvent) (:file-hover 'calcit-paint.core/PaintFileEvent) (:file-drop 'calcit-paint.core/PaintFileEvent) (:file-hover-cancel 'calcit-paint.core/PaintFileHoverCancelEvent) (:file-dialog-result 'calcit-paint.core/PaintFileDialogEvent) (:accessibility-action 'calcit-paint.core/PaintAccessibilityActionEvent) (:window-focus) (:window-blur) (:resize 'calcit-paint.core/PaintWindowMetricsEvent) (:scale-factor 'calcit-paint.core/PaintWindowMetricsEvent) (:window-theme 'calcit-paint.core/PaintWindowThemeEvent) (:window-title-applied 'calcit-paint.core/PaintWindowTitleEvent) (:window-size-request 'calcit-paint.core/PaintWindowSizeEvent) (:window-close 'calcit-paint.core/PaintWindowCloseEvent)
+          :code $ quote $ defenum PaintEvent (:ready) (:frame calcit-paint.core/PaintFrameEvent) (:mouse-down calcit-paint.core/PaintPointerEvent) (:mouse-up calcit-paint.core/PaintPointerEvent) (:mouse-move calcit-paint.core/PaintPointerEvent) (:mouse-leave calcit-paint.core/PaintPointerEvent) (:mouse-wheel calcit-paint.core/PaintPointerEvent) (:pointer-enter calcit-paint.core/PaintPointerEvent) (:pointer-leave calcit-paint.core/PaintPointerEvent) (:pointer-cancel calcit-paint.core/PaintPointerEvent) (:key-down calcit-paint.core/PaintKeyboardEvent) (:key-up calcit-paint.core/PaintKeyboardEvent) (:focus-in calcit-paint.core/PaintFocusEvent) (:focus-out calcit-paint.core/PaintFocusEvent) (:ime-enabled calcit-paint.core/PaintTextInputEvent) (:ime-disabled calcit-paint.core/PaintTextInputEvent) (:composition-start calcit-paint.core/PaintTextInputEvent) (:composition-update calcit-paint.core/PaintTextInputEvent) (:composition-end calcit-paint.core/PaintTextInputEvent) (:text-input calcit-paint.core/PaintTextInputEvent) (:file-hover calcit-paint.core/PaintFileEvent) (:file-drop calcit-paint.core/PaintFileEvent) (:file-hover-cancel calcit-paint.core/PaintFileHoverCancelEvent) (:file-dialog-result calcit-paint.core/PaintFileDialogEvent) (:accessibility-action calcit-paint.core/PaintAccessibilityActionEvent) (:window-focus) (:window-blur) (:resize calcit-paint.core/PaintWindowMetricsEvent) (:scale-factor calcit-paint.core/PaintWindowMetricsEvent) (:window-theme calcit-paint.core/PaintWindowThemeEvent) (:window-title-applied calcit-paint.core/PaintWindowTitleEvent) (:window-size-request calcit-paint.core/PaintWindowSizeEvent) (:window-close calcit-paint.core/PaintWindowCloseEvent)
           :examples $ []
           :schema $ quote EnumDef
         'PaintEventFfi $ %{} 'CodeEntry
           :doc "|Internal generic envelope received from the native typed-event transport."
-          :code $ quote $ defenum PaintEventFfi ([] 'Raw) (:ready) (:frame 'Raw) (:mouse-down 'Raw) (:mouse-up 'Raw) (:mouse-move 'Raw) (:mouse-leave 'Raw) (:mouse-wheel 'Raw) (:pointer-enter 'Raw) (:pointer-leave 'Raw) (:pointer-cancel 'Raw) (:key-down 'Raw) (:key-up 'Raw) (:focus-in 'Raw) (:focus-out 'Raw) (:ime-enabled 'Raw) (:ime-disabled 'Raw) (:composition-start 'Raw) (:composition-update 'Raw) (:composition-end 'Raw) (:text-input 'Raw) (:file-hover 'Raw) (:file-drop 'Raw) (:file-hover-cancel 'Raw) (:file-dialog-result 'Raw) (:accessibility-action 'Raw) (:window-focus) (:window-blur) (:resize 'Raw) (:scale-factor 'Raw) (:window-theme 'Raw) (:window-title-applied 'Raw) (:window-size-request 'Raw) (:window-close 'Raw)
+          :code $ quote $ defenum PaintEventFfi ([] Raw) (:ready) (:frame Raw) (:mouse-down Raw) (:mouse-up Raw) (:mouse-move Raw) (:mouse-leave Raw) (:mouse-wheel Raw) (:pointer-enter Raw) (:pointer-leave Raw) (:pointer-cancel Raw) (:key-down Raw) (:key-up Raw) (:focus-in Raw) (:focus-out Raw) (:ime-enabled Raw) (:ime-disabled Raw) (:composition-start Raw) (:composition-update Raw) (:composition-end Raw) (:text-input Raw) (:file-hover Raw) (:file-drop Raw) (:file-hover-cancel Raw) (:file-dialog-result Raw) (:accessibility-action Raw) (:window-focus) (:window-blur) (:resize Raw) (:scale-factor Raw) (:window-theme Raw) (:window-title-applied Raw) (:window-size-request Raw) (:window-close Raw)
           :examples $ []
           :schema $ quote EnumDef
         'PaintFileDialogEvent $ %{} 'CodeEntry
           :doc "|Typed terminal native-dialog result. Status is :selected, :cancelled, or :failed. / 强类型原生对话框终态结果。status 为 :selected、:cancelled 或 :failed。"
-          :code $ quote $ defstruct PaintFileDialogEvent (:request-id 'String) (:operation 'Tag) (:status 'Tag)
+          :code $ quote $ defstruct PaintFileDialogEvent (:request-id String) (:operation Tag) (:status Tag)
             :path $ quote $ Option FsPath
             :error $ quote $ Option String
           :examples $ []
           :schema $ quote StructDef
         'PaintFileDialogEventWire $ %{} 'CodeEntry
           :doc "|Internal UTF-8 native dialog result decoded before constructing a nominal FsPath. / 内部 UTF-8 原生对话框结果，在构造 nominal FsPath 前解码。"
-          :code $ quote $ defstruct PaintFileDialogEventWire (:request-id 'String) (:operation 'Tag) (:status 'Tag)
+          :code $ quote $ defstruct PaintFileDialogEventWire (:request-id String) (:operation Tag) (:status Tag)
             :path $ quote $ Option String
             :error $ quote $ Option String
           :examples $ []
           :schema $ quote StructDef
         'PaintFileDialogFilter $ %{} 'CodeEntry
           :doc "|One native file dialog filter with a human label and extensions without leading dots. / 原生文件对话框过滤器，含人类可读标签与不带前导点的扩展名。"
-          :code $ quote $ defstruct PaintFileDialogFilter (:name 'String)
+          :code $ quote $ defstruct PaintFileDialogFilter (:name String)
             :extensions $ quote $ List String
           :examples $ []
           :schema $ quote StructDef
         'PaintFileDialogOptions $ %{} 'CodeEntry
           :doc "|Strict native dialog request options; request-id is echoed by the terminal result event. / 严格原生对话框请求配置；request-id 会在终态结果事件中原样返回。"
-          :code $ quote $ defstruct PaintFileDialogOptions (:request-id 'String)
+          :code $ quote $ defstruct PaintFileDialogOptions (:request-id String)
             :title $ quote $ Option String
             :directory $ quote $ Option FsPath
             :file-name $ quote $ Option String
@@ -60,44 +60,44 @@
           :schema $ quote StructDef
         'PaintFileEvent $ %{} 'CodeEntry
           :doc "|Typed file hover/drop payload with a nominal Calcit filesystem path."
-          :code $ quote $ defstruct PaintFileEvent (:path 'FsPath) (:x 'Number) (:y 'Number) (:modifiers 'calcit-paint.core/PaintModifiers)
+          :code $ quote $ defstruct PaintFileEvent (:path FsPath) (:x Number) (:y Number) (:modifiers calcit-paint.core/PaintModifiers)
           :examples $ []
           :schema $ quote StructDef
         'PaintFileEventWire $ %{} 'CodeEntry
           :doc "|Internal UTF-8 wire payload decoded before constructing a nominal FsPath."
-          :code $ quote $ defstruct PaintFileEventWire (:path 'String) (:x 'Number) (:y 'Number) (:modifiers 'calcit-paint.core/PaintModifiers)
+          :code $ quote $ defstruct PaintFileEventWire (:path String) (:x Number) (:y Number) (:modifiers calcit-paint.core/PaintModifiers)
           :examples $ []
           :schema $ quote StructDef
         'PaintFileHoverCancelEvent $ %{} 'CodeEntry
           :doc "|Typed file-hover cancellation payload without a fabricated path."
-          :code $ quote $ defstruct PaintFileHoverCancelEvent (:x 'Number) (:y 'Number) (:modifiers 'calcit-paint.core/PaintModifiers)
+          :code $ quote $ defstruct PaintFileHoverCancelEvent (:x Number) (:y Number) (:modifiers calcit-paint.core/PaintModifiers)
           :examples $ []
           :schema $ quote StructDef
         'PaintFocusEvent $ %{} 'CodeEntry (:doc "|Typed focus transition payload.")
-          :code $ quote $ defstruct PaintFocusEvent (:focus-id 'String)
+          :code $ quote $ defstruct PaintFocusEvent (:focus-id String)
             :related-focus-id $ quote $ Option String
-            :reason 'Tag
-            :target 'calcit-paint.core/PaintTarget
+            :reason Tag
+            :target calcit-paint.core/PaintTarget
           :examples $ []
           :schema $ quote StructDef
         'PaintFrameEvent $ %{} 'CodeEntry (:doc "|Typed on-demand animation frame payload.")
-          :code $ quote $ defstruct PaintFrameEvent (:frame 'Number) (:timestamp-ms 'Number) (:delta-ms 'Number) (:width 'Number) (:height 'Number) (:scale-factor 'Number)
+          :code $ quote $ defstruct PaintFrameEvent (:frame Number) (:timestamp-ms Number) (:delta-ms Number) (:width Number) (:height Number) (:scale-factor Number)
           :examples $ []
           :schema $ quote StructDef
         'PaintKeyboardEvent $ %{} 'CodeEntry (:doc "|Typed logical and physical keyboard payload.")
-          :code $ quote $ defstruct PaintKeyboardEvent (:key-code 'Number) (:physical-key 'String) (:name 'String) (:modifiers 'calcit-paint.core/PaintModifiers)
+          :code $ quote $ defstruct PaintKeyboardEvent (:key-code Number) (:physical-key String) (:name String) (:modifiers calcit-paint.core/PaintModifiers)
             :focus-id $ quote $ Option String
             :shortcut? $ quote $ Option Bool
-            :target 'calcit-paint.core/PaintTarget
+            :target calcit-paint.core/PaintTarget
           :examples $ []
           :schema $ quote StructDef
         'PaintModifiers $ %{} 'CodeEntry (:doc "|Closed keyboard and pointer modifier state.")
-          :code $ quote $ defstruct PaintModifiers (:shift? 'Bool) (:control? 'Bool) (:alt? 'Bool) (:super? 'Bool)
+          :code $ quote $ defstruct PaintModifiers (:shift? Bool) (:control? Bool) (:alt? Bool) (:super? Bool)
           :examples $ []
           :schema $ quote StructDef
         'PaintPointerEvent $ %{} 'CodeEntry
           :doc "|Typed pointer, mouse, hover, cancellation, and wheel payload."
-          :code $ quote $ defstruct PaintPointerEvent (:x 'Number) (:y 'Number) (:clicks 'Number) (:modifiers 'calcit-paint.core/PaintModifiers) (:target 'calcit-paint.core/PaintTarget)
+          :code $ quote $ defstruct PaintPointerEvent (:x Number) (:y Number) (:clicks Number) (:modifiers calcit-paint.core/PaintModifiers) (:target calcit-paint.core/PaintTarget)
             :dx $ quote $ Option Number
             :dy $ quote $ Option Number
             :button $ quote $ Option Tag
@@ -111,11 +111,11 @@
           :schema $ quote StructDef
         'PaintSceneDiagnostic $ %{} 'CodeEntry
           :doc "|Stable scene validation record; path and code are automation contracts while message may improve. / 稳定场景校验记录；path 与 code 是自动化契约，message 可持续改进。"
-          :code $ quote $ defstruct PaintSceneDiagnostic (:path 'String) (:code 'Tag)
+          :code $ quote $ defstruct PaintSceneDiagnostic (:path String) (:code Tag)
             :field $ quote $ Option String
-            :expected 'String
-            :actual 'String
-            :message 'String
+            :expected String
+            :actual String
+            :message String
           :examples $ []
           :schema $ quote StructDef
         'PaintTarget $ %{} 'CodeEntry
@@ -128,41 +128,41 @@
           :schema $ quote StructDef
         'PaintTextInputEvent $ %{} 'CodeEntry
           :doc "|Typed IME composition and committed text payload."
-          :code $ quote $ defstruct PaintTextInputEvent (:focus-id 'String) (:text 'String)
+          :code $ quote $ defstruct PaintTextInputEvent (:focus-id String) (:text String)
             :cursor-start $ quote $ Option Number
             :cursor-end $ quote $ Option Number
             :cancelled? $ quote $ Option Bool
-            :target 'calcit-paint.core/PaintTarget
+            :target calcit-paint.core/PaintTarget
           :examples $ []
           :schema $ quote StructDef
         'PaintWindowCloseEvent $ %{} 'CodeEntry (:doc "|Typed exactly-once window close payload.")
-          :code $ quote $ defstruct PaintWindowCloseEvent (:reason 'Tag)
+          :code $ quote $ defstruct PaintWindowCloseEvent (:reason Tag)
           :examples $ []
           :schema $ quote StructDef
         'PaintWindowMetricsEvent $ %{} 'CodeEntry (:doc "|Typed logical window metrics and scale payload.")
-          :code $ quote $ defstruct PaintWindowMetricsEvent (:width 'Number) (:height 'Number) (:scale-factor 'Number)
+          :code $ quote $ defstruct PaintWindowMetricsEvent (:width Number) (:height Number) (:scale-factor Number)
           :examples $ []
           :schema $ quote StructDef
         'PaintWindowSizeEvent $ %{} 'CodeEntry (:doc "|Typed logical-size request acknowledgement.")
-          :code $ quote $ defstruct PaintWindowSizeEvent (:status 'Tag) (:requested-width 'Number) (:requested-height 'Number)
+          :code $ quote $ defstruct PaintWindowSizeEvent (:status Tag) (:requested-width Number) (:requested-height Number)
             :actual-width $ quote $ Option Number
             :actual-height $ quote $ Option Number
             :matched? $ quote $ Option Bool
-            :scale-factor 'Number
+            :scale-factor Number
           :examples $ []
           :schema $ quote StructDef
         'PaintWindowThemeEvent $ %{} 'CodeEntry
           :doc "|Typed system theme payload: :light, :dark, or :unknown, plus whether it is the initial observation. / 强类型系统主题 payload：:light、:dark 或 :unknown，并标明是否为初始观测。"
-          :code $ quote $ defstruct PaintWindowThemeEvent (:theme 'Tag) (:initial? 'Bool)
+          :code $ quote $ defstruct PaintWindowThemeEvent (:theme Tag) (:initial? Bool)
           :examples $ []
           :schema $ quote StructDef
         'PaintWindowTitleEvent $ %{} 'CodeEntry (:doc "|Typed applied window-title acknowledgement.")
-          :code $ quote $ defstruct PaintWindowTitleEvent (:title 'String)
+          :code $ quote $ defstruct PaintWindowTitleEvent (:title String)
           :examples $ []
           :schema $ quote StructDef
         'WindowOptions $ %{} 'CodeEntry
           :doc "|Strict startup configuration for the single Paint window."
-          :code $ quote $ defstruct WindowOptions (:title 'String) (:width 'Number) (:height 'Number) (:min-width 'Number) (:min-height 'Number) (:resizable? 'Bool)
+          :code $ quote $ defstruct WindowOptions (:title String) (:width Number) (:height Number) (:min-width Number) (:min-height Number) (:resizable? Bool)
           :examples $ []
           :schema $ quote StructDef
         'blur! $ %{} 'CodeEntry (:doc |)
@@ -175,7 +175,7 @@
           :code $ quote $ defn check-resources! (scene)
             decode-map-as
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |check_resources scene
-              :: 'List 'PaintSceneDiagnostic
+              quote $ List PaintSceneDiagnostic
           :examples $ [] $ quote
             let
                 scene $ {} (:type :group)
@@ -363,7 +363,7 @@
           :code $ quote $ defn measure-paragraph! (data)
             decode-map-as
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_paragraph data
-              :: 'Map 'Tag 'Number
+              quote $ Map Tag Number
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic)
             -> $ Map Tag Number
@@ -371,7 +371,7 @@
           :code $ quote $ defn measure-text! (data)
             decode-map-as
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_text data
-              :: 'Map 'Tag 'Number
+              quote $ Map Tag Number
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic)
             -> $ Map Tag Number
@@ -577,7 +577,7 @@
           :code $ quote $ defn validate-scene (scene)
             decode-map-as
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |validate_scene scene
-              :: 'List 'String
+              quote $ List String
           :examples $ [] $ quote
             validate-scene $ {} (:type :rectangle)
               :position $ [] 20 20
@@ -592,7 +592,7 @@
           :code $ quote $ defn validate-scene-structured (scene)
             decode-map-as
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |validate_scene_structured scene
-              :: 'List 'PaintSceneDiagnostic
+              quote $ List PaintSceneDiagnostic
           :examples $ [] $ quote
             let
                 invalid-scene $ {} (:type :group)
@@ -1720,7 +1720,7 @@
       :defs $ {}
         'ButtonOptions $ %{} 'CodeEntry
           :doc "|Options for an accessible touch button: explicit id/label/geometry plus optional target, enabled state, and colors. / 可访问触摸按钮的选项：显式 id/label/geometry，以及可选 target、enabled 状态与颜色。"
-          :code $ quote $ defstruct ButtonOptions (:id 'String) (:label 'String) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
+          :code $ quote $ defstruct ButtonOptions (:id String) (:label String) (:x Number) (:y Number) (:dx Number) (:dy Number)
             :action $ quote $ Option Dynamic
             :path $ quote $ Option Dynamic
             :data $ quote $ Option Dynamic
@@ -1732,7 +1732,7 @@
           :schema $ quote StructDef
         'IconLabelOptions $ %{} 'CodeEntry
           :doc "|Options for a decorative icon + label group. / 装饰性 icon + label group 的选项。"
-          :code $ quote $ defstruct IconLabelOptions (:label 'String) (:x 'Number) (:y 'Number)
+          :code $ quote $ defstruct IconLabelOptions (:label String) (:x Number) (:y Number)
             :gap $ quote $ Option Number
             :icon-radius $ quote $ Option Number
             :icon-color $ quote $ Option (List Number)
@@ -1743,7 +1743,7 @@
           :schema $ quote StructDef
         'TextInputOptions $ %{} 'CodeEntry
           :doc "|Options for an explicit :text-input focus area with an accessibility value. / 显式 :text-input focus area 的选项，带无障碍 value。"
-          :code $ quote $ defstruct TextInputOptions (:id 'String) (:label 'String) (:value 'String) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
+          :code $ quote $ defstruct TextInputOptions (:id String) (:label String) (:value String) (:x Number) (:y Number) (:dx Number) (:dy Number)
             :tab-index $ quote $ Option Number
             :action $ quote $ Option Dynamic
             :path $ quote $ Option Dynamic
@@ -1758,7 +1758,7 @@
           :schema $ quote StructDef
         'TouchContainerOptions $ %{} 'CodeEntry
           :doc "|Options for a labelled accessible touch container, including an optional :role, stroke, and nested children. / 带标签的可访问 touch 容器选项，包含可选 :role、描边与嵌套 children。"
-          :code $ quote $ defstruct TouchContainerOptions (:id 'String) (:label 'String) (:role 'Tag) (:x 'Number) (:y 'Number) (:dx 'Number) (:dy 'Number)
+          :code $ quote $ defstruct TouchContainerOptions (:id String) (:label String) (:role Tag) (:x Number) (:y Number) (:dx Number) (:dy Number)
             :action $ quote $ Option Dynamic
             :path $ quote $ Option Dynamic
             :data $ quote $ Option Dynamic
