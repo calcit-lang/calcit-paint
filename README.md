@@ -1,6 +1,15 @@
 ## Calcit Paint
 
-当前候选模块与 Cargo 元数据同步为 `0.2.11`，配对正式 Calcit `0.34.0`。
+候选 **0.2.12** 配对正式 Calcit **0.38.0**。下游升级后需重新构建对应平台的
+Paint 原生库。共享 `calcit_native_ffi` 仍为 0.1.3，buffer/blocking ABI 使用 v1。
+
+本轮迁移已移除的旧类型语法，使 Corokia 等消费者能加载模块。
+typed 入口继续使用具名 `PaintEvent`，兼容解码入口接收外部 Enum。
+场景格式、事件载荷和 Rust 绘制逻辑沿用原合同。
+
+### 历史 0.2.11 / Calcit 0.34.0
+
+当时的候选模块与 Cargo 元数据同步为 `0.2.11`，配对正式 Calcit `0.34.0`。
 下游须同步工具链，并重新构建对应原生库；共享 `calcit_native_ffi` 保持 `0.1.3`，
 buffer/blocking 协议仍为 v1。本次仅规范 Calcit 类型声明，保持 Rust renderer、事件合同、
 场景格式与原测试；候选不等于已发布 tag，本轮不发布 crates.io 或 GitHub Release。
@@ -15,7 +24,7 @@ buffer/blocking 协议仍为 v1。本次仅规范 Calcit 类型声明，保持 R
 Calcit 0.32.0 的 native `identical?` 对容器采用身份比较；需要结构值比较的消费者应使用 `=`。
 以下保留历史迁移说明。
 
-Current user impact: candidate module and Cargo metadata `0.2.11` pair with
+Historical user impact: candidate module and Cargo metadata `0.2.11` pair with
 Calcit `0.34.0`; rebuild the matching native library. Shared `calcit_native_ffi`
 remains `0.1.3` with buffer/blocking ABI v1. Canonicalize Calcit declarations
 while preserving renderer, event/scene contracts and original tests. Raw scene
@@ -223,7 +232,7 @@ keeps ownership of the Skia/winit event loop, rendering state, shape decoding,
 and callback scheduling. The module tracks `calcit_native_ffi 0.1.3`; buffer
 and blocking-callback protocols remain at v1. The published `0.2.6` module
 declares Calcit `0.30.0`; current source follows `deps.cirru`
-(`0.34.0` in this migration).
+(`0.38.0` in this migration).
 
 C-safe buffer-v1/blocking-callback descriptor、ownership 规则、Cirru EDN
 transport 与 adapter 由
@@ -231,7 +240,7 @@ transport 与 adapter 由
 Paint 仍负责 Skia/winit 事件循环、绘制状态、shape 解析和回调调度；
 模块当前使用 `calcit_native_ffi 0.1.3`，buffer 与 blocking-callback protocol
 均继续保持 v1；已发布的 `0.2.6` 模块声明 Calcit `0.30.0`，当前源码以
-`deps.cirru` 为准（本轮为正式版 `0.34.0`）。
+`deps.cirru` 为准（本轮为正式版 `0.38.0`）。
 
 A custom mirror may be used for Skia binaries when it is known to be healthy:
 

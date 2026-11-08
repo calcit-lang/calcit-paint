@@ -13,10 +13,10 @@
         'PaintAccessibilityActionEvent $ %{} 'CodeEntry
           :doc "|Typed accessibility request. Operation is :focus, :activate, :set-value, :set-text-selection, or :replace-selected-text; :set-value uses value, selection operations use Unicode scalar selection-start/selection-end, and replacement adds text. / 强类型无障碍请求。operation 为 :focus、:activate、:set-value、:set-text-selection 或 :replace-selected-text；:set-value 使用 value，selection 操作使用 Unicode scalar 的 selection-start/selection-end，替换额外携带 text。"
           :code $ quote $ defstruct PaintAccessibilityActionEvent (:id String) (:operation Tag) (:target calcit-paint.core/PaintTarget)
-            :value $ quote $ Option String
-            :selection-start $ quote $ Option Number
-            :selection-end $ quote $ Option Number
-            :text $ quote $ Option String
+            :value $ Option String
+            :selection-start $ Option Number
+            :selection-end $ Option Number
+            :text $ Option String
           :examples $ []
           :schema $ quote StructDef
         'PaintEvent $ %{} 'CodeEntry
@@ -32,30 +32,30 @@
         'PaintFileDialogEvent $ %{} 'CodeEntry
           :doc "|Typed terminal native-dialog result. Status is :selected, :cancelled, or :failed. / 强类型原生对话框终态结果。status 为 :selected、:cancelled 或 :failed。"
           :code $ quote $ defstruct PaintFileDialogEvent (:request-id String) (:operation Tag) (:status Tag)
-            :path $ quote $ Option FsPath
-            :error $ quote $ Option String
+            :path $ Option FsPath
+            :error $ Option String
           :examples $ []
           :schema $ quote StructDef
         'PaintFileDialogEventWire $ %{} 'CodeEntry
           :doc "|Internal UTF-8 native dialog result decoded before constructing a nominal FsPath. / 内部 UTF-8 原生对话框结果，在构造 nominal FsPath 前解码。"
           :code $ quote $ defstruct PaintFileDialogEventWire (:request-id String) (:operation Tag) (:status Tag)
-            :path $ quote $ Option String
-            :error $ quote $ Option String
+            :path $ Option String
+            :error $ Option String
           :examples $ []
           :schema $ quote StructDef
         'PaintFileDialogFilter $ %{} 'CodeEntry
           :doc "|One native file dialog filter with a human label and extensions without leading dots. / 原生文件对话框过滤器，含人类可读标签与不带前导点的扩展名。"
           :code $ quote $ defstruct PaintFileDialogFilter (:name String)
-            :extensions $ quote $ List String
+            :extensions $ List String
           :examples $ []
           :schema $ quote StructDef
         'PaintFileDialogOptions $ %{} 'CodeEntry
           :doc "|Strict native dialog request options; request-id is echoed by the terminal result event. / 严格原生对话框请求配置；request-id 会在终态结果事件中原样返回。"
           :code $ quote $ defstruct PaintFileDialogOptions (:request-id String)
-            :title $ quote $ Option String
-            :directory $ quote $ Option FsPath
-            :file-name $ quote $ Option String
-            :filters $ quote $ List calcit-paint.core/PaintFileDialogFilter
+            :title $ Option String
+            :directory $ Option FsPath
+            :file-name $ Option String
+            :filters $ List calcit-paint.core/PaintFileDialogFilter
           :examples $ []
           :schema $ quote StructDef
         'PaintFileEvent $ %{} 'CodeEntry
@@ -75,7 +75,7 @@
           :schema $ quote StructDef
         'PaintFocusEvent $ %{} 'CodeEntry (:doc "|Typed focus transition payload.")
           :code $ quote $ defstruct PaintFocusEvent (:focus-id String)
-            :related-focus-id $ quote $ Option String
+            :related-focus-id $ Option String
             :reason Tag
             :target calcit-paint.core/PaintTarget
           :examples $ []
@@ -86,8 +86,8 @@
           :schema $ quote StructDef
         'PaintKeyboardEvent $ %{} 'CodeEntry (:doc "|Typed logical and physical keyboard payload.")
           :code $ quote $ defstruct PaintKeyboardEvent (:key-code Number) (:physical-key String) (:name String) (:modifiers calcit-paint.core/PaintModifiers)
-            :focus-id $ quote $ Option String
-            :shortcut? $ quote $ Option Bool
+            :focus-id $ Option String
+            :shortcut? $ Option Bool
             :target calcit-paint.core/PaintTarget
           :examples $ []
           :schema $ quote StructDef
@@ -98,21 +98,21 @@
         'PaintPointerEvent $ %{} 'CodeEntry
           :doc "|Typed pointer, mouse, hover, cancellation, and wheel payload."
           :code $ quote $ defstruct PaintPointerEvent (:x Number) (:y Number) (:clicks Number) (:modifiers calcit-paint.core/PaintModifiers) (:target calcit-paint.core/PaintTarget)
-            :dx $ quote $ Option Number
-            :dy $ quote $ Option Number
-            :button $ quote $ Option Tag
-            :button-id $ quote $ Option Number
-            :cursor $ quote $ Option Tag
-            :captured? $ quote $ Option Bool
-            :cancelled? $ quote $ Option Bool
-            :reason $ quote $ Option Tag
-            :unit $ quote $ Option Tag
+            :dx $ Option Number
+            :dy $ Option Number
+            :button $ Option Tag
+            :button-id $ Option Number
+            :cursor $ Option Tag
+            :captured? $ Option Bool
+            :cancelled? $ Option Bool
+            :reason $ Option Tag
+            :unit $ Option Tag
           :examples $ []
           :schema $ quote StructDef
         'PaintSceneDiagnostic $ %{} 'CodeEntry
           :doc "|Stable scene validation record; path and code are automation contracts while message may improve. / 稳定场景校验记录；path 与 code 是自动化契约，message 可持续改进。"
           :code $ quote $ defstruct PaintSceneDiagnostic (:path String) (:code Tag)
-            :field $ quote $ Option String
+            :field $ Option String
             :expected String
             :actual String
             :message String
@@ -121,17 +121,17 @@
         'PaintTarget $ %{} 'CodeEntry
           :doc "|Application-defined target values kept at one explicit open boundary."
           :code $ quote $ defstruct PaintTarget
-            :action $ quote $ Option Dynamic
-            :path $ quote $ Option Dynamic
-            :data $ quote $ Option Dynamic
+            :action $ Option Dynamic
+            :path $ Option Dynamic
+            :data $ Option Dynamic
           :examples $ []
           :schema $ quote StructDef
         'PaintTextInputEvent $ %{} 'CodeEntry
           :doc "|Typed IME composition and committed text payload."
           :code $ quote $ defstruct PaintTextInputEvent (:focus-id String) (:text String)
-            :cursor-start $ quote $ Option Number
-            :cursor-end $ quote $ Option Number
-            :cancelled? $ quote $ Option Bool
+            :cursor-start $ Option Number
+            :cursor-end $ Option Number
+            :cancelled? $ Option Bool
             :target calcit-paint.core/PaintTarget
           :examples $ []
           :schema $ quote StructDef
@@ -145,9 +145,9 @@
           :schema $ quote StructDef
         'PaintWindowSizeEvent $ %{} 'CodeEntry (:doc "|Typed logical-size request acknowledgement.")
           :code $ quote $ defstruct PaintWindowSizeEvent (:status Tag) (:requested-width Number) (:requested-height Number)
-            :actual-width $ quote $ Option Number
-            :actual-height $ quote $ Option Number
-            :matched? $ quote $ Option Bool
+            :actual-width $ Option Number
+            :actual-height $ Option Number
+            :matched? $ Option Bool
             :scale-factor Number
           :examples $ []
           :schema $ quote StructDef
@@ -175,7 +175,7 @@
           :code $ quote $ defn check-resources! (scene)
             decode-map-as
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |check_resources scene
-              quote $ List PaintSceneDiagnostic
+              List PaintSceneDiagnostic
           :examples $ [] $ quote
             let
                 scene $ {} (:type :group)
@@ -312,7 +312,10 @@
                 PaintEvent :window-close $ decode-map-as payload PaintWindowCloseEvent
               _ $ raise |unsupported-paint-wire-event
           :examples $ []
-          :schema $ quote $ Fn Enum (-> calcit-paint.core/PaintEvent)
+          :schema $ quote $ Fn AnyEnum (-> calcit-paint.core/PaintEvent) (:open :decode)
+          :tests $ [] $ %{} 'TestEntry (:name |accepts-distinct-nominal-enum)
+            :code $ quote $ assert= (PaintEvent :ready)
+              decode-paint-event-wire $ PaintEvent :ready
         'focus! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn focus! (id)
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |request_focus id
@@ -363,7 +366,7 @@
           :code $ quote $ defn measure-paragraph! (data)
             decode-map-as
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_paragraph data
-              quote $ Map Tag Number
+              Map Tag Number
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic)
             -> $ Map Tag Number
@@ -371,7 +374,7 @@
           :code $ quote $ defn measure-text! (data)
             decode-map-as
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_text data
-              quote $ Map Tag Number
+              Map Tag Number
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic)
             -> $ Map Tag Number
@@ -577,7 +580,7 @@
           :code $ quote $ defn validate-scene (scene)
             decode-map-as
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |validate_scene scene
-              quote $ List String
+              List String
           :examples $ [] $ quote
             validate-scene $ {} (:type :rectangle)
               :position $ [] 20 20
@@ -592,7 +595,7 @@
           :code $ quote $ defn validate-scene-structured (scene)
             decode-map-as
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |validate_scene_structured scene
-              quote $ List PaintSceneDiagnostic
+              List PaintSceneDiagnostic
           :examples $ [] $ quote
             let
                 invalid-scene $ {} (:type :group)
@@ -1721,55 +1724,55 @@
         'ButtonOptions $ %{} 'CodeEntry
           :doc "|Options for an accessible touch button: explicit id/label/geometry plus optional target, enabled state, and colors. / 可访问触摸按钮的选项：显式 id/label/geometry，以及可选 target、enabled 状态与颜色。"
           :code $ quote $ defstruct ButtonOptions (:id String) (:label String) (:x Number) (:y Number) (:dx Number) (:dy Number)
-            :action $ quote $ Option Dynamic
-            :path $ quote $ Option Dynamic
-            :data $ quote $ Option Dynamic
-            :enabled? $ quote $ Option Bool
-            :fill-color $ quote $ Option (List Number)
-            :text-color $ quote $ Option (List Number)
-            :text-size $ quote $ Option Number
+            :action $ Option Dynamic
+            :path $ Option Dynamic
+            :data $ Option Dynamic
+            :enabled? $ Option Bool
+            :fill-color $ Option $ List Number
+            :text-color $ Option $ List Number
+            :text-size $ Option Number
           :examples $ []
           :schema $ quote StructDef
         'IconLabelOptions $ %{} 'CodeEntry
           :doc "|Options for a decorative icon + label group. / 装饰性 icon + label group 的选项。"
           :code $ quote $ defstruct IconLabelOptions (:label String) (:x Number) (:y Number)
-            :gap $ quote $ Option Number
-            :icon-radius $ quote $ Option Number
-            :icon-color $ quote $ Option (List Number)
-            :text-color $ quote $ Option (List Number)
-            :text-size $ quote $ Option Number
-            :baseline $ quote $ Option Tag
+            :gap $ Option Number
+            :icon-radius $ Option Number
+            :icon-color $ Option $ List Number
+            :text-color $ Option $ List Number
+            :text-size $ Option Number
+            :baseline $ Option Tag
           :examples $ []
           :schema $ quote StructDef
         'TextInputOptions $ %{} 'CodeEntry
           :doc "|Options for an explicit :text-input focus area with an accessibility value. / 显式 :text-input focus area 的选项，带无障碍 value。"
           :code $ quote $ defstruct TextInputOptions (:id String) (:label String) (:value String) (:x Number) (:y Number) (:dx Number) (:dy Number)
-            :tab-index $ quote $ Option Number
-            :action $ quote $ Option Dynamic
-            :path $ quote $ Option Dynamic
-            :data $ quote $ Option Dynamic
-            :enabled? $ quote $ Option Bool
-            :fill-color $ quote $ Option (List Number)
-            :line-color $ quote $ Option (List Number)
-            :line-width $ quote $ Option Number
-            :text-color $ quote $ Option (List Number)
-            :text-size $ quote $ Option Number
+            :tab-index $ Option Number
+            :action $ Option Dynamic
+            :path $ Option Dynamic
+            :data $ Option Dynamic
+            :enabled? $ Option Bool
+            :fill-color $ Option $ List Number
+            :line-color $ Option $ List Number
+            :line-width $ Option Number
+            :text-color $ Option $ List Number
+            :text-size $ Option Number
           :examples $ []
           :schema $ quote StructDef
         'TouchContainerOptions $ %{} 'CodeEntry
           :doc "|Options for a labelled accessible touch container, including an optional :role, stroke, and nested children. / 带标签的可访问 touch 容器选项，包含可选 :role、描边与嵌套 children。"
           :code $ quote $ defstruct TouchContainerOptions (:id String) (:label String) (:role Tag) (:x Number) (:y Number) (:dx Number) (:dy Number)
-            :action $ quote $ Option Dynamic
-            :path $ quote $ Option Dynamic
-            :data $ quote $ Option Dynamic
-            :cursor $ quote $ Option Tag
-            :enabled? $ quote $ Option Bool
-            :fill-color $ quote $ Option (List Number)
-            :line-color $ quote $ Option (List Number)
-            :line-width $ quote $ Option Number
-            :children $ quote $ Option (List Dynamic)
-            :text-color $ quote $ Option (List Number)
-            :text-size $ quote $ Option Number
+            :action $ Option Dynamic
+            :path $ Option Dynamic
+            :data $ Option Dynamic
+            :cursor $ Option Tag
+            :enabled? $ Option Bool
+            :fill-color $ Option $ List Number
+            :line-color $ Option $ List Number
+            :line-width $ Option Number
+            :children $ Option $ List Dynamic
+            :text-color $ Option $ List Number
+            :text-size $ Option Number
           :examples $ []
           :schema $ quote StructDef
         'button $ %{} 'CodeEntry
