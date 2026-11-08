@@ -313,6 +313,9 @@
               _ $ raise |unsupported-paint-wire-event
           :examples $ []
           :schema $ quote $ Fn AnyEnum (-> calcit-paint.core/PaintEvent) (:open :decode)
+          :tests $ [] $ %{} 'TestEntry (:name |accepts-distinct-nominal-enum)
+            :code $ quote $ assert= (PaintEvent :ready)
+              decode-paint-event-wire $ PaintEvent :ready
         'focus! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn focus! (id)
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |request_focus id
