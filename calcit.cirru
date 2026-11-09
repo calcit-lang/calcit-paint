@@ -368,16 +368,18 @@
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_paragraph data
               Map Tag Number
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic)
+          :schema $ quote $ Fn (Map Tag V)
             -> $ Map Tag Number
+            :generics V
         'measure-text! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn measure-text! (data)
             decode-map-as
               &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |measure_text data
               Map Tag Number
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic)
+          :schema $ quote $ Fn (Map Tag V)
             -> $ Map Tag Number
+            :generics V
         'open-file-dialog! $ %{} 'CodeEntry
           :doc "|Queue one native open-file dialog; its result is delivered later as :file-dialog-result. / 请求一个原生打开文件对话框；结果稍后以 :file-dialog-result 送达。"
           :code $ quote $ defn open-file-dialog! (options)
@@ -1011,7 +1013,6 @@
           :schema $ quote $ Fn (-> Unit)
         'handle-file-dialog-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-file-dialog-event! (payload)
-            hint-fn $ Fn calcit-paint.core/PaintFileDialogEvent $ -> Unit
             reset! *file-drop-status $ str-spaced :file-dialog (:operation payload) (:status payload) (:request-id payload) (:path payload) (:error payload)
             reset! *pointer-dirty? true
             request-frame!
@@ -1778,7 +1779,6 @@
         'button $ %{} 'CodeEntry
           :doc "|Build one accessible touch-area button scene map with a centered label; :action/:path/:data stay explicit and are never hidden. / 构建一个带居中标签的可访问 touch-area button scene map；:action/:path/:data 保持显式，不会被隐藏。"
           :code $ quote $ defn button (options)
-            hint-fn $ Fn calcit-paint.ui/ButtonOptions $ -> (Map Tag Dynamic)
             let
                 id $ :id options
                 label $ :label options
@@ -1830,7 +1830,6 @@
         'demo-scene $ %{} 'CodeEntry
           :doc "|Compose all scene builders into one validated scene that also works with render-to-png!. / 将所有 scene builder 组合为一个可校验、也可直接用于 render-to-png! 的场景。"
           :code $ quote $ defn demo-scene ()
-            hint-fn $ Fn $ -> (Map Tag Dynamic)
             let
                 icon $ icon-label $ IconLabelOptions :label |Asset :x 70 :y 230 :gap (Option :some 34)
               {} (:type :group)
@@ -1851,7 +1850,6 @@
         'icon-label $ %{} 'CodeEntry
           :doc "|Build a visual-only icon + label group; it adds no interaction or accessibility semantics. / 构建纯视觉 icon + label group；不添加交互或无障碍语义。"
           :code $ quote $ defn icon-label (options)
-            hint-fn $ Fn calcit-paint.ui/IconLabelOptions $ -> (Map Tag Dynamic)
             let
                 label $ :label options
                 x $ :x options
@@ -1888,7 +1886,6 @@
         'text-input-focus-area $ %{} 'CodeEntry
           :doc "|Build a focus-area text input with :text-input? true and a focusable :text-input accessibility node. / 构建 :text-input? true 且可聚焦 :text-input 无障碍节点的 focus-area 文本输入。"
           :code $ quote $ defn text-input-focus-area (options)
-            hint-fn $ Fn calcit-paint.ui/TextInputOptions $ -> (Map Tag Dynamic)
             let
                 id $ :id options
                 label $ :label options
@@ -1945,7 +1942,6 @@
         'touch-container $ %{} 'CodeEntry
           :doc "|Build a labelled touch-area container; children use scene coordinates and are drawn above the label. / 构建带标签的 touch-area 容器；children 使用场景坐标并绘制在标签之上。"
           :code $ quote $ defn touch-container (options)
-            hint-fn $ Fn calcit-paint.ui/TouchContainerOptions $ -> (Map Tag Dynamic)
             let
                 id $ :id options
                 label $ :label options
