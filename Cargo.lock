@@ -542,7 +542,7 @@ dependencies = [
 
 [[package]]
 name = "calcit_paint"
-version = "0.2.12"
+version = "0.2.13"
 dependencies = [
  "accesskit",
  "accesskit_winit",
