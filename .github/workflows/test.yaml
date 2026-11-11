@@ -29,6 +29,14 @@ jobs:
           # The hosted runner adds Chrome's unrelated apt source, which can be
           # temporarily inconsistent while its Release metadata is publishing.
           sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          if ! getent ahostsv4 azure.archive.ubuntu.com >/dev/null || ! getent ahostsv4 security.ubuntu.com >/dev/null; then
+            echo "Ubuntu mirror DNS failed; using the Kernel.org mirror."
+            for source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/ubuntu.sources; do
+              if [ -f "$source" ]; then
+                sudo sed -Ei 's#https?://(azure\.archive|archive|security)\.ubuntu\.com/ubuntu/?#https://mirrors.edge.kernel.org/ubuntu/#g' "$source"
+              fi
+            done
+          fi
           sudo apt-get update
           sudo apt-get install --no-install-recommends xvfb xauth libgl1-mesa-dev libgl1-mesa-dri libfontconfig1-dev libfreetype6-dev libxkbcommon-x11-0
       - name: Resolve Calcit dependencies
