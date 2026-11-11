@@ -26,7 +26,7 @@
           :schema $ quote EnumDef
         'PaintEventFfi $ %{} 'CodeEntry
           :doc "|Internal generic envelope received from the native typed-event transport."
-          :code $ quote $ defenum PaintEventFfi ([] Raw) (:ready) (:frame Raw) (:mouse-down Raw) (:mouse-up Raw) (:mouse-move Raw) (:mouse-leave Raw) (:mouse-wheel Raw) (:pointer-enter Raw) (:pointer-leave Raw) (:pointer-cancel Raw) (:key-down Raw) (:key-up Raw) (:focus-in Raw) (:focus-out Raw) (:ime-enabled Raw) (:ime-disabled Raw) (:composition-start Raw) (:composition-update Raw) (:composition-end Raw) (:text-input Raw) (:file-hover Raw) (:file-drop Raw) (:file-hover-cancel Raw) (:file-dialog-result Raw) (:accessibility-action Raw) (:window-focus) (:window-blur) (:resize Raw) (:scale-factor Raw) (:window-theme Raw) (:window-title-applied Raw) (:window-size-request Raw) (:window-close Raw)
+          :code $ quote $ defenum PaintEventFfi (:generics Raw) (:ready) (:frame Raw) (:mouse-down Raw) (:mouse-up Raw) (:mouse-move Raw) (:mouse-leave Raw) (:mouse-wheel Raw) (:pointer-enter Raw) (:pointer-leave Raw) (:pointer-cancel Raw) (:key-down Raw) (:key-up Raw) (:focus-in Raw) (:focus-out Raw) (:ime-enabled Raw) (:ime-disabled Raw) (:composition-start Raw) (:composition-update Raw) (:composition-end Raw) (:text-input Raw) (:file-hover Raw) (:file-drop Raw) (:file-hover-cancel Raw) (:file-dialog-result Raw) (:accessibility-action Raw) (:window-focus) (:window-blur) (:resize Raw) (:scale-factor Raw) (:window-theme Raw) (:window-title-applied Raw) (:window-size-request Raw) (:window-close Raw)
           :examples $ []
           :schema $ quote EnumDef
         'PaintFileDialogEvent $ %{} 'CodeEntry
@@ -394,7 +394,7 @@
             quote $ let
                 event $ paint-event-from-ffi $ PaintEventFfi :frame
                   {} (:frame 7) (:timestamp-ms 32) (:delta-ms 16) (:width 800) (:height 600) (:scale-factor 2)
-              assert-type event 'calcit-paint.core/PaintEvent
+              assert-type event PaintEvent
               match event
                 (:frame payload)
                   assert= 7 $ :frame payload
@@ -410,7 +410,7 @@
               :code $ quote $ let
                   event $ paint-event-from-ffi $ PaintEventFfi :frame
                     {} (:frame 7) (:timestamp-ms 32) (:delta-ms 16) (:width 800) (:height 600) (:scale-factor 2)
-                assert-type event 'calcit-paint.core/PaintEvent
+                assert-type event PaintEvent
                 match event
                   (:frame payload)
                     assert= 7 $ :frame payload
@@ -423,7 +423,7 @@
                       :modifiers $ {} (:shift? false) (:control? false) (:alt? false) (:super? false)
                       :target $ {} $ :action :select
                       :button :primary
-                assert-type event 'calcit-paint.core/PaintEvent
+                assert-type event PaintEvent
                 match event
                   (:mouse-down payload)
                     do
@@ -437,7 +437,7 @@
                   event $ paint-event-from-ffi $ PaintEventFfi :file-drop
                     {} (:path |/tmp/paint-demo.png) (:x 12) (:y 8)
                       :modifiers $ {} (:shift? false) (:control? false) (:alt? false) (:super? false)
-                assert-type event 'calcit-paint.core/PaintEvent
+                assert-type event PaintEvent
                 match event
                   (:file-drop payload)
                     do
@@ -450,7 +450,7 @@
                 let
                     event $ paint-event-from-ffi $ PaintEventFfi :window-theme
                       {} (:theme :dark) (:initial? false)
-                  assert-type event 'calcit-paint.core/PaintEvent
+                  assert-type event PaintEvent
                   match event
                     (:window-theme payload)
                       do
@@ -461,7 +461,7 @@
               :code $ quote $ let
                   event $ paint-event-from-ffi $ PaintEventFfi :file-dialog-result
                     {} (:request-id |open-image) (:operation :open) (:status :selected) (:path |/tmp/image.png) (:error None)
-                assert-type event 'calcit-paint.core/PaintEvent
+                assert-type event PaintEvent
                 match event
                   (:file-dialog-result payload)
                     do
@@ -474,7 +474,7 @@
                   event $ paint-event-from-ffi $ PaintEventFfi :accessibility-action
                     {} (:id |field-a) (:operation :focus)
                       :target $ {} $ :action :focus-demo
-                assert-type event 'calcit-paint.core/PaintEvent
+                assert-type event PaintEvent
                 match event
                   (:accessibility-action payload)
                     do
@@ -489,7 +489,7 @@
                   event $ paint-event-from-ffi $ PaintEventFfi :accessibility-action
                     {} (:id |field-a) (:operation :set-value) (:value |Updated)
                       :target $ {} $ :action :focus-demo
-                assert-type event 'calcit-paint.core/PaintEvent
+                assert-type event PaintEvent
                 match event
                   (:accessibility-action payload)
                     do

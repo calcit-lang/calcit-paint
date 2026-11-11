@@ -1,6 +1,6 @@
 ## Calcit Paint
 
-候选 **0.2.14** 配对正式 Calcit **0.41.0**。下游升级后需重新构建对应平台的
+候选 **0.2.14** 配对正式 Calcit **0.41.1**。下游升级后需重新构建对应平台的
 Paint 原生库。共享 `calcit_native_ffi` 仍为 0.1.3，buffer/blocking ABI 使用 v1。
 
 文字测量接口保留调用方的参数 Map 值类型，字段仍由原生测量接口校验。
@@ -232,7 +232,7 @@ keeps ownership of the Skia/winit event loop, rendering state, shape decoding,
 and callback scheduling. The module tracks `calcit_native_ffi 0.1.3`; buffer
 and blocking-callback protocols remain at v1. The published `0.2.6` module
 declares Calcit `0.30.0`; current source follows `deps.cirru`
-(`0.41.0` in this migration).
+(`0.41.1` in this migration).
 
 C-safe buffer-v1/blocking-callback descriptor、ownership 规则、Cirru EDN
 transport 与 adapter 由
@@ -240,7 +240,7 @@ transport 与 adapter 由
 Paint 仍负责 Skia/winit 事件循环、绘制状态、shape 解析和回调调度；
 模块当前使用 `calcit_native_ffi 0.1.3`，buffer 与 blocking-callback protocol
 均继续保持 v1；已发布的 `0.2.6` 模块声明 Calcit `0.30.0`，当前源码以
-`deps.cirru` 为准（本轮为正式版 `0.41.0`）。
+`deps.cirru` 为准（本轮为正式版 `0.41.1`）。
 
 A custom mirror may be used for Skia binaries when it is known to be healthy:
 
