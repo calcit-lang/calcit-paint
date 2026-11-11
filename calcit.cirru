@@ -182,7 +182,7 @@
                   :children $ [] $ {} (:type :image) (:file-path |resources/does-not-exist.png) (:x 0) (:y 0) (:w 8) (:h 8)
               check-resources! scene
           :schema $ quote $ Fn T
-            -> $ List calcit-paint.core/PaintSceneDiagnostic
+            -> $ List PaintSceneDiagnostic
             :generics T
         'close-window! $ %{} 'CodeEntry
           :doc "|Queue an orderly close request for the active Paint window."
@@ -253,9 +253,9 @@
                     path $ :path wire
                     error $ :error wire
                     path-for-event $ match path
-                      (:none) (Option :none)
+                      (:none) None
                       (:some value)
-                        Option :some $ fs:path value
+                        Some $ fs:path value
                     result $ PaintFileDialogEvent :request-id (:request-id wire) :operation (:operation wire) :status (:status wire) :path path-for-event :error error
                   match (:operation result) (:open &unit) (:save &unit)
                     _ $ raise $ str "|unsupported typed file dialog operation: " (:operation result)
@@ -312,7 +312,7 @@
                 PaintEvent :window-close $ decode-map-as payload PaintWindowCloseEvent
               _ $ raise |unsupported-paint-wire-event
           :examples $ []
-          :schema $ quote $ Fn AnyEnum (-> calcit-paint.core/PaintEvent) (:open :decode)
+          :schema $ quote $ Fn AnyEnum (-> PaintEvent) (:open :decode)
           :tests $ [] $ %{} 'TestEntry (:name |accepts-distinct-nominal-enum)
             :code $ quote $ assert= (PaintEvent :ready)
               decode-paint-event-wire $ PaintEvent :ready
@@ -348,8 +348,8 @@
               , :handled
             , &unit
           :examples $ []
-          :schema $ quote $ Fn calcit-paint.core/WindowOptions
-            Fn calcit-paint.core/PaintEvent $ -> R
+          :schema $ quote $ Fn WindowOptions
+            Fn PaintEvent $ -> R
             -> Unit
             :generics R
         'launch-canvas-with-options! $ %{} 'CodeEntry
@@ -358,7 +358,7 @@
             &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas_with_options options $ fn (event) (cb event) :handled
             , &unit
           :examples $ []
-          :schema $ quote $ Fn calcit-paint.core/WindowOptions
+          :schema $ quote $ Fn WindowOptions
             Fn Dynamic $ -> R
             -> Unit
             :generics R
@@ -386,7 +386,7 @@
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |open_file_dialog options
             , &unit
           :examples $ []
-          :schema $ quote $ Fn calcit-paint.core/PaintFileDialogOptions (-> Unit)
+          :schema $ quote $ Fn PaintFileDialogOptions (-> Unit)
         'paint-event-from-ffi $ %{} 'CodeEntry
           :doc "|Strictly decode one native typed-event envelope into the public nominal protocol, validating system theme tags and accessibility selection payloads. / 严格将原生强类型事件 envelope 解码为公开 nominal 协议，并校验系统主题 tag 与无障碍 selection payload。"
           :code $ quote $ defn paint-event-from-ffi (event) (decode-paint-event-wire event)
@@ -403,8 +403,8 @@
               {} (:path |assets/demo.png) (:x 24) (:y 36)
                 :modifiers $ {} (:shift? false) (:control? false) (:alt? false) (:super? false)
           :schema $ quote $ Fn
-            calcit-paint.core/PaintEventFfi $ Map Tag Dynamic
-            -> calcit-paint.core/PaintEvent
+            PaintEventFfi $ Map Tag Dynamic
+            -> PaintEvent
           :tests $ []
             %{} 'TestEntry (:name |decodes-frame-payload)
               :code $ quote $ let
@@ -460,8 +460,7 @@
             %{} 'TestEntry (:name |decodes-file-dialog-result)
               :code $ quote $ let
                   event $ paint-event-from-ffi $ PaintEventFfi :file-dialog-result
-                    {} (:request-id |open-image) (:operation :open) (:status :selected) (:path |/tmp/image.png)
-                      :error $ Option :none
+                    {} (:request-id |open-image) (:operation :open) (:status :selected) (:path |/tmp/image.png) (:error None)
                 assert-type event 'calcit-paint.core/PaintEvent
                 match event
                   (:file-dialog-result payload)
@@ -506,8 +505,8 @@
                   (:accessibility-action payload)
                     do
                       assert= :set-text-selection $ :operation payload
-                      assert= (Option :some 1) (:selection-start payload)
-                      assert= (Option :some 3) (:selection-end payload)
+                      assert= (Some 1) (:selection-start payload)
+                      assert= (Some 3) (:selection-end payload)
                       , &unit
                   _ $ raise |expected-accessibility-action
             %{} 'TestEntry (:name |decodes-replace-selected-text)
@@ -519,9 +518,9 @@
                   (:accessibility-action payload)
                     do
                       assert= :replace-selected-text $ :operation payload
-                      assert= (Option :some 1) (:selection-start payload)
-                      assert= (Option :some 3) (:selection-end payload)
-                      assert= (Option :some |XY) (:text payload)
+                      assert= (Some 1) (:selection-start payload)
+                      assert= (Some 3) (:selection-end payload)
+                      assert= (Some |XY) (:text payload)
                       , &unit
                   _ $ raise |expected-accessibility-action
         'push-drawing-data! $ %{} 'CodeEntry (:doc |)
@@ -563,7 +562,7 @@
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |save_file_dialog options
             , &unit
           :examples $ []
-          :schema $ quote $ Fn calcit-paint.core/PaintFileDialogOptions (-> Unit)
+          :schema $ quote $ Fn PaintFileDialogOptions (-> Unit)
         'set-resource-root! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn set-resource-root! (path)
             &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_paint) |set_resource_root path
@@ -629,20 +628,20 @@
                   assert= "|map or nil" $ :expected nested
                   assert= |true $ :actual nested
                   assert= :invalid-field $ :code effect
-                  assert= (Option :some |alpha) (:field effect)
+                  assert= (Some |alpha) (:field effect)
                   assert= "|between 0 and 1" $ :expected effect
                   assert= |1.5 $ :actual effect
                   assert= :unsupported-value $ :code resource
-                  assert= (Option :some |sampling) (:field resource)
+                  assert= (Some |sampling) (:field resource)
                   assert= |unsupported $ :actual resource
                   assert= :conflicting-fields $ :code legacy
-                  assert= (Option :some |fill-color) (:field legacy)
+                  assert= (Some |fill-color) (:field legacy)
                   assert= :cached-group-interactive $ :code cache
-                  assert= (Option :some |children) (:field cache)
+                  assert= (Some |children) (:field cache)
                 assert= no-diagnostics $ validate-scene-structured repaired-scene
                 , &unit
           :schema $ quote $ Fn T
-            -> $ List calcit-paint.core/PaintSceneDiagnostic
+            -> $ List PaintSceneDiagnostic
             :generics T
         'write-clipboard-text! $ %{} 'CodeEntry
           :doc "|Write UTF-8 text to the serialized system clipboard. / 向串行系统剪贴板写入 UTF-8 文本。"
@@ -868,7 +867,7 @@
               _ &unit
             , &unit
           :examples $ []
-          :schema $ quote $ Fn calcit-paint.core/PaintEvent (-> Unit)
+          :schema $ quote $ Fn PaintEvent (-> Unit)
         'main! $ %{} 'CodeEntry
           :doc "|Validate, then launch the runnable Creative Art Preview. / 完成校验后启动可运行的 Creative Art Preview。"
           :code $ quote $ defn main! ()
@@ -1018,7 +1017,7 @@
             request-frame!
             , &unit
           :examples $ []
-          :schema $ quote $ Fn calcit-paint.core/PaintFileDialogEvent (-> Unit)
+          :schema $ quote $ Fn PaintFileDialogEvent (-> Unit)
         'handle-file-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-file-event! (kind payload)
             reset! *file-drop-status $ str-spaced kind
@@ -1112,7 +1111,7 @@
                         end $ .unwrap-or (:selection-end payload) @*selection-end
                         replacement $ .unwrap-or (:text payload) |
                         next-value $ str
-                          slice @*accessibility-value 0 $ Option :some start
+                          slice @*accessibility-value 0 $ Some start
                           , replacement $ slice @*accessibility-value end
                       reset! *accessibility-value next-value
                       reset! *selection-start $ + start $ .len replacement
@@ -1135,7 +1134,7 @@
               (:window-close payload) (println |window-close: payload)
             , &unit
           :examples $ []
-          :schema $ quote $ Fn calcit-paint.core/PaintEvent (-> Unit)
+          :schema $ quote $ Fn PaintEvent (-> Unit)
         'handle-target-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-target-event! (kind target captured?)
             match
@@ -1150,16 +1149,16 @@
                 request-frame!
               :toggle-animation $ toggle-animation!
               :window-title $ do (set-window-title! "|Calcit Paint · open dialog / 打开文件")
-                open-file-dialog! $ PaintFileDialogOptions :request-id |demo-open :title (Option :some "|Open image / 打开图片") :directory
-                  Option :some $ fs:path |.
-                  , :file-name (Option :none) :filters $ []
+                open-file-dialog! $ PaintFileDialogOptions :request-id |demo-open :title (Some "|Open image / 打开图片") :directory
+                  Some $ fs:path |.
+                  , :file-name None :filters $ []
                     PaintFileDialogFilter :name |Images :extensions $ [] |png |jpg |jpeg
                 reset! *file-drop-status "|file-dialog:open-pending (T)"
                 request-frame!
               :window-size $ do (request-window-size! 980 700)
-                save-file-dialog! $ PaintFileDialogOptions :request-id |demo-save :title (Option :some "|Save image / 保存图片") :directory
-                  Option :some $ fs:path |.
-                  , :file-name (Option :some |calcit-paint-export.png) :filters $ []
+                save-file-dialog! $ PaintFileDialogOptions :request-id |demo-save :title (Some "|Save image / 保存图片") :directory
+                  Some $ fs:path |.
+                  , :file-name (Some |calcit-paint-export.png) :filters $ []
                     PaintFileDialogFilter :name |PNG :extensions $ [] |png
                 reset! *file-drop-status "|file-dialog:save-pending (S)"
                 request-frame!
@@ -1172,7 +1171,7 @@
                 request-frame!
               _ $ println |event: kind target
           :examples $ []
-          :schema $ quote $ Fn Tag calcit-paint.core/PaintTarget Bool (-> Unit)
+          :schema $ quote $ Fn Tag PaintTarget Bool (-> Unit)
         'main! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn main! () (println |started)
             println $ measure-text! $ {} (:text "|Text layout / 文本排版") (:size 24) (:font-family |monospace) (:weight 700) (:style :italic) (:baseline :middle)
@@ -1745,6 +1744,10 @@
             :baseline $ Option Tag
           :examples $ []
           :schema $ quote StructDef
+        'IconSceneValue $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion IconSceneValue Tag String Number (List IconSceneValue) (Map Tag IconSceneValue)
+          :examples $ []
+          :schema $ quote UnionDef
         'TextInputOptions $ %{} 'CodeEntry
           :doc "|Options for an explicit :text-input focus area with an accessibility value. / 显式 :text-input focus area 的选项，带无障碍 value。"
           :code $ quote $ defstruct TextInputOptions (:id String) (:label String) (:value String) (:x Number) (:y Number) (:dx Number) (:dy Number)
@@ -1820,7 +1823,7 @@
             let
                 scene $ button $ ButtonOptions :id |example-button :label |Save :x 40 :y 40 :dx 120 :dy 36
               assert= ([]) (validate-scene scene)
-          :schema $ quote $ Fn calcit-paint.ui/ButtonOptions
+          :schema $ quote $ Fn ButtonOptions
             -> $ Map Tag Dynamic
           :tests $ [] $ %{} 'TestEntry (:name |builds-valid-button)
             :code $ quote $ let
@@ -1831,12 +1834,12 @@
           :doc "|Compose all scene builders into one validated scene that also works with render-to-png!. / 将所有 scene builder 组合为一个可校验、也可直接用于 render-to-png! 的场景。"
           :code $ quote $ defn demo-scene ()
             let
-                icon $ icon-label $ IconLabelOptions :label |Asset :x 70 :y 230 :gap (Option :some 34)
+                icon $ icon-label $ IconLabelOptions :label |Asset :x 70 :y 230 :gap (Some 34)
               {} (:type :group)
                 :children $ []
-                  button $ ButtonOptions :id |ui-demo-save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action $ Option :some :save
-                  touch-container $ TouchContainerOptions :id |ui-demo-card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children $ Option :some ([] icon)
-                  text-input-focus-area $ TextInputOptions :id |ui-demo-editor :label |Editor :value |Draft :x 120 :y 320 :dx 220 :dy 40 :action $ Option :some :edit
+                  button $ ButtonOptions :id |ui-demo-save :label |Save :x 120 :y 70 :dx 120 :dy 40 :action $ Some :save
+                  touch-container $ TouchContainerOptions :id |ui-demo-card :label |Card :role :button :x 120 :y 150 :dx 200 :dy 60 :children $ Some ([] icon)
+                  text-input-focus-area $ TextInputOptions :id |ui-demo-editor :label |Editor :value |Draft :x 120 :y 320 :dx 220 :dy 40 :action $ Some :edit
           :examples $ [] $ quote
             assert= ([])
               validate-scene $ demo-scene
@@ -1876,8 +1879,8 @@
             let
                 scene $ icon-label $ IconLabelOptions :label |Asset :x 40 :y 220
               assert= ([]) (validate-scene scene)
-          :schema $ quote $ Fn calcit-paint.ui/IconLabelOptions
-            -> $ Map Tag Dynamic
+          :schema $ quote $ Fn IconLabelOptions
+            -> $ Map Tag IconSceneValue
           :tests $ [] $ %{} 'TestEntry (:name |builds-visual-group)
             :code $ quote $ let
                 scene $ icon-label $ IconLabelOptions :label |Asset :x 1 :y 2
@@ -1932,7 +1935,7 @@
             let
                 scene $ text-input-focus-area $ TextInputOptions :id |example-editor :label |Editor :value |Draft :x 40 :y 160 :dx 220 :dy 40
               assert= ([]) (validate-scene scene)
-          :schema $ quote $ Fn calcit-paint.ui/TextInputOptions
+          :schema $ quote $ Fn TextInputOptions
             -> $ Map Tag Dynamic
           :tests $ [] $ %{} 'TestEntry (:name |builds-valid-text-input)
             :code $ quote $ let
@@ -1992,7 +1995,7 @@
             let
                 scene $ touch-container $ TouchContainerOptions :id |example-card :label |Card :role :button :x 40 :y 100 :dx 160 :dy 48
               assert= ([]) (validate-scene scene)
-          :schema $ quote $ Fn calcit-paint.ui/TouchContainerOptions
+          :schema $ quote $ Fn TouchContainerOptions
             -> $ Map Tag Dynamic
           :tests $ [] $ %{} 'TestEntry (:name |builds-valid-container)
             :code $ quote $ let
