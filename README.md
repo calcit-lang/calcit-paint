@@ -1,6 +1,6 @@
 ## Calcit Paint
 
-候选 **0.2.14** 配对正式 Calcit **0.41.1**。下游升级后需重新构建对应平台的
+候选 **0.2.14** 配对正式 Calcit **0.42.0**。下游升级后需重新构建对应平台的
 Paint 原生库。共享 `calcit_native_ffi` 仍为 0.1.3，buffer/blocking ABI 使用 v1。
 
 文字测量接口保留调用方的参数 Map 值类型，字段仍由原生测量接口校验。
@@ -232,7 +232,7 @@ keeps ownership of the Skia/winit event loop, rendering state, shape decoding,
 and callback scheduling. The module tracks `calcit_native_ffi 0.1.3`; buffer
 and blocking-callback protocols remain at v1. The published `0.2.6` module
 declares Calcit `0.30.0`; current source follows `deps.cirru`
-(`0.41.1` in this migration).
+(`0.42.0` in this migration).
 
 C-safe buffer-v1/blocking-callback descriptor、ownership 规则、Cirru EDN
 transport 与 adapter 由
@@ -240,7 +240,7 @@ transport 与 adapter 由
 Paint 仍负责 Skia/winit 事件循环、绘制状态、shape 解析和回调调度；
 模块当前使用 `calcit_native_ffi 0.1.3`，buffer 与 blocking-callback protocol
 均继续保持 v1；已发布的 `0.2.6` 模块声明 Calcit `0.30.0`，当前源码以
-`deps.cirru` 为准（本轮为正式版 `0.41.1`）。
+`deps.cirru` 为准（本轮为正式版 `0.42.0`）。
 
 A custom mirror may be used for Skia binaries when it is known to be healthy:
 
@@ -1351,12 +1351,11 @@ other theme tag; compatible callbacks receive the stable map form.
 Public wrappers use explicit `Unit` returns for side effects. Drawing and
 offscreen-export payloads are generic because each operation accepts a
 different EDN shape, while text and paragraph measurement return
-`Map<Tag, Number>`. Ten partially typed definitions remain by design:
+`Map<Tag, Number>`. The open boundaries include
 `build-art-scene` returns Paint's heterogeneous recursive scene map; the two
 compatible blocking launch APIs still deliver legacy `nil` and heterogeneous
-event maps; text-option and paragraph-option map values are heterogeneous; and
-`paint-event-from-ffi` accepts the one raw `Map<Tag, Dynamic>` transport value
-before strict nominal decoding. Four UI builders also return open scene maps. The visual-only
+event maps, heterogeneous text and paragraph options, and four UI builders that return open scene maps.
+`paint-event-from-ffi` preserves the input Map value type as a generic parameter until strict nominal decoding. The visual-only
 `icon-label` returns `Map<Tag, IconSceneValue>` with a recursive union for
 tags, text, numbers, lists, and nested scene maps. Callback result type `R` remains generic; all
 three launch APIs discard that result inside an adapter and
@@ -1378,11 +1377,11 @@ not only the attached tests that construct nominal events directly.
 
 公开 wrapper 的副作用返回值均显式声明为 `Unit`。不同绘制与离屏导出操作接收不同 EDN
 shape，因此 payload 使用泛型；单行文字与段落测量结果均明确为 `Map<Tag, Number>`。
-目前十处 partial definition 是有意保留的真实框架边界：`build-art-scene` 返回
+现有开放边界包括：`build-art-scene` 返回
 Paint 的异构递归 scene map；两个兼容的 blocking
 launch API 仍先送达旧行为的 `nil`、随后送达异构事件 map；单行文字与段落选项 map 的
-value 也为异构数据；`paint-event-from-ffi` 则只在严格 nominal 解码前接收一次原始
-`Map<Tag, Dynamic>` transport；四个 UI builder 也返回开放 scene map。纯视觉
+value 也为异构数据；四个 UI builder 返回开放 scene map。
+`paint-event-from-ffi` 在严格 nominal 解码前保留调用方传入的 Map 值类型。纯视觉
 `icon-label` 返回 `Map<Tag, IconSceneValue>`，递归 union 覆盖 Tag、文本、
 数值、列表和嵌套场景 Map。
 callback 返回类型 `R` 仍为泛型；三个 launch API

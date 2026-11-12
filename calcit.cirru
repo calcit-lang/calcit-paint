@@ -403,8 +403,9 @@
               {} (:path |assets/demo.png) (:x 24) (:y 36)
                 :modifiers $ {} (:shift? false) (:control? false) (:alt? false) (:super? false)
           :schema $ quote $ Fn
-            PaintEventFfi $ Map Tag Dynamic
+            PaintEventFfi $ Map Tag V
             -> PaintEvent
+            :generics V
           :tests $ []
             %{} 'TestEntry (:name |decodes-frame-payload)
               :code $ quote $ let
