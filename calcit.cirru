@@ -837,7 +837,7 @@
             println "|Exported creative-art.png / 已导出 creative-art.png"
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :io :state)
         'handle-event! $ %{} 'CodeEntry
           :doc "|Drive creative controls from the closed nominal PaintEvent protocol. / 通过封闭 nominal PaintEvent 协议驱动创作控制。"
           :code $ quote $ defn handle-event! (event)
@@ -868,7 +868,7 @@
               _ &unit
             , &unit
           :examples $ []
-          :schema $ quote $ Fn PaintEvent (-> Unit)
+          :schema $ quote $ Fn PaintEvent (-> Unit) (:features :io :state)
         'main! $ %{} 'CodeEntry
           :doc "|Validate, then launch the runnable Creative Art Preview. / 完成校验后启动可运行的 Creative Art Preview。"
           :code $ quote $ defn main! ()
@@ -879,7 +879,7 @@
               fn (event) (handle-event! event)
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :io :state)
         'regenerate! $ %{} 'CodeEntry
           :doc "|Advance the deterministic seed and redraw. / 递增确定性 seed 并重绘。"
           :code $ quote $ defn regenerate! ()
@@ -889,12 +889,12 @@
             render-art!
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :state)
         'reload! $ %{} 'CodeEntry
           :doc "|Redraw the artwork after a Calcit reload. / Calcit reload 后重绘作品。"
           :code $ quote $ defn reload! () (render-art!) (println "|Creative Art reloaded / 创意绘制已重载") &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :io :state)
         'render-art! $ %{} 'CodeEntry
           :doc "|Render the current creative state into the active Paint window. / 将当前创作状态绘制到活跃 Paint 窗口。"
           :code $ quote $ defn render-art! ()
@@ -902,7 +902,7 @@
             push-drawing-data! |render-canvas! $ build-art-scene @*seed @*time-ms @*export-status true
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :state)
         'seeded-unit $ %{} 'CodeEntry
           :doc "|Return a deterministic number in [0, 1] for one seed/index pair. / 为一组 seed/index 返回 [0, 1] 内的确定性数字。"
           :code $ quote $ defn seeded-unit (seed index)
@@ -926,7 +926,7 @@
             if @*playing? (request-frame!) &unit
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :state)
         'validate-art-scene! $ %{} 'CodeEntry
           :doc "|Validate the generated preview through the structured public boundary before launch. / 启动前通过公开结构化边界校验生成的预览。"
           :code $ quote $ defn validate-art-scene! ()
@@ -935,7 +935,7 @@
               if (empty? diagnostics) &unit $ raise $ str |unexpected-creative-art-diagnostics: diagnostics
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :state)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns calcit-paint.creative-art
           :require $ calcit-paint.core :refer $ WindowOptions PaintEvent launch-canvas-typed! push-drawing-data! render-to-png! request-frame! close-window! validate-scene-structured
@@ -1010,7 +1010,7 @@
             println "|Exported offscreen-demo.png / 已导出离屏快照"
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :io)
         'handle-file-dialog-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-file-dialog-event! (payload)
             reset! *file-drop-status $ str-spaced :file-dialog (:operation payload) (:status payload) (:request-id payload) (:path payload) (:error payload)
@@ -1018,7 +1018,7 @@
             request-frame!
             , &unit
           :examples $ []
-          :schema $ quote $ Fn PaintFileDialogEvent (-> Unit)
+          :schema $ quote $ Fn PaintFileDialogEvent (-> Unit) (:features :state)
         'handle-file-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-file-event! (kind payload)
             reset! *file-drop-status $ str-spaced kind
@@ -1027,14 +1027,14 @@
             reset! *pointer-dirty? true
             request-frame!
           :examples $ []
-          :schema $ quote $ Fn Tag calcit-paint.core/PaintFileEvent (-> Unit)
+          :schema $ quote $ Fn Tag calcit-paint.core/PaintFileEvent (-> Unit) (:features :state)
         'handle-file-hover-cancel! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-file-hover-cancel! (payload)
             reset! *file-drop-status $ str-spaced :file-hover-cancel |@ (:x payload) (:y payload)
             reset! *pointer-dirty? true
             request-frame!
           :examples $ []
-          :schema $ quote $ Fn calcit-paint.core/PaintFileHoverCancelEvent (-> Unit)
+          :schema $ quote $ Fn calcit-paint.core/PaintFileHoverCancelEvent (-> Unit) (:features :state)
         'handle-paint-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-paint-event! (event)
             match event
@@ -1135,7 +1135,7 @@
               (:window-close payload) (println |window-close: payload)
             , &unit
           :examples $ []
-          :schema $ quote $ Fn PaintEvent (-> Unit)
+          :schema $ quote $ Fn PaintEvent (-> Unit) (:features :io :state)
         'handle-target-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-target-event! (kind target captured?)
             match
@@ -1172,7 +1172,7 @@
                 request-frame!
               _ $ println |event: kind target
           :examples $ []
-          :schema $ quote $ Fn Tag PaintTarget Bool (-> Unit)
+          :schema $ quote $ Fn Tag PaintTarget Bool (-> Unit) (:features :io :state)
         'main! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn main! () (println |started)
             println $ measure-text! $ {} (:text "|Text layout / 文本排版") (:size 24) (:font-family |monospace) (:weight 700) (:style :italic) (:baseline :middle)
@@ -1180,11 +1180,11 @@
             validate-scene-demo!
             render! true
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :io :state)
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! () (render! false) (println "|reloads 19")
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :io :state)
         'render! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render! (start-loop?)
             push-drawing-data! |reset-canvas! $ if (= @*system-theme :dark) ([] 225 24 12)
@@ -1688,7 +1688,7 @@
                 fn (event) (handle-paint-event! event)
               , &unit
           :examples $ []
-          :schema $ quote $ Fn Bool (-> Unit)
+          :schema $ quote $ Fn Bool (-> Unit) (:features :io :state)
         'toggle-animation! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn toggle-animation! ()
             if @*animation-active?
@@ -1696,7 +1696,7 @@
               do (reset! *animation-active? true) (request-frame!)
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :io :state)
         'validate-scene-demo! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-scene-demo! ()
             let
@@ -1716,7 +1716,7 @@
                 raise $ str "|expected two invalid-scene diagnostics, got: " invalid-diagnostics
               , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :io)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns calcit-paint.main
           :require $ calcit-paint.core :refer $ WindowOptions PaintEvent PaintTarget PaintFileDialogOptions PaintFileDialogFilter PaintFileDialogEvent launch-canvas-typed! push-drawing-data! measure-text! measure-paragraph! focus! render-to-png! validate-scene request-frame! set-window-title! request-window-size! close-window! read-clipboard-text! write-clipboard-text! open-file-dialog! save-file-dialog!
