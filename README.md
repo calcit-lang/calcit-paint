@@ -1369,8 +1369,8 @@ Text and paragraph measurement results are decoded at the native adapter
 boundary as `Map<Tag, Number>`, not merely declared as that type.
 
 Native blocking transport currently reconstructs anonymous Enums, even when the
-Rust envelope carries a type name. The launch adapter therefore checks `enum?`
-before the internal wire decoder; it does not cast that value to `PaintEventFfi`.
+Rust envelope carries a type name. The internal wire decoder checks `enum?`
+at its entry and validates each variant payload.
 The public `paint-event-from-ffi` signature stays nominal and delegates to the
 same decoder, without duplicating the event branches. Unknown wire variants raise.
 This boundary was verified with the real single-frame blocking canvas smoke,
@@ -1394,8 +1394,7 @@ callback 返回类型 `R` 仍为泛型；三个 launch API
 这一返回类型。状态构造使用首选 `defref`，分支使用 `match`。
 
 native blocking transport 当前收到的是匿名 Enum，即使 Rust envelope 带有类型名。
-launch adapter 因而先用 `enum?` 确认实际 wire 容器，再调用内部 wire decoder，
-不把它强转为 `PaintEventFfi`。公开 `paint-event-from-ffi` 保留原 nominal 签名，
+内部 wire decoder 在入口用 `enum?` 确认容器，并逐分支校验 payload。公开 `paint-event-from-ffi` 保留原 nominal 签名，
 共享同一份原事件分支与 payload decoder；未知 wire variant 明确报错。
 该边界已经由真实单帧 blocking canvas smoke 验证，而不只依赖直接构造 nominal
 事件的附带测试。
