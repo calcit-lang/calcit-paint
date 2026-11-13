@@ -1351,10 +1351,11 @@ other theme tag; compatible callbacks receive the stable map form.
 Public wrappers use explicit `Unit` returns for side effects. Drawing and
 offscreen-export payloads are generic because each operation accepts a
 different EDN shape, while text and paragraph measurement return
-`Map<Tag, Number>`. The open boundaries include
-`build-art-scene` returns Paint's heterogeneous recursive scene map; the two
-compatible blocking launch APIs still deliver legacy `nil` and heterogeneous
-event maps, heterogeneous text and paragraph options, and four UI builders that return open scene maps.
+`Map<Tag, Number>`. `build-art-scene` returns `Map<Tag, ArtSceneValue>`.
+The recursive union covers tags, strings, numbers, booleans, lists, and nested
+scene maps. The two compatible blocking launch APIs still deliver legacy
+`nil` and heterogeneous event maps. Text and paragraph options and four UI
+builders also use open maps.
 `paint-event-from-ffi` preserves the input Map value type as a generic parameter until strict nominal decoding. The visual-only
 `icon-label` returns `Map<Tag, IconSceneValue>` with a recursive union for
 tags, text, numbers, lists, and nested scene maps. Callback result type `R` remains generic; all
@@ -1368,8 +1369,8 @@ Text and paragraph measurement results are decoded at the native adapter
 boundary as `Map<Tag, Number>`, not merely declared as that type.
 
 Native blocking transport currently reconstructs anonymous Enums, even when the
-Rust envelope carries a type name. The launch adapter therefore checks `enum?`
-before the internal wire decoder; it does not cast that value to `PaintEventFfi`.
+Rust envelope carries a type name. The internal wire decoder checks `enum?`
+at its entry and validates each variant payload.
 The public `paint-event-from-ffi` signature stays nominal and delegates to the
 same decoder, without duplicating the event branches. Unknown wire variants raise.
 This boundary was verified with the real single-frame blocking canvas smoke,
@@ -1377,10 +1378,9 @@ not only the attached tests that construct nominal events directly.
 
 公开 wrapper 的副作用返回值均显式声明为 `Unit`。不同绘制与离屏导出操作接收不同 EDN
 shape，因此 payload 使用泛型；单行文字与段落测量结果均明确为 `Map<Tag, Number>`。
-现有开放边界包括：`build-art-scene` 返回
-Paint 的异构递归 scene map；两个兼容的 blocking
-launch API 仍先送达旧行为的 `nil`、随后送达异构事件 map；单行文字与段落选项 map 的
-value 也为异构数据；四个 UI builder 返回开放 scene map。
+`build-art-scene` 返回 `Map<Tag, ArtSceneValue>`，递归 union 覆盖 Tag、字符串、
+数值、布尔值、列表和嵌套场景 Map。两个兼容的 blocking launch API 先送达
+`nil`，随后送达异构事件 Map。单行文字与段落选项、四个 UI builder 也使用开放 Map。
 `paint-event-from-ffi` 在严格 nominal 解码前保留调用方传入的 Map 值类型。纯视觉
 `icon-label` 返回 `Map<Tag, IconSceneValue>`，递归 union 覆盖 Tag、文本、
 数值、列表和嵌套场景 Map。
@@ -1394,8 +1394,7 @@ callback 返回类型 `R` 仍为泛型；三个 launch API
 这一返回类型。状态构造使用首选 `defref`，分支使用 `match`。
 
 native blocking transport 当前收到的是匿名 Enum，即使 Rust envelope 带有类型名。
-launch adapter 因而先用 `enum?` 确认实际 wire 容器，再调用内部 wire decoder，
-不把它强转为 `PaintEventFfi`。公开 `paint-event-from-ffi` 保留原 nominal 签名，
+内部 wire decoder 在入口用 `enum?` 确认容器，并逐分支校验 payload。公开 `paint-event-from-ffi` 保留原 nominal 签名，
 共享同一份原事件分支与 payload decoder；未知 wire variant 明确报错。
 该边界已经由真实单帧 blocking canvas smoke 验证，而不只依赖直接构造 nominal
 事件的附带测试。

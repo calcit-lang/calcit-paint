@@ -193,126 +193,128 @@
           :schema $ quote $ Fn (-> Unit)
         'decode-paint-event-wire $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn decode-paint-event-wire (event)
-            match event
-              (:ready) (PaintEvent :ready)
-              (:frame payload)
-                PaintEvent :frame $ decode-map-as payload PaintFrameEvent
-              (:mouse-down payload)
-                PaintEvent :mouse-down $ decode-map-as payload PaintPointerEvent
-              (:mouse-up payload)
-                PaintEvent :mouse-up $ decode-map-as payload PaintPointerEvent
-              (:mouse-move payload)
-                PaintEvent :mouse-move $ decode-map-as payload PaintPointerEvent
-              (:mouse-leave payload)
-                PaintEvent :mouse-leave $ decode-map-as payload PaintPointerEvent
-              (:mouse-wheel payload)
-                PaintEvent :mouse-wheel $ decode-map-as payload PaintPointerEvent
-              (:pointer-enter payload)
-                PaintEvent :pointer-enter $ decode-map-as payload PaintPointerEvent
-              (:pointer-leave payload)
-                PaintEvent :pointer-leave $ decode-map-as payload PaintPointerEvent
-              (:pointer-cancel payload)
-                PaintEvent :pointer-cancel $ decode-map-as payload PaintPointerEvent
-              (:key-down payload)
-                PaintEvent :key-down $ decode-map-as payload PaintKeyboardEvent
-              (:key-up payload)
-                PaintEvent :key-up $ decode-map-as payload PaintKeyboardEvent
-              (:focus-in payload)
-                PaintEvent :focus-in $ decode-map-as payload PaintFocusEvent
-              (:focus-out payload)
-                PaintEvent :focus-out $ decode-map-as payload PaintFocusEvent
-              (:ime-enabled payload)
-                PaintEvent :ime-enabled $ decode-map-as payload PaintTextInputEvent
-              (:ime-disabled payload)
-                PaintEvent :ime-disabled $ decode-map-as payload PaintTextInputEvent
-              (:composition-start payload)
-                PaintEvent :composition-start $ decode-map-as payload PaintTextInputEvent
-              (:composition-update payload)
-                PaintEvent :composition-update $ decode-map-as payload PaintTextInputEvent
-              (:composition-end payload)
-                PaintEvent :composition-end $ decode-map-as payload PaintTextInputEvent
-              (:text-input payload)
-                PaintEvent :text-input $ decode-map-as payload PaintTextInputEvent
-              (:file-hover payload)
-                let
-                    wire $ decode-map-as payload PaintFileEventWire
-                  PaintEvent :file-hover $ PaintFileEvent :path
-                    fs:path $ :path wire
-                    , :x (:x wire) :y (:y wire) :modifiers $ :modifiers wire
-              (:file-drop payload)
-                let
-                    wire $ decode-map-as payload PaintFileEventWire
-                  PaintEvent :file-drop $ PaintFileEvent :path
-                    fs:path $ :path wire
-                    , :x (:x wire) :y (:y wire) :modifiers $ :modifiers wire
-              (:file-hover-cancel payload)
-                PaintEvent :file-hover-cancel $ decode-map-as payload PaintFileHoverCancelEvent
-              (:file-dialog-result payload)
-                let
-                    wire $ decode-map-as payload PaintFileDialogEventWire
-                    path $ :path wire
-                    error $ :error wire
-                    path-for-event $ match path
-                      (:none) None
-                      (:some value)
-                        Some $ fs:path value
-                    result $ PaintFileDialogEvent :request-id (:request-id wire) :operation (:operation wire) :status (:status wire) :path path-for-event :error error
-                  match (:operation result) (:open &unit) (:save &unit)
-                    _ $ raise $ str "|unsupported typed file dialog operation: " (:operation result)
-                  match (:status result)
-                    :selected $ PaintEvent :file-dialog-result result
-                    :cancelled $ PaintEvent :file-dialog-result result
-                    :failed $ PaintEvent :file-dialog-result result
-                    _ $ raise $ str "|unsupported typed file dialog status: " (:status result)
-              (:accessibility-action payload)
-                let
-                    action $ decode-map-as payload PaintAccessibilityActionEvent
-                  match (:operation action)
-                    :focus $ PaintEvent :accessibility-action action
-                    :activate $ PaintEvent :accessibility-action action
-                    :set-value $ let
-                        value $ :value action
-                      match value
-                        (:some _) (PaintEvent :accessibility-action action)
-                        (:none)
-                          raise |typed-set-value-accessibility-action-requires-value
-                    :set-text-selection $ if
-                      and
-                        .some? $ :selection-start action
-                        .some? $ :selection-end action
-                      PaintEvent :accessibility-action action
-                      raise |typed-set-text-selection-accessibility-action-requires-selection
-                    :replace-selected-text $ if
-                      and
-                        .some? $ :selection-start action
-                        .some? $ :selection-end action
-                        .some? $ :text action
-                      PaintEvent :accessibility-action action
-                      raise |typed-replace-selected-text-accessibility-action-requires-selection-and-text
-                    _ $ raise $ str "|unsupported typed accessibility operation: " (:operation action)
-              (:window-focus) (PaintEvent :window-focus)
-              (:window-blur) (PaintEvent :window-blur)
-              (:resize payload)
-                PaintEvent :resize $ decode-map-as payload PaintWindowMetricsEvent
-              (:scale-factor payload)
-                PaintEvent :scale-factor $ decode-map-as payload PaintWindowMetricsEvent
-              (:window-theme payload)
-                let
-                    theme-event $ decode-map-as payload PaintWindowThemeEvent
-                  match (:theme theme-event)
-                    :light $ PaintEvent :window-theme theme-event
-                    :dark $ PaintEvent :window-theme theme-event
-                    :unknown $ PaintEvent :window-theme theme-event
-                    _ $ raise $ str "|unsupported typed system theme: " (:theme theme-event)
-              (:window-title-applied payload)
-                PaintEvent :window-title-applied $ decode-map-as payload PaintWindowTitleEvent
-              (:window-size-request payload)
-                PaintEvent :window-size-request $ decode-map-as payload PaintWindowSizeEvent
-              (:window-close payload)
-                PaintEvent :window-close $ decode-map-as payload PaintWindowCloseEvent
-              _ $ raise |unsupported-paint-wire-event
+            if (enum? event)
+              match event
+                (:ready) (PaintEvent :ready)
+                (:frame payload)
+                  PaintEvent :frame $ decode-map-as payload PaintFrameEvent
+                (:mouse-down payload)
+                  PaintEvent :mouse-down $ decode-map-as payload PaintPointerEvent
+                (:mouse-up payload)
+                  PaintEvent :mouse-up $ decode-map-as payload PaintPointerEvent
+                (:mouse-move payload)
+                  PaintEvent :mouse-move $ decode-map-as payload PaintPointerEvent
+                (:mouse-leave payload)
+                  PaintEvent :mouse-leave $ decode-map-as payload PaintPointerEvent
+                (:mouse-wheel payload)
+                  PaintEvent :mouse-wheel $ decode-map-as payload PaintPointerEvent
+                (:pointer-enter payload)
+                  PaintEvent :pointer-enter $ decode-map-as payload PaintPointerEvent
+                (:pointer-leave payload)
+                  PaintEvent :pointer-leave $ decode-map-as payload PaintPointerEvent
+                (:pointer-cancel payload)
+                  PaintEvent :pointer-cancel $ decode-map-as payload PaintPointerEvent
+                (:key-down payload)
+                  PaintEvent :key-down $ decode-map-as payload PaintKeyboardEvent
+                (:key-up payload)
+                  PaintEvent :key-up $ decode-map-as payload PaintKeyboardEvent
+                (:focus-in payload)
+                  PaintEvent :focus-in $ decode-map-as payload PaintFocusEvent
+                (:focus-out payload)
+                  PaintEvent :focus-out $ decode-map-as payload PaintFocusEvent
+                (:ime-enabled payload)
+                  PaintEvent :ime-enabled $ decode-map-as payload PaintTextInputEvent
+                (:ime-disabled payload)
+                  PaintEvent :ime-disabled $ decode-map-as payload PaintTextInputEvent
+                (:composition-start payload)
+                  PaintEvent :composition-start $ decode-map-as payload PaintTextInputEvent
+                (:composition-update payload)
+                  PaintEvent :composition-update $ decode-map-as payload PaintTextInputEvent
+                (:composition-end payload)
+                  PaintEvent :composition-end $ decode-map-as payload PaintTextInputEvent
+                (:text-input payload)
+                  PaintEvent :text-input $ decode-map-as payload PaintTextInputEvent
+                (:file-hover payload)
+                  let
+                      wire $ decode-map-as payload PaintFileEventWire
+                    PaintEvent :file-hover $ PaintFileEvent :path
+                      fs:path $ :path wire
+                      , :x (:x wire) :y (:y wire) :modifiers $ :modifiers wire
+                (:file-drop payload)
+                  let
+                      wire $ decode-map-as payload PaintFileEventWire
+                    PaintEvent :file-drop $ PaintFileEvent :path
+                      fs:path $ :path wire
+                      , :x (:x wire) :y (:y wire) :modifiers $ :modifiers wire
+                (:file-hover-cancel payload)
+                  PaintEvent :file-hover-cancel $ decode-map-as payload PaintFileHoverCancelEvent
+                (:file-dialog-result payload)
+                  let
+                      wire $ decode-map-as payload PaintFileDialogEventWire
+                      path $ :path wire
+                      error $ :error wire
+                      path-for-event $ match path
+                        (:none) None
+                        (:some value)
+                          Some $ fs:path value
+                      result $ PaintFileDialogEvent :request-id (:request-id wire) :operation (:operation wire) :status (:status wire) :path path-for-event :error error
+                    match (:operation result) (:open &unit) (:save &unit)
+                      _ $ raise $ str "|unsupported typed file dialog operation: " (:operation result)
+                    match (:status result)
+                      :selected $ PaintEvent :file-dialog-result result
+                      :cancelled $ PaintEvent :file-dialog-result result
+                      :failed $ PaintEvent :file-dialog-result result
+                      _ $ raise $ str "|unsupported typed file dialog status: " (:status result)
+                (:accessibility-action payload)
+                  let
+                      action $ decode-map-as payload PaintAccessibilityActionEvent
+                    match (:operation action)
+                      :focus $ PaintEvent :accessibility-action action
+                      :activate $ PaintEvent :accessibility-action action
+                      :set-value $ let
+                          value $ :value action
+                        match value
+                          (:some _) (PaintEvent :accessibility-action action)
+                          (:none)
+                            raise |typed-set-value-accessibility-action-requires-value
+                      :set-text-selection $ if
+                        and
+                          .some? $ :selection-start action
+                          .some? $ :selection-end action
+                        PaintEvent :accessibility-action action
+                        raise |typed-set-text-selection-accessibility-action-requires-selection
+                      :replace-selected-text $ if
+                        and
+                          .some? $ :selection-start action
+                          .some? $ :selection-end action
+                          .some? $ :text action
+                        PaintEvent :accessibility-action action
+                        raise |typed-replace-selected-text-accessibility-action-requires-selection-and-text
+                      _ $ raise $ str "|unsupported typed accessibility operation: " (:operation action)
+                (:window-focus) (PaintEvent :window-focus)
+                (:window-blur) (PaintEvent :window-blur)
+                (:resize payload)
+                  PaintEvent :resize $ decode-map-as payload PaintWindowMetricsEvent
+                (:scale-factor payload)
+                  PaintEvent :scale-factor $ decode-map-as payload PaintWindowMetricsEvent
+                (:window-theme payload)
+                  let
+                      theme-event $ decode-map-as payload PaintWindowThemeEvent
+                    match (:theme theme-event)
+                      :light $ PaintEvent :window-theme theme-event
+                      :dark $ PaintEvent :window-theme theme-event
+                      :unknown $ PaintEvent :window-theme theme-event
+                      _ $ raise $ str "|unsupported typed system theme: " (:theme theme-event)
+                (:window-title-applied payload)
+                  PaintEvent :window-title-applied $ decode-map-as payload PaintWindowTitleEvent
+                (:window-size-request payload)
+                  PaintEvent :window-size-request $ decode-map-as payload PaintWindowSizeEvent
+                (:window-close payload)
+                  PaintEvent :window-close $ decode-map-as payload PaintWindowCloseEvent
+                _ $ raise |unsupported-paint-wire-event
+              raise |expected-paint-wire-enum
           :examples $ []
-          :schema $ quote $ Fn AnyEnum (-> PaintEvent) (:open :decode)
+          :schema $ quote $ Fn Raw (-> PaintEvent) (:generics Raw) (:open :decode)
           :tests $ [] $ %{} 'TestEntry (:name |accepts-distinct-nominal-enum)
             :code $ quote $ assert= (PaintEvent :ready)
               decode-paint-event-wire $ PaintEvent :ready
@@ -342,9 +344,7 @@
           :doc "|Launch the configured single Paint window with a nominal PaintEvent callback."
           :code $ quote $ defn launch-canvas-typed! (options cb)
             &blocking-dylib-edn-fn (get-dylib-path |/dylibs/libcalcit_paint) |launch_canvas_typed options $ fn (event)
-              if (enum? event)
-                cb $ decode-paint-event-wire event
-                raise |expected-paint-wire-enum
+              cb $ decode-paint-event-wire event
               , :handled
             , &unit
           :examples $ []
@@ -678,8 +678,13 @@
           :code $ quote $ defref *time-ms 0
           :examples $ []
           :schema $ quote $ Ref Number
+        'ArtSceneValue $ %{} 'CodeEntry
+          :doc "|Recursive value of a generated artwork scene map. / 生成的创意场景 Map 中的递归值。"
+          :code $ quote $ defunion ArtSceneValue Tag String Number Bool (List ArtSceneValue) (Map Tag ArtSceneValue)
+          :examples $ []
+          :schema $ quote UnionDef
         'build-art-scene $ %{} 'CodeEntry
-          :doc "|Build the open scene-map boundary shared by the window and offscreen export. / 构建窗口与离屏导出共享的开放 scene-map 边界。"
+          :doc "|Build the typed scene map shared by window rendering and offscreen export. / 构建窗口绘制与离屏导出共享的类型化场景 Map。"
           :code $ quote $ defn build-art-scene (seed time-ms export-status controls?)
             let
                 phase $ / time-ms 1200
@@ -712,6 +717,7 @@
                           :children $ [] $ {} (:type :blend) (:mode :screen)
                             :children $ -> (range 48)
                               map $ fn (i)
+                                hint-fn $ Fn Number $ -> ArtSceneValue
                                 let
                                     x $ + 70 $ * 820
                                       seeded-unit seed $ + 10 $ * i 3
@@ -736,6 +742,7 @@
                               :radius $ * 0.12 phase
                               :children $ -> (range 16)
                                 map $ fn (i)
+                                  hint-fn $ Fn Number $ -> ArtSceneValue
                                   let
                                       angle $ + (* i 0.392699)
                                         * 0.08 $ sin $ + phase i
@@ -760,6 +767,7 @@
                           :color $ [] secondary-hue 94 78 0.9
                           :stops $ -> (range 160)
                             map $ fn (i)
+                              hint-fn $ Fn Number $ -> ArtSceneValue
                               let
                                   angle $ * i 0.08
                                   radius $ + 224 $ * 22
@@ -814,7 +822,7 @@
                 scene $ build-art-scene 17 0 |preview false
               assert= ([]) (validate-scene-structured scene)
           :schema $ quote $ Fn Number Number String Bool
-            -> $ Map Tag Dynamic
+            -> $ Map Tag ArtSceneValue
           :tests $ [] $ %{} 'TestEntry (:name |returns-group-scene)
             :code $ quote $ let
                 scene $ build-art-scene 17 0 |testing false
