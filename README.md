@@ -1351,10 +1351,11 @@ other theme tag; compatible callbacks receive the stable map form.
 Public wrappers use explicit `Unit` returns for side effects. Drawing and
 offscreen-export payloads are generic because each operation accepts a
 different EDN shape, while text and paragraph measurement return
-`Map<Tag, Number>`. The open boundaries include
-`build-art-scene` returns Paint's heterogeneous recursive scene map; the two
-compatible blocking launch APIs still deliver legacy `nil` and heterogeneous
-event maps, heterogeneous text and paragraph options, and four UI builders that return open scene maps.
+`Map<Tag, Number>`. `build-art-scene` returns `Map<Tag, ArtSceneValue>`.
+The recursive union covers tags, strings, numbers, booleans, lists, and nested
+scene maps. The two compatible blocking launch APIs still deliver legacy
+`nil` and heterogeneous event maps. Text and paragraph options and four UI
+builders also use open maps.
 `paint-event-from-ffi` preserves the input Map value type as a generic parameter until strict nominal decoding. The visual-only
 `icon-label` returns `Map<Tag, IconSceneValue>` with a recursive union for
 tags, text, numbers, lists, and nested scene maps. Callback result type `R` remains generic; all
@@ -1377,10 +1378,9 @@ not only the attached tests that construct nominal events directly.
 
 公开 wrapper 的副作用返回值均显式声明为 `Unit`。不同绘制与离屏导出操作接收不同 EDN
 shape，因此 payload 使用泛型；单行文字与段落测量结果均明确为 `Map<Tag, Number>`。
-现有开放边界包括：`build-art-scene` 返回
-Paint 的异构递归 scene map；两个兼容的 blocking
-launch API 仍先送达旧行为的 `nil`、随后送达异构事件 map；单行文字与段落选项 map 的
-value 也为异构数据；四个 UI builder 返回开放 scene map。
+`build-art-scene` 返回 `Map<Tag, ArtSceneValue>`，递归 union 覆盖 Tag、字符串、
+数值、布尔值、列表和嵌套场景 Map。两个兼容的 blocking launch API 先送达
+`nil`，随后送达异构事件 Map。单行文字与段落选项、四个 UI builder 也使用开放 Map。
 `paint-event-from-ffi` 在严格 nominal 解码前保留调用方传入的 Map 值类型。纯视觉
 `icon-label` 返回 `Map<Tag, IconSceneValue>`，递归 union 覆盖 Tag、文本、
 数值、列表和嵌套场景 Map。

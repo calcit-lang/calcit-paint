@@ -678,8 +678,13 @@
           :code $ quote $ defref *time-ms 0
           :examples $ []
           :schema $ quote $ Ref Number
+        'ArtSceneValue $ %{} 'CodeEntry
+          :doc "|Recursive value of a generated artwork scene map. / 生成的创意场景 Map 中的递归值。"
+          :code $ quote $ defunion ArtSceneValue Tag String Number Bool (List ArtSceneValue) (Map Tag ArtSceneValue)
+          :examples $ []
+          :schema $ quote UnionDef
         'build-art-scene $ %{} 'CodeEntry
-          :doc "|Build the open scene-map boundary shared by the window and offscreen export. / 构建窗口与离屏导出共享的开放 scene-map 边界。"
+          :doc "|Build the typed scene map shared by window rendering and offscreen export. / 构建窗口绘制与离屏导出共享的类型化场景 Map。"
           :code $ quote $ defn build-art-scene (seed time-ms export-status controls?)
             let
                 phase $ / time-ms 1200
@@ -712,6 +717,7 @@
                           :children $ [] $ {} (:type :blend) (:mode :screen)
                             :children $ -> (range 48)
                               map $ fn (i)
+                                hint-fn $ Fn Number $ -> ArtSceneValue
                                 let
                                     x $ + 70 $ * 820
                                       seeded-unit seed $ + 10 $ * i 3
@@ -736,6 +742,7 @@
                               :radius $ * 0.12 phase
                               :children $ -> (range 16)
                                 map $ fn (i)
+                                  hint-fn $ Fn Number $ -> ArtSceneValue
                                   let
                                       angle $ + (* i 0.392699)
                                         * 0.08 $ sin $ + phase i
@@ -760,6 +767,7 @@
                           :color $ [] secondary-hue 94 78 0.9
                           :stops $ -> (range 160)
                             map $ fn (i)
+                              hint-fn $ Fn Number $ -> ArtSceneValue
                               let
                                   angle $ * i 0.08
                                   radius $ + 224 $ * 22
@@ -814,7 +822,7 @@
                 scene $ build-art-scene 17 0 |preview false
               assert= ([]) (validate-scene-structured scene)
           :schema $ quote $ Fn Number Number String Bool
-            -> $ Map Tag Dynamic
+            -> $ Map Tag ArtSceneValue
           :tests $ [] $ %{} 'TestEntry (:name |returns-group-scene)
             :code $ quote $ let
                 scene $ build-art-scene 17 0 |testing false
