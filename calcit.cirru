@@ -1757,6 +1757,10 @@
           :code $ quote $ defunion IconSceneValue Tag String Number (List IconSceneValue) (Map Tag IconSceneValue)
           :examples $ []
           :schema $ quote UnionDef
+        'SceneField $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion SceneField Tag String Number Bool (List SceneField) (Map Tag SceneField)
+          :examples $ []
+          :schema $ quote UnionDef
         'TextInputOptions $ %{} 'CodeEntry
           :doc "|Options for an explicit :text-input focus area with an accessibility value. / 显式 :text-input focus area 的选项，带无障碍 value。"
           :code $ quote $ defstruct TextInputOptions (:id String) (:label String) (:value String) (:x Number) (:y Number) (:dx Number) (:dy Number)
@@ -1792,6 +1796,46 @@
           :doc "|Build one accessible touch-area button scene map with a centered label; :action/:path/:data stay explicit and are never hidden. / 构建一个带居中标签的可访问 touch-area button scene map；:action/:path/:data 保持显式，不会被隐藏。"
           :code $ quote $ defn button (options)
             let
+                fields $ button-scene options
+                with-action $ match (:action options)
+                  (:some action) (assoc fields :action action)
+                  (:none) fields
+                with-path $ match (:path options)
+                  (:some path) (assoc with-action :path path)
+                  (:none) with-action
+              match (:data options)
+                (:some data) (assoc with-path :data data)
+                (:none) with-path
+          :examples $ [] $ quote
+            let
+                scene $ button $ ButtonOptions :id |example-button :label |Save :x 40 :y 40 :dx 120 :dy 36
+              assert= ([]) (validate-scene scene)
+          :schema $ quote $ Fn ButtonOptions
+            -> $ Map Tag Dynamic
+          :tests $ []
+            %{} 'TestEntry (:name |builds-valid-button)
+              :code $ quote $ let
+                  scene $ button $ ButtonOptions :id |test-button :label |Test :x 1 :y 2 :dx 10 :dy 20
+                assert= ([]) (validate-scene scene)
+                , &unit
+            %{} 'TestEntry
+              :name |flattens-explicit-target-without-changing-payload
+              :code $ quote $ let
+                  payload $ {} $ false |opaque
+                  scene $ button $ ButtonOptions :id |test :label |Test :x 0 :y 0 :dx 10 :dy 10 :action (Some :choose) :path
+                    Some $ [] false
+                    , :data (Some payload)
+                assert= (Some :choose) (get scene :action)
+                assert=
+                  Some $ [] false
+                  get scene :path
+                assert= (Some payload) (get scene :data)
+                assert= None $ get scene :target
+                assert= ([]) (calcit-paint.core/validate-scene scene)
+        'button-scene $ %{} 'CodeEntry
+          :doc "|Build the visual and accessibility fields of a button. Use button to include the application event target."
+          :code $ quote $ defn button-scene (options)
+            let
                 id $ :id options
                 label $ :label options
                 x $ :x options
@@ -1800,21 +1844,8 @@
                 text-color $ .unwrap-or (:text-color options) ([] 0 0 98)
                 text-size $ .unwrap-or (:text-size options) 14
                 enabled? $ .unwrap-or (:enabled? options) true
-                target $ .merge
-                  if
-                    .some? $ :action options
-                    {} $ :action $ .unwrap (:action options)
-                    {}
-                  .merge
-                    if
-                      .some? $ :path options
-                      {} $ :path $ .unwrap (:path options)
-                      {}
-                    if
-                      .some? $ :data options
-                      {} $ :data $ .unwrap (:data options)
-                      {}
-                base $ {} (:type :touch-area)
+              decode-map-as
+                {} (:type :touch-area)
                   :position $ [] x y
                   :dx $ :dx options
                   :dy $ :dy options
@@ -1827,18 +1858,10 @@
                     :size text-size
                     :baseline :middle
                     :align :center
-              .merge base target
-          :examples $ [] $ quote
-            let
-                scene $ button $ ButtonOptions :id |example-button :label |Save :x 40 :y 40 :dx 120 :dy 36
-              assert= ([]) (validate-scene scene)
+                Map Tag SceneField
+          :examples $ []
           :schema $ quote $ Fn ButtonOptions
-            -> $ Map Tag Dynamic
-          :tests $ [] $ %{} 'TestEntry (:name |builds-valid-button)
-            :code $ quote $ let
-                scene $ button $ ButtonOptions :id |test-button :label |Test :x 1 :y 2 :dx 10 :dy 20
-              assert= ([]) (validate-scene scene)
-              , &unit
+            -> $ Map Tag SceneField
         'demo-scene $ %{} 'CodeEntry
           :doc "|Compose all scene builders into one validated scene that also works with render-to-png!. / 将所有 scene builder 组合为一个可校验、也可直接用于 render-to-png! 的场景。"
           :code $ quote $ defn demo-scene ()
