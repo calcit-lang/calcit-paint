@@ -441,7 +441,7 @@ fn load_font_typeface(font_file: &str) -> Option<Typeface> {
     return None;
   };
   let font_mgr = FontMgr::new();
-  match font_mgr.new_from_data(&data, 0) {
+  match font_mgr.new_from_data(Data::new_copy(&data), 0) {
     Some(typeface) => {
       if let Ok(mut cache) = FONT_FILE_CACHE.write() {
         if cache.len() >= FONT_FILE_CACHE_MAX_ENTRIES {
