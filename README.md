@@ -7,6 +7,13 @@ Paint 原生库。共享 `calcit_native_ffi` 仍为 0.1.3，buffer/blocking ABI 
 typed 入口继续使用具名 `PaintEvent`，兼容解码入口接收外部 Enum。
 场景格式、事件载荷和 Rust 绘制逻辑沿用原合同。
 
+Skia 已升级至 0.157.0，包含上游对新版 Apple Clang 绑定的修复。macOS 27 上若
+Rust 1.94 构建的动态库报 `mis-aligned LINKEDIT string pool`，可升级 Rust，或执行
+`CARGO_PROFILE_RELEASE_STRIP=none ./build.sh` 后重新加载；该错误另由
+[Rust 的符号裁剪问题](https://github.com/rust-lang/rust/issues/157750) 跟踪。
+本机以 Rust 1.94（禁用裁剪）和 1.100.0 各验证动态库加载及单帧画布；这不代表所有
+macOS SDK 和 Rust 组合均已验证。
+
 ### 历史 0.2.11 / Calcit 0.34.0
 
 当时的候选模块与 Cargo 元数据同步为 `0.2.11`，配对正式 Calcit `0.34.0`。
@@ -116,9 +123,9 @@ uses complete strict verification and checks every definition, retaining attache
 assertions, cookbook, offscreen PNG and blocking canvas smoke tests. No checker,
 rewrite rule, Dynamic/unsafe boundary or budget waiver is added.
 
-SVG research 的 Linux/Xvfb CI 显式选择 `svg-research,skia-safe/x11`，与实际 X11
-后端及 rust-skia 0.97.2 已发布的官方预编译组合匹配。默认构建不启用 SVG 或额外 X11
-feature，其他平台配置不变；不把需要完整源码 fallback 的任意 feature 组合称为都有预编译包。
+SVG research 的 Linux/Xvfb CI 显式选择 `svg-research,skia-safe/x11`，并测试 X11
+窗口。默认构建不启用 SVG 或额外 X11 feature，其他平台配置不变；不把需要完整源码
+fallback 的任意 feature 组合称为都有预编译包。
 
 ### Historical scaffold plans / 历史 scaffold
 
