@@ -337,9 +337,10 @@
             , &unit
           :examples $ []
           :schema $ quote $ Fn
-            Fn Dynamic $ -> R
+            Fn Dynamic (-> R) (:features :io :state)
             -> Unit
             :generics R
+            :features :io :state
         'launch-canvas-typed! $ %{} 'CodeEntry
           :doc "|Launch the configured single Paint window with a nominal PaintEvent callback."
           :code $ quote $ defn launch-canvas-typed! (options cb)
@@ -349,9 +350,10 @@
             , &unit
           :examples $ []
           :schema $ quote $ Fn WindowOptions
-            Fn PaintEvent $ -> R
+            Fn PaintEvent (-> R) (:features :io :state)
             -> Unit
             :generics R
+            :features :io :state
         'launch-canvas-with-options! $ %{} 'CodeEntry
           :doc "|Launch the blocking single-window event loop with nominal startup options."
           :code $ quote $ defn launch-canvas-with-options! (options cb)
@@ -359,9 +361,10 @@
             , &unit
           :examples $ []
           :schema $ quote $ Fn WindowOptions
-            Fn Dynamic $ -> R
+            Fn Dynamic (-> R) (:features :io :state)
             -> Unit
             :generics R
+            :features :io :state
         'measure-paragraph! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn measure-paragraph! (data)
             decode-map-as
@@ -884,7 +887,7 @@
             validate-art-scene!
             launch-canvas-typed!
               WindowOptions :title "|Calcit Paint · Creative Art Preview" :width 960 :height 720 :min-width 960 :min-height 720 :resizable? false
-              fn (event) (handle-event! event)
+              , handle-event!
             , &unit
           :examples $ []
           :schema $ quote $ Fn (-> Unit) (:features :io :state)
