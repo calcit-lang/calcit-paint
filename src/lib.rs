@@ -480,7 +480,14 @@ where
       self.env().window.request_redraw();
     }
 
-    self.env_mut().gr_context.flush_and_submit();
+    if let Err(error) = self.env_mut().gr_context.flush_and_submit() {
+      eprintln!("failed to flush Skia rendering: {error}");
+      if self.smoke_once {
+        self.smoke_result = Some(Err(format!("paint smoke Skia flush failed: {error}")));
+      }
+      self.request_exit(event_loop, "render-error");
+      return;
+    }
     let env = self.env();
     if let Err(error) = env.gl_surface.swap_buffers(&env.gl_context) {
       eprintln!("failed to swap OpenGL buffers: {error}");
