@@ -40,5 +40,6 @@ path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 
-# [profile.release]
-# debug = true
+[profile.release]
+# Keep Rust 1.94 release dylibs loadable on macOS 27.2.
+strip = "none"
