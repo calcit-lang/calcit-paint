@@ -19,11 +19,11 @@ jobs:
         with:
           components: clippy,rustfmt
           cache: false
-      - uses: calcit-lang/setup-calcit@v1.5.1
+      - uses: calcit-lang/setup-calcit@v1.5.2
         with:
           deps-file: deps.cirru
           tools: calcit,caps
-          caps-version: "0.1.1"
+          caps-version: "0.1.2"
       - name: Install native test dependencies
         run: |
           # The hosted runner adds Chrome's unrelated apt source, which can be
