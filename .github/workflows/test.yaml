@@ -9,6 +9,20 @@ permissions:
   contents: read
 
 jobs:
+  macos_dylib:
+    name: macOS dylib load
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.0
+        with:
+          toolchain: 1.94.0
+          cache: false
+      - run: cargo build --locked --release
+      - run: python3 -c 'import ctypes; ctypes.CDLL("./target/release/libcalcit_paint.dylib")'
+
   test:
     runs-on: ubuntu-latest
     steps:
